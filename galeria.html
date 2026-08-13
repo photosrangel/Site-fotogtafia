@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galeria — Rangel Santos — Fotografia</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a href="index.html" class="nav-logo">Rangel <em>Santos</em></a>
+    <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="index.html">Início</a>
+      <a href="galeria.html" class="active">Galeria</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="contato.html">Contato</a>
+      <a href="area-cliente.html" class="nav-cta">Área do Cliente</a>
+    </div>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:160px;">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow">Arquivo completo</p>
+        <h2 class="section-title">Galeria</h2>
+      </div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="todas">Todas</button>
+      <button class="filter-btn" data-filter="estudio">Estúdio</button>
+      <button class="filter-btn" data-filter="externo">Externo</button>
+      <button class="filter-btn" data-filter="autoestima">Autoestima</button>
+    </div>
+
+    <div class="grid" id="gallery-grid">
+      <!-- Os cards de ensaio são desenhados aqui automaticamente pelo js/gallery.js -->
+    </div>
+  </div>
+</section>
+
+<!-- Visualizador em tela cheia (lightbox) -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-top">
+    <div>
+      <p class="lightbox-title" id="lightbox-title"></p>
+      <p class="lightbox-counter" id="lightbox-counter"></p>
+    </div>
+    <button class="lightbox-close" id="lightbox-close" aria-label="Fechar visualizador">✕</button>
+  </div>
+  <button class="lightbox-arrow lightbox-arrow-left" id="lightbox-prev" aria-label="Foto anterior">‹</button>
+  <div class="lightbox-stage" id="lightbox-stage"></div>
+  <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-next" aria-label="Próxima foto">›</button>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
+    <div class="footer-links footer-mono">
+      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
+      <a href="area-cliente.html">Área do Cliente</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/gallery-data.js"></script>
+<script src="js/gallery.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
