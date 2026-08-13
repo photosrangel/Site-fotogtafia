@@ -117,7 +117,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   flex-direction: column;
   justify-content: flex-end;
   position: relative;
-  background: radial-gradient(120% 90% at 50% 0%, #1a1917 0%, #0b0b0a 70%);
+  background:
+    linear-gradient(to top, rgba(11,11,10,0.97) 0%, rgba(11,11,10,0.55) 45%, rgba(11,11,10,0.75) 100%),
+    linear-gradient(to right, rgba(11,11,10,0.5) 0%, rgba(11,11,10,0.1) 60%),
+    url('../images/hero-bg.jpg') center 20% / cover no-repeat;
   padding-bottom: 80px;
   overflow: hidden;
 }
