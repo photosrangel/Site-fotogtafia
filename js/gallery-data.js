@@ -14,19 +14,19 @@
 const ENSAIOS = [
   {
     id: 'sessao-autoestima-01',
-    titulo: 'Sessão Autoestima — Inês',
+    titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
     lente: '50mm · f/1.8',
     photos: [
       { src: 'images/retrato-01.jpg' },
       { src: 'images/retrato-02.jpg' },
-      { src: null, placeholder: 'foto-03.jpg' },
+      { src: 'https://i.imgur.com/fcyupnR.jpeg' },
       { src: null, placeholder: 'foto-04.jpg' },
     ],
   },
   {
     id: 'sessao-estudio-01',
-    titulo: 'Retrato em Estúdio — Marta',
+    titulo: 'Retrato em Estúdio',
     categoria: 'estudio',
     lente: '85mm · f/2',
     photos: [
@@ -37,7 +37,7 @@ const ENSAIOS = [
   },
   {
     id: 'sessao-externo-01',
-    titulo: 'Retrato Externo — Carla',
+    titulo: 'Retrato Externo',
     categoria: 'externo',
     lente: '35mm · f/2.2',
     photos: [
@@ -50,7 +50,7 @@ const ENSAIOS = [
   },
   {
     id: 'sessao-autoestima-02',
-    titulo: 'Sessão Autoestima — Sofia',
+    titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
     lente: '85mm · f/1.4',
     photos: [
