@@ -16,6 +16,7 @@ const ENSAIOS = [
     id: 'sessao-autoestima-01',
     titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
+    lente: '50mm · f/1.8',
     photos: [
       { src: 'images/retrato-01.jpg' },
       { src: 'images/retrato-02.jpg' },
@@ -27,6 +28,7 @@ const ENSAIOS = [
     id: 'sessao-estudio-01',
     titulo: 'Retrato em Estúdio',
     categoria: 'estudio',
+    lente: '85mm · f/2',
     photos: [
       { src: null, placeholder: 'foto-05.jpg' },
       { src: null, placeholder: 'foto-06.jpg' },
@@ -37,6 +39,7 @@ const ENSAIOS = [
     id: 'sessao-externo-01',
     titulo: 'Retrato Externo',
     categoria: 'externo',
+    lente: '35mm · f/2.2',
     photos: [
       { src: null, placeholder: 'foto-08.jpg' },
       { src: null, placeholder: 'foto-09.jpg' },
@@ -49,6 +52,7 @@ const ENSAIOS = [
     id: 'sessao-autoestima-02',
     titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
+    lente: '85mm · f/1.4',
     photos: [
       { src: null, placeholder: 'foto-13.jpg' },
       { src: null, placeholder: 'foto-14.jpg' },
