@@ -21,8 +21,8 @@ const ENSAIOS = [
       { src: 'images/retrato-01.jpg' },
       { src: 'images/retrato-02.jpg' },
       { src: 'https://i.imgur.com/fcyupnR.jpeg' },
-      { src: 'images/sobre-retratos.jpg' },
-      { src: 'images/IMG_8861jpg' },
+      { src: 'images/sobre-retrato.jpg' },
+      { src: 'images/IMG_8861.jpg' },
     ],
   },
   {
