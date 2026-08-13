@@ -14,7 +14,7 @@
 const ENSAIOS = [
   {
     id: 'sessao-autoestima-01',
-    titulo: 'Sessão Autoestima',
+    titulo: 'Rangel Santos',
     categoria: 'autoestima',
     lente: '50mm · f/1.8',
     photos: [
