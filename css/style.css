@@ -472,7 +472,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .contact-info dt:first-child { margin-top: 0; }
 .contact-info dd { margin-top: 6px; color: var(--text-muted); }
 
-@media (max-width: 950px) {
+@media (max-width: 760px) {
   .contact-grid { grid-template-columns: 1fr; }
 }
 
