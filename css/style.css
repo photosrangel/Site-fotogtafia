@@ -235,7 +235,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .section-title {
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 3.4vw, 4.5rem);
+  font-size: clamp(1.8rem, 3.4vw, 3.5rem);
   font-weight: 400;
 }
 
