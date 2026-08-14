@@ -176,7 +176,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2.6rem, 7vw, 6rem);
+  font-size: clamp(3.5rem, 2vw, 10rem);
   line-height: 1.02;
   max-width: 14ch;
 }
