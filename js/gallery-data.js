@@ -50,7 +50,7 @@ const ENSAIOS = [
     ],
   },
   {
-    id: 'sessao-autoestima-02',
+    id: 'sessao-autoestima-01',
     titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
     lente: '85mm · f/1.4',
@@ -58,6 +58,17 @@ const ENSAIOS = [
       { src: null, placeholder: 'foto-13.jpg' },
       { src: null, placeholder: 'foto-14.jpg' },
       { src: null, placeholder: 'foto-15.jpg' },
+    ],
+  },
+    {
+    id: 'sessao-sensual-01',
+    titulo: 'Sessão Autoestima',
+    categoria: 'autoestima',
+    lente: '85mm · f/1.4',
+    photos: [
+      { src: null, placeholder: 'foto-16.jpg' },
+      { src: null, placeholder: 'foto-17.jpg' },
+      { src: null, placeholder: 'foto-18.jpg' },
     ],
   },
 ];
