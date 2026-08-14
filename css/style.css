@@ -146,7 +146,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (min-width: 900px) {
   .hero-photo {
     /* Ponto focal no COMPUTADOR: alinha a linha dos olhos com o título */
-    object-position: center 55%;
+    object-position: center 40%;
   }
 }
 .hero::before {
