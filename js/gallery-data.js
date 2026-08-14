@@ -60,7 +60,7 @@ const ENSAIOS = [
       { src: null, placeholder: 'foto-15.jpg' },
     ],
   },
-    {
+  {
     id: 'sessao-sensual-01',
     titulo: 'Sessão Sensual',
     categoria: 'Sensual',
