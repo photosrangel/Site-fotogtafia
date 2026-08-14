@@ -124,6 +124,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   position: absolute;
   inset: 0;
   z-index: 0;
+  background: var(--bg);
 }
 .hero-photo {
   width: 100%;
@@ -131,7 +132,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   object-fit: cover;
   /* Ponto focal no CELULAR: agora com espaço de sobra, o rosto fica
      bem acima do texto (a foto cortada especialmente para celular ajuda nisso) */
-  object-position: center 80%;
+  object-position: center 60%;
+  /* Escala (zoom) no CELULAR: 1 = tamanho normal.
+     Menor que 1 (ex: 0.85) afasta a foto (mostra mais dela).
+     Maior que 1 (ex: 1.15) aproxima ainda mais. */
+  transform: scale(0,85);
 }
 .hero-overlay {
   position: absolute;
@@ -146,7 +151,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (min-width: 900px) {
   .hero-photo {
     /* Ponto focal no COMPUTADOR: alinha a linha dos olhos com o título */
-    object-position: center 40%;
+    object-position: center 38%;
+    /* Escala (zoom) no COMPUTADOR: mesma lógica do celular */
+    transform: scale(1);
   }
 }
 .hero::before {
