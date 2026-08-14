@@ -1,6 +1,9 @@
 {
   "rewrites": [
     {
+      "source": "/Início",
+      "destination": "/index.html"
+    },{
       "source": "/galeria",
       "destination": "/galeria.html"
     },
