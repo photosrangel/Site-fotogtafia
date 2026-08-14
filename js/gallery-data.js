@@ -63,7 +63,7 @@ const ENSAIOS = [
     {
     id: 'sessao-sensual-01',
     titulo: 'Sessão Sensual',
-    categoria: 'sensual',
+    categoria: 'Sensual',
     lente: '85mm · f/1.4',
     photos: [
       { src: null, placeholder: 'foto-16.jpg' },
