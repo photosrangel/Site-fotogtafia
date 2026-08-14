@@ -12,19 +12,7 @@
 // antes do ]; no final, ajustando os dados.
 
 const ENSAIOS = [
-  {
-    id: 'sessao-autoestima-01',
-    titulo: 'Rangel Santos',
-    categoria: 'autoestima',
-    lente: '50mm · f/1.8',
-    photos: [
-      { src: 'images/retrato-01.jpg' },
-      { src: 'images/retrato-02.jpg' },
-      { src: 'https://i.imgur.com/fcyupnR.jpeg' },
-      { src: 'images/sobre-retrato.jpg' },
-      { src: 'images/IMG_00112.jpg' },
-    ],
-  },
+  
   {
     id: 'sessao-estudio-01',
     titulo: 'Retrato em Estúdio',
@@ -51,6 +39,19 @@ const ENSAIOS = [
   },
   {
     id: 'sessao-autoestima-01',
+    titulo: 'Rangel Santos',
+    categoria: 'autoestima',
+    lente: '50mm · f/1.8',
+    photos: [
+      { src: 'images/retrato-01.jpg' },
+      { src: 'images/retrato-02.jpg' },
+      { src: 'https://i.imgur.com/fcyupnR.jpeg' },
+      { src: 'images/sobre-retrato.jpg' },
+      { src: 'images/IMG_00112.jpg' },
+    ],
+  },
+  {
+    id: 'sessao-autoestima-02',
     titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
     lente: '85mm · f/1.4',
