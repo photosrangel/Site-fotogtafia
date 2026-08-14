@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/galeria",
+      "destination": "/galeria.html"
+    },
+    {
+      "source": "/sobre",
+      "destination": "/sobre.html"
+    },
+    {
+      "source": "/contato",
+      "destination": "/contato.html"
+    },
+    {
+      "source": "/area-cliente",
+      "destination": "/area-cliente.html"
+    }
+  ]
+}
