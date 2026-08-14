@@ -131,7 +131,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   object-fit: cover;
   /* Ponto focal no CELULAR: agora com espaço de sobra, o rosto fica
      bem acima do texto (a foto cortada especialmente para celular ajuda nisso) */
-  object-position: center 60%;
+  object-position: center 75%;
 }
 .hero-overlay {
   position: absolute;
