@@ -132,7 +132,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   object-fit: cover;
   /* Ponto focal no CELULAR: agora com espaço de sobra, o rosto fica
      bem acima do texto (a foto cortada especialmente para celular ajuda nisso) */
-  object-position: center 60%;
+  object-position: center 75%;
   /* Escala (zoom) no CELULAR: 1 = tamanho normal.
      Menor que 1 (ex: 0.85) afasta a foto (mostra mais dela).
      Maior que 1 (ex: 1.15) aproxima ainda mais. */
