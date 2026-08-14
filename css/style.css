@@ -192,7 +192,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   display: flex;
   gap: 40px;
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 0.55rem;
   color: var(--text-muted);
   border-top: 1px solid var(--hairline);
   padding-top: 18px;
