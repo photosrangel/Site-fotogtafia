@@ -44,16 +44,12 @@
     background: var(--accent);
     border-color: var(--accent);
   }
- .barra-selecao {
+  .barra-selecao {
     position: sticky; bottom: 0; left: 0; right: 0;
     background: rgba(11,11,10,0.95); backdrop-filter: blur(6px);
     border-top: 1px solid var(--hairline);
     padding: 18px 24px; margin-top: 40px;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
-    
-    /* Mude para esta transição abaixo */
-    transition: bottom 0.3s ease; 
-    z-index: 999; /* Garante que ela fica por cima das fotos ao subir */
   }
   .download-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -464,35 +460,27 @@ async function salvarSelecao() {
 }
 
 </script>
-<!-- Script Corrigido para Esconder Cabeçalho e Barra de Seleção -->
 <script>
   let lastScrollTop = 0;
   const navElement = document.querySelector('.nav');
-  const barraSelecao = document.querySelector('.barra-selecao');
 
   window.addEventListener('scroll', () => {
     let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
     
+    // Evita problemas com o efeito de scroll elástico em dispositivos iOS
     if (currentScroll < 0) currentScroll = 0; 
 
+    // Se rolar para baixo e passar de 100px da tela, esconde o menu
     if (currentScroll > lastScrollTop && currentScroll > 100) {
-      // Esconde o menu de cima usando a classe CSS
-      if (navElement) navElement.classList.add('is-hidden');
-      
-      // Esconde a barra de seleção jogando-a para baixo da tela
-      if (barraSelecao) barraSelecao.style.bottom = '-100px';
+      navElement.classList.add('is-hidden');
     } else {
-      // Mostra o menu de cima novamente
-      if (navElement) navElement.classList.remove('is-hidden');
-      
-      // Mostra a barra de seleção colando-a novamente no fundo (0)
-      if (barraSelecao) barraSelecao.style.bottom = '0';
+      // Se rolar para cima, exibe o menu novamente
+      navElement.classList.remove('is-hidden');
     }
     
     lastScrollTop = currentScroll;
   });
 </script>
-
 
 </body>
 </html>
