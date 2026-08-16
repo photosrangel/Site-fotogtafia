@@ -23,7 +23,7 @@ function frameHTML(ensaio, index) {
       ${imgOrPlaceholder}
       <span class="frame-count">${total} fotos</span>
       <div class="frame-title-bar">${ensaio.titulo}</div>
-      <div class="frame-caption"><span>Ver ensaio completo →</div>
+      <div class="frame-caption"><span>Ver ensaio completo →</span></div>
     </div>`;
 }
 

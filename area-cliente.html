@@ -4,7 +4,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Área do Cliente — Rangel Santos — Fotografia</title>
+<meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="css/style.css">
+<style>
+  .cliente-wrap { max-width: 1100px; margin: 0 auto; padding: 160px 24px 100px; }
+  .acesso-box { max-width: 400px; margin: 10vh auto; text-align: center; }
+  .msg { font-family: var(--font-mono); font-size: 0.8rem; margin-top: 16px; }
+  .msg.erro { color: #e0574a; }
+  .msg.sucesso { color: var(--accent); }
+  .foto-selecionavel { position: relative; cursor: pointer; }
+  .foto-selecionavel::after {
+    content: '';
+    position: absolute; top: 10px; right: 10px;
+    width: 26px; height: 26px;
+    border: 1px solid var(--text);
+    background: rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+  }
+  .foto-selecionavel.marcada::after {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .foto-selecionavel.marcada::before {
+    content: '✓';
+    position: absolute; top: 10px; right: 10px;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bg); font-weight: bold; z-index: 2;
+  }
+  .barra-selecao {
+    position: sticky; bottom: 0; left: 0; right: 0;
+    background: rgba(11,11,10,0.95); backdrop-filter: blur(6px);
+    border-top: 1px solid var(--hairline);
+    padding: 18px 24px; margin-top: 40px;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+  }
+  .download-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--hairline);
+  }
+</style>
 </head>
 <body>
 
@@ -22,15 +61,35 @@
   </div>
 </nav>
 
-<div class="locked">
-  <div class="locked-icon">🔒</div>
-  <p class="section-eyebrow">Em construção</p>
-  <h2 class="section-title">Login de clientes chegando em breve</h2>
-  <p style="color:var(--text-muted); max-width:44ch;">
-    Aqui cada cliente vai poder entrar com um link próprio, ver a galeria da sua sessão,
-    marcar as fotos favoritas e, depois, baixar as fotos finais entregues.
-  </p>
-  <a href="contato.html" class="btn">Voltar ao contato</a>
+<!-- TELA DE ACESSO -->
+<div id="acesso-screen" class="cliente-wrap">
+  <div class="acesso-box">
+    <p class="section-eyebrow">Área do Cliente</p>
+    <h2 class="section-title" style="margin-bottom:24px;">Ver minha galeria</h2>
+    <form id="acesso-form">
+      <div class="field">
+        <label for="input-slug">Link/código do ensaio</label>
+        <input type="text" id="input-slug" required>
+      </div>
+      <div class="field">
+        <label for="input-codigo">Código de acesso</label>
+        <input type="text" id="input-codigo" required>
+      </div>
+      <button type="submit" class="btn btn-accent">Entrar</button>
+      <p id="acesso-msg" class="msg"></p>
+    </form>
+  </div>
+</div>
+
+<!-- GALERIA DO CLIENTE -->
+<div id="galeria-screen" class="cliente-wrap" style="display:none;">
+  <div class="section-head">
+    <div>
+      <p class="section-eyebrow" id="cliente-status"></p>
+      <h2 class="section-title" id="cliente-titulo"></h2>
+    </div>
+  </div>
+  <div id="conteudo-galeria"></div>
 </div>
 
 <footer class="footer">
@@ -43,6 +102,135 @@
   </div>
 </footer>
 
-<script src="js/main.js"></script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const acessoScreen = document.getElementById('acesso-screen');
+const galeriaScreen = document.getElementById('galeria-screen');
+const acessoMsg = document.getElementById('acesso-msg');
+
+let ensaioAtual = null;
+let selecaoAtual = new Set();
+
+// Preenche automaticamente se o link já vier com slug e código
+const params = new URLSearchParams(location.search);
+if (params.get('slug')) document.getElementById('input-slug').value = params.get('slug');
+if (params.get('codigo')) document.getElementById('input-codigo').value = params.get('codigo');
+if (params.get('slug') && params.get('codigo')) {
+  entrar(params.get('slug'), params.get('codigo'));
+}
+
+document.getElementById('acesso-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const slug = document.getElementById('input-slug').value.trim();
+  const codigo = document.getElementById('input-codigo').value.trim();
+  entrar(slug, codigo);
+});
+
+async function entrar(slug, codigo) {
+  acessoMsg.textContent = 'Verificando...';
+  acessoMsg.className = 'msg';
+
+  const { data, error } = await supabase.rpc('verificar_ensaio', { p_slug: slug, p_codigo: codigo });
+
+  if (error || !data || data.erro) {
+    acessoMsg.textContent = 'Link ou código inválido. Confira com o fotógrafo.';
+    acessoMsg.className = 'msg erro';
+    return;
+  }
+
+  ensaioAtual = data;
+  selecaoAtual = new Set((data.fotos || []).filter(f => f.selecionada).map(f => f.id));
+  mostrarGaleria();
+}
+
+function mostrarGaleria() {
+  acessoScreen.style.display = 'none';
+  galeriaScreen.style.display = 'block';
+
+  document.getElementById('cliente-titulo').textContent = ensaioAtual.titulo;
+
+  const statusTextos = {
+    aguardando_selecao: 'Escolha suas fotos favoritas',
+    selecionado: 'Seleção enviada — aguardando edição',
+    entregue: 'Suas fotos estão prontas!'
+  };
+  document.getElementById('cliente-status').textContent = statusTextos[ensaioAtual.status] || '';
+
+  const conteudo = document.getElementById('conteudo-galeria');
+
+  if (ensaioAtual.status === 'entregue') {
+    conteudo.innerHTML = `
+      <p style="color:var(--text-muted); margin-bottom:24px;">
+        Clique em cada foto para baixar em alta resolução.
+      </p>
+      ${ensaioAtual.fotos.map((f, i) => `
+        <div class="download-item">
+          <span class="footer-mono">Foto ${i + 1}</span>
+          <a href="${f.url}" download class="btn">Baixar</a>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  conteudo.innerHTML = `
+    <p style="color:var(--text-muted); margin-bottom:24px;">
+      Clique nas fotos que você mais gostou. Pode escolher quantas quiser, e mudar de ideia antes de enviar.
+    </p>
+    <div class="grid" id="grid-selecao">
+      ${ensaioAtual.fotos.map(f => `
+        <div class="frame foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}">
+          <img src="${f.url}" alt="Foto do ensaio">
+        </div>
+      `).join('')}
+    </div>
+    <div class="barra-selecao">
+      <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
+      <button class="btn btn-accent" id="btn-salvar-selecao">Enviar seleção</button>
+    </div>
+    <p class="msg" id="selecao-msg"></p>
+  `;
+
+  document.querySelectorAll('.foto-selecionavel').forEach((el) => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      if (selecaoAtual.has(id)) selecaoAtual.delete(id);
+      else selecaoAtual.add(id);
+      el.classList.toggle('marcada');
+      document.getElementById('contador-selecao').textContent = `${selecaoAtual.size} foto(s) selecionada(s)`;
+    });
+  });
+
+  document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
+}
+
+async function salvarSelecao() {
+  const msgEl = document.getElementById('selecao-msg');
+  msgEl.textContent = 'Enviando...';
+  msgEl.className = 'msg';
+
+  const params2 = new URLSearchParams(location.search);
+  const codigo = document.getElementById('input-codigo').value || params2.get('codigo');
+
+  const { data, error } = await supabase.rpc('salvar_selecao', {
+    p_ensaio_id: ensaioAtual.id,
+    p_codigo: codigo,
+    p_foto_ids: Array.from(selecaoAtual)
+  });
+
+  if (error || (data && data.erro)) {
+    msgEl.textContent = 'Não foi possível salvar. Tente novamente.';
+    msgEl.className = 'msg erro';
+  } else {
+    msgEl.textContent = 'Seleção enviada! O fotógrafo já foi avisado.';
+    msgEl.className = 'msg sucesso';
+  }
+}
+</script>
+
 </body>
 </html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Rangel Santos Fotografia</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .admin-wrap { max-width: 900px; margin: 0 auto; padding: 140px 24px 100px; }
+  .login-box { max-width: 380px; margin: 15vh auto; }
+  .ensaio-card {
+    border: 1px solid var(--hairline);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .ensaio-card-head {
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; gap: 16px; flex-wrap: wrap;
+  }
+  .ensaio-status {
+    font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.06em; padding: 4px 10px; border: 1px solid var(--hairline); color: var(--text-muted);
+  }
+  .ensaio-status.entregue { border-color: var(--accent); color: var(--accent); }
+  .ensaio-status.selecionado { border-color: var(--text); color: var(--text); }
+  .ensaio-detail { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--hairline); }
+  .ensaio-detail.is-open { display: block; }
+  .link-box {
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);
+    background: var(--surface); padding: 10px 12px; word-break: break-all; margin: 10px 0;
+  }
+  .upload-area {
+    border: 1px dashed var(--hairline); padding: 20px; text-align: center; margin: 16px 0;
+  }
+  .photo-mini-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px; margin-top: 12px;
+  }
+  .photo-mini { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--surface); }
+  .photo-mini img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-mini.selecionada::after {
+    content: '★'; position: absolute; top: 4px; right: 4px; color: var(--accent);
+    font-size: 1rem; text-shadow: 0 0 4px #000;
+  }
+  .msg { font-family: var(--font-mono); font-size: 0.75rem; margin-top: 10px; }
+  .msg.erro { color: #e0574a; }
+  .msg.sucesso { color: var(--accent); }
+  .small-btn {
+    font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+    padding: 8px 14px; border: 1px solid var(--hairline); background: none; color: var(--text);
+    cursor: pointer; margin-top: 8px;
+  }
+  .small-btn:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav class="nav is-solid">
+  <div class="container">
+    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
+    <span class="footer-mono">Painel Admin</span>
+  </div>
+</nav>
+
+<!-- TELA DE LOGIN -->
+<div id="login-screen" class="admin-wrap">
+  <div class="login-box">
+    <p class="section-eyebrow">Acesso restrito</p>
+    <h2 class="section-title" style="margin-bottom:24px;">Entrar</h2>
+    <form id="login-form">
+      <div class="field">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" required>
+      </div>
+      <div class="field">
+        <label for="login-senha">Senha</label>
+        <input type="password" id="login-senha" required>
+      </div>
+      <button type="submit" class="btn btn-accent">Entrar</button>
+      <p id="login-msg" class="msg"></p>
+    </form>
+  </div>
+</div>
+
+<!-- PAINEL (só aparece depois de logar) -->
+<div id="painel" class="admin-wrap" style="display:none;">
+  <div class="section-head">
+    <div>
+      <p class="section-eyebrow">Painel</p>
+      <h2 class="section-title">Seus ensaios</h2>
+    </div>
+    <button id="btn-logout" class="btn">Sair</button>
+  </div>
+
+  <!-- Formulário: novo ensaio -->
+  <div class="ensaio-card">
+    <p class="section-eyebrow">Criar novo ensaio</p>
+    <form id="form-novo-ensaio">
+      <div class="field">
+        <label for="novo-titulo">Título (ex: Sessão Autoestima — Maria)</label>
+        <input type="text" id="novo-titulo" required>
+      </div>
+      <div class="field">
+        <label for="novo-cliente">Nome do cliente</label>
+        <input type="text" id="novo-cliente">
+      </div>
+      <div class="field">
+        <label for="novo-categoria">Categoria</label>
+        <select id="novo-categoria">
+          <option value="autoestima">Autoestima</option>
+          <option value="estudio">Estúdio</option>
+          <option value="externo">Externo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="novo-codigo">Código de acesso do cliente</label>
+        <input type="text" id="novo-codigo" required>
+        <button type="button" id="btn-gerar-codigo" class="small-btn">Gerar código aleatório</button>
+      </div>
+      <button type="submit" class="btn btn-accent">Criar ensaio</button>
+      <p id="novo-ensaio-msg" class="msg"></p>
+    </form>
+  </div>
+
+  <div id="lista-ensaios"></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loginScreen = document.getElementById('login-screen');
+const painel = document.getElementById('painel');
+const loginForm = document.getElementById('login-form');
+const loginMsg = document.getElementById('login-msg');
+
+// -------- Login --------
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginMsg.textContent = 'Entrando...';
+  loginMsg.className = 'msg';
+  const email = document.getElementById('login-email').value;
+  const senha = document.getElementById('login-senha').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  if (error) {
+    loginMsg.textContent = 'E-mail ou senha incorretos.';
+    loginMsg.className = 'msg erro';
+  } else {
+    mostrarPainel();
+  }
+});
+
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  location.reload();
+});
+
+async function verificarLogin() {
+  const { data } = await supabase.auth.getSession();
+  if (data.session) mostrarPainel();
+}
+verificarLogin();
+
+function mostrarPainel() {
+  loginScreen.style.display = 'none';
+  painel.style.display = 'block';
+  carregarEnsaios();
+}
+
+// -------- Gerar código aleatório --------
+document.getElementById('btn-gerar-codigo').addEventListener('click', () => {
+  const codigo = Math.random().toString(36).slice(2, 8).toUpperCase();
+  document.getElementById('novo-codigo').value = codigo;
+});
+
+function gerarSlug(texto) {
+  return texto
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 60) + '-' + Math.random().toString(36).slice(2, 6);
+}
+
+// -------- Criar novo ensaio --------
+document.getElementById('form-novo-ensaio').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('novo-ensaio-msg');
+  const titulo = document.getElementById('novo-titulo').value;
+  const cliente_nome = document.getElementById('novo-cliente').value;
+  const categoria = document.getElementById('novo-categoria').value;
+  const codigo_acesso = document.getElementById('novo-codigo').value;
+  const slug = gerarSlug(titulo);
+
+  const { error } = await supabase.from('ensaios').insert({
+    titulo, cliente_nome, categoria, codigo_acesso, slug
+  });
+
+  if (error) {
+    msg.textContent = 'Erro ao criar: ' + error.message;
+    msg.className = 'msg erro';
+  } else {
+    msg.textContent = 'Ensaio criado!';
+    msg.className = 'msg sucesso';
+    e.target.reset();
+    carregarEnsaios();
+  }
+});
+
+// -------- Carregar lista de ensaios --------
+async function carregarEnsaios() {
+  const lista = document.getElementById('lista-ensaios');
+  const { data: ensaios, error } = await supabase
+    .from('ensaios')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    lista.innerHTML = `<p class="msg erro">Erro ao carregar: ${error.message}</p>`;
+    return;
+  }
+
+  lista.innerHTML = ensaios.map((ens) => ensaioCardHTML(ens)).join('');
+
+  ensaios.forEach((ens) => {
+    document.getElementById(`head-${ens.id}`).addEventListener('click', () => toggleDetail(ens));
+  });
+}
+
+function ensaioCardHTML(ens) {
+  const linkCliente = `${location.origin}${location.pathname.replace('admin.html','')}area-cliente.html?slug=${ens.slug}&codigo=${ens.codigo_acesso}`;
+  return `
+    <div class="ensaio-card">
+      <div class="ensaio-card-head" id="head-${ens.id}">
+        <div>
+          <strong style="font-family:var(--font-display); font-size:1.1rem;">${ens.titulo}</strong>
+          <p class="footer-mono" style="margin-top:4px;">${ens.cliente_nome || ''}</p>
+        </div>
+        <span class="ensaio-status ${ens.status}">${statusLabel(ens.status)}</span>
+      </div>
+      <div class="ensaio-detail" id="detail-${ens.id}"></div>
+    </div>`;
+}
+
+function statusLabel(status) {
+  if (status === 'entregue') return 'Entregue';
+  if (status === 'selecionado') return 'Cliente escolheu';
+  return 'Aguardando seleção';
+}
+
+let detalheAberto = null;
+
+async function toggleDetail(ens) {
+  const detailEl = document.getElementById(`detail-${ens.id}`);
+  const jaAberto = detailEl.classList.contains('is-open');
+
+  if (detalheAberto && detalheAberto !== detailEl) detalheAberto.classList.remove('is-open');
+
+  if (jaAberto) {
+    detailEl.classList.remove('is-open');
+    return;
+  }
+
+  detailEl.classList.add('is-open');
+  detalheAberto = detailEl;
+
+  const linkCliente = `${location.origin}${location.pathname.replace('admin.html','')}area-cliente.html?slug=${ens.slug}&codigo=${ens.codigo_acesso}`;
+
+  const { data: fotos } = await supabase
+    .from('fotos')
+    .select('*')
+    .eq('ensaio_id', ens.id)
+    .order('ordem');
+
+  const provas = (fotos || []).filter(f => f.tipo === 'prova');
+  const finais = (fotos || []).filter(f => f.tipo === 'final');
+  const selecionadas = provas.filter(f => f.selecionada).length;
+
+  detailEl.innerHTML = `
+    <p class="footer-mono">Link para o cliente (envie por WhatsApp/e-mail):</p>
+    <div class="link-box">${linkCliente}</div>
+    <button class="small-btn" onclick="navigator.clipboard.writeText('${linkCliente}'); this.textContent='Copiado!'">Copiar link</button>
+
+    <p class="footer-mono" style="margin-top:24px;">Fotos para o cliente escolher (provas) — ${provas.length} enviadas, ${selecionadas} selecionadas:</p>
+    <div class="upload-area">
+      <input type="file" id="upload-prova-${ens.id}" multiple accept="image/*">
+      <p class="footer-mono" style="margin-top:8px;">Selecione uma ou várias fotos</p>
+    </div>
+    <div class="photo-mini-grid" id="grid-prova-${ens.id}">
+      ${provas.map(f => `<div class="photo-mini ${f.selecionada ? 'selecionada' : ''}"><img src="${f.url}"></div>`).join('')}
+    </div>
+
+    <p class="footer-mono" style="margin-top:24px;">Fotos finais (tratadas, para entrega) — ${finais.length} enviadas:</p>
+    <div class="upload-area">
+      <input type="file" id="upload-final-${ens.id}" multiple accept="image/*">
+      <p class="footer-mono" style="margin-top:8px;">Só o cliente vê essas, e só depois de "Marcar como entregue"</p>
+    </div>
+    <div class="photo-mini-grid" id="grid-final-${ens.id}">
+      ${finais.map(f => `<div class="photo-mini"><img src="${f.url}"></div>`).join('')}
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn ${ens.status === 'entregue' ? '' : 'btn-accent'}" id="btn-entregar-${ens.id}">
+        ${ens.status === 'entregue' ? 'Já entregue ✓' : 'Marcar como entregue'}
+      </button>
+    </div>
+    <p class="msg" id="msg-${ens.id}"></p>
+  `;
+
+  document.getElementById(`upload-prova-${ens.id}`).addEventListener('change', (e) => uploadFotos(e, ens.id, 'prova'));
+  document.getElementById(`upload-final-${ens.id}`).addEventListener('change', (e) => uploadFotos(e, ens.id, 'final'));
+  document.getElementById(`btn-entregar-${ens.id}`).addEventListener('click', () => marcarEntregue(ens.id));
+}
+
+async function uploadFotos(event, ensaioId, tipo) {
+  const files = Array.from(event.target.files);
+  const msgEl = document.getElementById(`msg-${ensaioId}`);
+  msgEl.textContent = `Enviando ${files.length} foto(s)...`;
+  msgEl.className = 'msg';
+
+  for (const file of files) {
+    const path = `${ensaioId}/${tipo}/${Date.now()}-${file.name}`;
+    const { error: upErr } = await supabase.storage.from('fotos').upload(path, file);
+    if (upErr) {
+      msgEl.textContent = 'Erro ao enviar: ' + upErr.message;
+      msgEl.className = 'msg erro';
+      continue;
+    }
+    const { data: urlData } = supabase.storage.from('fotos').getPublicUrl(path);
+    await supabase.from('fotos').insert({
+      ensaio_id: ensaioId, url: urlData.publicUrl, tipo
+    });
+  }
+
+  msgEl.textContent = 'Fotos enviadas!';
+  msgEl.className = 'msg sucesso';
+  carregarEnsaios();
+}
+
+async function marcarEntregue(ensaioId) {
+  const { error } = await supabase.from('ensaios').update({ status: 'entregue' }).eq('id', ensaioId);
+  const msgEl = document.getElementById(`msg-${ensaioId}`);
+  if (error) {
+    msgEl.textContent = 'Erro: ' + error.message;
+    msgEl.className = 'msg erro';
+  } else {
+    msgEl.textContent = 'Marcado como entregue!';
+    msgEl.className = 'msg sucesso';
+    carregarEnsaios();
+  }
+}
+</script>
+
+</body>
+</html>
