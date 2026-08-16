@@ -85,7 +85,11 @@
       </div>
       <div class="field">
         <label for="input-codigo">Senha</label>
-        <input type="text" id="input-codigo" required>
+        <div style="position:relative;">
+          <input type="password" id="input-codigo" required style="padding-right:40px;">
+          <button type="button" id="btn-toggle-senha" aria-label="Mostrar senha"
+            style="position:absolute; right:0; bottom:10px; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.1rem; padding:0;">👁</button>
+        </div>
       </div>
       <button type="submit" class="btn btn-accent">Entrar</button>
       <p id="acesso-msg" class="msg"></p>
@@ -102,6 +106,23 @@
     </div>
   </div>
   <div id="conteudo-galeria"></div>
+</div>
+
+<!-- Visualizador em tela cheia (mesmo padrão da galeria pública) -->
+<div class="lightbox" id="lightbox-selecao">
+  <div class="lightbox-top">
+    <div>
+      <p class="lightbox-title">Foto ampliada</p>
+      <p class="lightbox-counter" id="lightbox-sel-counter"></p>
+    </div>
+    <button class="lightbox-close" id="lightbox-sel-close" aria-label="Fechar visualizador">✕</button>
+  </div>
+  <button class="lightbox-arrow lightbox-arrow-left" id="lightbox-sel-prev" aria-label="Foto anterior">‹</button>
+  <div class="lightbox-stage protegida" id="lightbox-sel-stage"></div>
+  <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-sel-next" aria-label="Próxima foto">›</button>
+  <div style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
+    <button class="btn btn-accent" id="lightbox-sel-toggle"></button>
+  </div>
 </div>
 
 <footer class="footer">
@@ -136,6 +157,15 @@ const acessoMsg = document.getElementById('acesso-msg');
 
 let ensaioAtual = null;
 let selecaoAtual = new Set();
+
+document.getElementById('btn-toggle-senha').addEventListener('click', () => {
+  const input = document.getElementById('input-codigo');
+  const btn = document.getElementById('btn-toggle-senha');
+  const mostrando = input.type === 'text';
+  input.type = mostrando ? 'password' : 'text';
+  btn.textContent = mostrando ? '👁' : '🙈';
+  btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
+});
 
 document.getElementById('acesso-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -235,8 +265,8 @@ function mostrarGaleria() {
       Clique nas fotos que você mais gostou. Pode escolher quantas quiser, e mudar de ideia antes de enviar.
     </p>
     <div class="grid" id="grid-selecao">
-      ${ensaioAtual.fotos.map(f => `
-        <div class="frame protegida foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}">
+      ${ensaioAtual.fotos.map((f, i) => `
+        <div class="frame protegida foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}" data-index="${i}">
           <img src="${f.url}" alt="Foto do ensaio">
           <span class="check-box">${selecaoAtual.has(f.id) ? '✓' : ''}</span>
         </div>
@@ -250,22 +280,33 @@ function mostrarGaleria() {
   `;
 
   document.querySelectorAll('.foto-selecionavel').forEach((el) => {
+    // Clique na caixinha: seleciona/desmarca, sem abrir o visualizador
+    el.querySelector('.check-box').addEventListener('click', (e) => {
+      e.stopPropagation();
+      alternarSelecao(el);
+    });
+    // Clique no resto da foto: abre o visualizador ampliado
     el.addEventListener('click', () => {
-      const id = el.dataset.id;
-      const check = el.querySelector('.check-box');
-      if (selecaoAtual.has(id)) {
-        selecaoAtual.delete(id);
-        check.textContent = '';
-      } else {
-        selecaoAtual.add(id);
-        check.textContent = '✓';
-      }
-      el.classList.toggle('marcada');
-      document.getElementById('contador-selecao').textContent = `${selecaoAtual.size} foto(s) selecionada(s)`;
+      abrirLightboxSelecao(Number(el.dataset.index));
     });
   });
 
   document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
+}
+
+function alternarSelecao(el) {
+  const id = el.dataset.id;
+  const check = el.querySelector('.check-box');
+  if (selecaoAtual.has(id)) {
+    selecaoAtual.delete(id);
+    check.textContent = '';
+  } else {
+    selecaoAtual.add(id);
+    check.textContent = '✓';
+  }
+  el.classList.toggle('marcada');
+  const contador = document.getElementById('contador-selecao');
+  if (contador) contador.textContent = `${selecaoAtual.size} foto(s) selecionada(s)`;
 }
 
 // Baixa todas as fotos de uma vez, compactadas num único arquivo .zip
@@ -330,6 +371,68 @@ window.baixarFoto = async function (url, nomeArquivo, botaoEl) {
   }
   botaoEl.textContent = textoOriginal;
 };
+
+// -------- Visualizador em tela cheia (lightbox) da aba de seleção --------
+const lightboxSel = document.getElementById('lightbox-selecao');
+const lightboxSelStage = document.getElementById('lightbox-sel-stage');
+const lightboxSelCounter = document.getElementById('lightbox-sel-counter');
+const lightboxSelToggle = document.getElementById('lightbox-sel-toggle');
+let indiceAtualLightbox = 0;
+
+function abrirLightboxSelecao(indice) {
+  indiceAtualLightbox = indice;
+  mostrarFotoLightbox();
+  lightboxSel.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharLightboxSelecao() {
+  lightboxSel.classList.remove('is-open');
+  document.body.style.overflow = '';
+}
+
+function mostrarFotoLightbox() {
+  const foto = ensaioAtual.fotos[indiceAtualLightbox];
+  lightboxSelStage.innerHTML = `<img src="${foto.url}" alt="Foto ampliada">`;
+  lightboxSelCounter.textContent = `${indiceAtualLightbox + 1} / ${ensaioAtual.fotos.length}`;
+  atualizarBotaoLightbox(foto);
+}
+
+function atualizarBotaoLightbox(foto) {
+  const marcada = selecaoAtual.has(foto.id);
+  lightboxSelToggle.textContent = marcada ? '✓ Selecionada — remover' : 'Selecionar esta foto';
+}
+
+function proximaFotoLightbox() {
+  indiceAtualLightbox = (indiceAtualLightbox + 1) % ensaioAtual.fotos.length;
+  mostrarFotoLightbox();
+}
+function fotoAnteriorLightbox() {
+  indiceAtualLightbox = (indiceAtualLightbox - 1 + ensaioAtual.fotos.length) % ensaioAtual.fotos.length;
+  mostrarFotoLightbox();
+}
+
+document.getElementById('lightbox-sel-close').addEventListener('click', fecharLightboxSelecao);
+document.getElementById('lightbox-sel-next').addEventListener('click', proximaFotoLightbox);
+document.getElementById('lightbox-sel-prev').addEventListener('click', fotoAnteriorLightbox);
+
+lightboxSel.addEventListener('click', (e) => {
+  if (e.target === lightboxSel) fecharLightboxSelecao();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!lightboxSel.classList.contains('is-open')) return;
+  if (e.key === 'Escape') fecharLightboxSelecao();
+  if (e.key === 'ArrowRight') proximaFotoLightbox();
+  if (e.key === 'ArrowLeft') fotoAnteriorLightbox();
+});
+
+lightboxSelToggle.addEventListener('click', () => {
+  const foto = ensaioAtual.fotos[indiceAtualLightbox];
+  const cardCorrespondente = document.querySelector(`.foto-selecionavel[data-id="${foto.id}"]`);
+  if (cardCorrespondente) alternarSelecao(cardCorrespondente);
+  atualizarBotaoLightbox(foto);
+});
 
 async function salvarSelecao() {
   const msgEl = document.getElementById('selecao-msg');
