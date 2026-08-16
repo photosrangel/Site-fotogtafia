@@ -34,9 +34,10 @@ const ENSAIOS_ANTIGOS = (
   : [];
 
 
-// Lista que será exibida no site.
-let ENSAIOS_SITE = [...ENSAIOS_ANTIGOS];
-
+// Lista que será exibida no site (já filtrada para remover ensaios sem fotos)
+let ENSAIOS_SITE = ENSAIOS_ANTIGOS.filter(ensaio => {
+  return Array.isArray(ensaio.photos) && ensaio.photos.length > 0;
+});
 
 // ============================================
 // ELEMENTOS DO LIGHTBOX
