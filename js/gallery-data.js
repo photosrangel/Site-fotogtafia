@@ -13,12 +13,11 @@
 
 const ENSAIOS = [
   
-{
+  {
     id: 'sessao-estudio-01',
     titulo: 'Retrato em Estúdio',
     categoria: 'estudio',
     lente: '85mm · f/2',
-    oculto: true, // Adicione isto
     photos: [
       { src: null, placeholder: 'foto-05.jpg' },
       { src: null, placeholder: 'foto-06.jpg' },
@@ -30,7 +29,6 @@ const ENSAIOS = [
     titulo: 'Retrato Externo',
     categoria: 'externo',
     lente: '35mm · f/2.2',
-    oculto: true, // Adicione isto
     photos: [
       { src: null, placeholder: 'foto-08.jpg' },
       { src: null, placeholder: 'foto-09.jpg' },
@@ -44,11 +42,10 @@ const ENSAIOS = [
     titulo: 'Rangel Santos',
     categoria: 'autoestima',
     lente: '50mm · f/1.8',
-    // NÃO adicione a propriedade "oculto" aqui para ela continuar visível
     photos: [
       { src: 'images/retrato-01.jpg' },
       { src: 'images/retrato-02.jpg' },
-      { src: 'https://imgur.com' },
+      { src: 'https://i.imgur.com/fcyupnR.jpeg' },
       { src: 'images/sobre-retrato.jpg' },
       { src: 'images/IMG_00112.jpg' },
     ],
@@ -58,7 +55,6 @@ const ENSAIOS = [
     titulo: 'Sessão Autoestima',
     categoria: 'autoestima',
     lente: '85mm · f/1.4',
-    oculto: true, // Adicione isto
     photos: [
       { src: null, placeholder: 'foto-13.jpg' },
       { src: null, placeholder: 'foto-14.jpg' },
@@ -70,12 +66,10 @@ const ENSAIOS = [
     titulo: 'Sessão Sensual',
     categoria: 'Sensual',
     lente: '85mm · f/1.4',
-    oculto: true, // Adicione isto
     photos: [
       { src: null, placeholder: 'foto-16.jpg' },
       { src: null, placeholder: 'foto-17.jpg' },
       { src: null, placeholder: 'foto-18.jpg' },
     ],
   },
-  
 ];
