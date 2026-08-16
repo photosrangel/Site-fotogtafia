@@ -25,7 +25,185 @@ async function toggleGallery(id){const g=galleriesCache.find(x=>x.id===id);if(!g
 async function deleteGallery(id){const g=galleriesCache.find(x=>x.id===id);if(!g||!confirm(`Excluir "${g.title}" e todas as suas fotografias? Esta ação não pode ser desfeita.`))return;const{data:photos,error:qerr}=await supabase.from('gallery_photos').select('id,image_url').eq('gallery_id',id);if(qerr){flash(`Erro ao localizar fotos: ${qerr.message}`,'erro');return}const paths=(photos||[]).map(p=>storagePath(p.image_url)).filter(Boolean);if(paths.length){const{error}=await supabase.storage.from(BUCKET).remove(paths);if(error){flash(`Não foi possível apagar os arquivos: ${error.message}`,'erro');return}}const{error}=await supabase.from('galleries').delete().eq('id',id);if(error){flash(`Erro ao excluir galeria: ${error.message}`,'erro');return}flash('Galeria excluída.','sucesso');await loadGalleries();await loadDashboard()}
 async function openGalleryModal(id){const g=galleriesCache.find(x=>x.id===id);if(!g)return;currentGallery=g;$('modal-gallery-title').textContent=g.title;$('gallery-editor-modal').hidden=false;await loadPhotos()}
 function closeGalleryModal(){$('gallery-editor-modal').hidden=true;currentGallery=null;$('photo-grid').innerHTML=''}
-async function loadPhotos(){if(!currentGallery)return;const{data:freshGallery,error:ge}=await supabase.from('galleries').select('*').eq('id',currentGallery.id).single();if(ge){msg($('upload-msg'),ge.message,'erro');return}currentGallery=freshGallery;const{data,error}=await supabase.from('gallery_photos').select('id,gallery_id,image_url,alt_text,sort_order,published,created_at').eq('gallery_id',currentGallery.id).order('sort_order',{ascending:true}).order('created_at',{ascending:true});if(error){msg($('upload-msg'),error.message,'erro');return}const p=data||[];$('photo-count').textContent=`${p.length} fotografia${p.length===1?'':'s'}`;if(!p.length){$('photo-grid').innerHTML='<p class="panel-copy" style="grid-column:1/-1;padding:20px;">Nenhuma fotografia nesta galeria.</p>';return}$('photo-grid').innerHTML=p.map(x=>`<div class="admin-photo ${currentGallery.cover_url===x.image_url?'admin-photo-cover':''}" data-photo-id="${attr(x.id)}" title="Clique para definir como capa"><img src="${attr(x.image_url)}" alt="${attr(x.alt_text||currentGallery.title||'')}" loading="lazy" onerror="this.parentElement.classList.add('photo-load-error')"><button class="photo-delete" data-delete-photo="${attr(x.id)}" title="Excluir" type="button">×</button></div>`).join('');$('photo-grid').querySelectorAll('.admin-photo').forEach(el=>{const pht=p.find(x=>x.id===el.dataset.photoId);el.addEventListener('click',e=>{if(e.target.closest('.photo-delete'))return;if(pht)setCover(pht)})});$('photo-grid').querySelectorAll('[data-delete-photo]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();deletePhoto(b.dataset.deletePhoto)}))}
+async function loadPhotos(){
+  if(!currentGallery)return;
+
+  const{data:freshGallery,error:ge}=await supabase
+    .from('galleries')
+    .select('*')
+    .eq('id',currentGallery.id)
+    .single();
+
+  if(ge){
+    msg($('upload-msg'),ge.message,'erro');
+    return;
+  }
+
+  currentGallery=freshGallery;
+
+  const{data,error}=await supabase
+    .from('gallery_photos')
+    .select('id,gallery_id,image_url,alt_text,sort_order,published,created_at')
+    .eq('gallery_id',currentGallery.id)
+    .order('sort_order',{ascending:true})
+    .order('created_at',{ascending:true});
+
+  if(error){
+    msg($('upload-msg'),error.message,'erro');
+    return;
+  }
+
+  const photos=data||[];
+
+  $('photo-count').textContent=
+    `${photos.length} fotografia${photos.length===1?'':'s'}`;
+
+  if(!photos.length){
+    $('photo-grid').innerHTML=
+      '<p class="panel-copy" style="grid-column:1/-1;padding:20px;">Nenhuma fotografia nesta galeria.</p>';
+    return;
+  }
+
+  $('photo-grid').innerHTML=photos.map((x,index)=>`
+    <div
+      class="admin-photo ${currentGallery.cover_url===x.image_url?'admin-photo-cover':''}"
+      data-photo-id="${attr(x.id)}"
+      draggable="true"
+      title="Arraste para reorganizar ou clique para definir como capa"
+    >
+      <img
+        src="${attr(x.image_url)}"
+        alt="${attr(x.alt_text||currentGallery.title||'')}"
+        loading="lazy"
+        onerror="this.parentElement.classList.add('photo-load-error')"
+      >
+
+      <span class="photo-order">${index+1}</span>
+
+      ${
+        currentGallery.cover_url===x.image_url
+        ? '<span class="photo-cover-label">CAPA</span>'
+        : ''
+      }
+
+      <button
+        class="photo-delete"
+        data-delete-photo="${attr(x.id)}"
+        title="Excluir fotografia"
+        type="button"
+      >×</button>
+    </div>
+  `).join('');
+
+  const grid=$('photo-grid');
+
+  grid.querySelectorAll('.admin-photo').forEach(el=>{
+
+    const pht=photos.find(x=>x.id===el.dataset.photoId);
+
+    el.addEventListener('click',e=>{
+      if(e.target.closest('.photo-delete'))return;
+      if(pht)setCover(pht);
+    });
+
+    el.addEventListener('dragstart',e=>{
+      el.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',el.dataset.photoId);
+    });
+
+    el.addEventListener('dragend',()=>{
+      el.classList.remove('is-dragging');
+
+      grid.querySelectorAll('.admin-photo')
+        .forEach(item=>item.classList.remove('drag-over'));
+
+      savePhotoOrder();
+    });
+
+    el.addEventListener('dragover',e=>{
+      e.preventDefault();
+
+      const dragging=grid.querySelector('.is-dragging');
+
+      if(!dragging || dragging===el)return;
+
+      const rect=el.getBoundingClientRect();
+      const after=
+        e.clientY > rect.top + rect.height/2;
+
+      grid.insertBefore(
+        dragging,
+        after ? el.nextSibling : el
+      );
+
+      el.classList.add('drag-over');
+    });
+
+    el.addEventListener('dragleave',()=>{
+      el.classList.remove('drag-over');
+    });
+
+    el.addEventListener('drop',e=>{
+      e.preventDefault();
+      el.classList.remove('drag-over');
+    });
+  });
+
+  grid.querySelectorAll('[data-delete-photo]').forEach(b=>{
+    b.addEventListener('click',e=>{
+      e.stopPropagation();
+      deletePhoto(b.dataset.deletePhoto);
+    });
+  });
+}
+
+
+async function savePhotoOrder(){
+
+  const items=[
+    ...$('photo-grid').querySelectorAll('.admin-photo')
+  ];
+
+  if(!items.length)return;
+
+  const updates=items.map((el,index)=>({
+    id:el.dataset.photoId,
+    sort_order:index
+  }));
+
+  msg($('upload-msg'),'Salvando nova ordem...');
+
+  for(const item of updates){
+
+    const{error}=await supabase
+      .from('gallery_photos')
+      .update({sort_order:item.sort_order})
+      .eq('id',item.id);
+
+    if(error){
+      msg(
+        $('upload-msg'),
+        `Erro ao salvar a ordem: ${error.message}`,
+        'erro'
+      );
+      return;
+    }
+  }
+
+  items.forEach((el,index)=>{
+    const number=el.querySelector('.photo-order');
+    if(number)number.textContent=index+1;
+  });
+
+  msg(
+    $('upload-msg'),
+    'Ordem das fotografias atualizada.',
+    'sucesso'
+  );
+
+  await loadGalleries();
+}
 async function uploadPhotos(files,g){msg($('upload-msg'),`Enviando ${files.length} fotografia(s)...`);const q=await supabase.from('gallery_photos').select('sort_order').eq('gallery_id',g.id).order('sort_order',{ascending:false}).limit(1);let order=q.data?.[0]?.sort_order??-1;for(const file of files){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const safe=['jpg','jpeg','png','webp'].includes(ext)?ext:'jpg';const path=`${g.id}/${Date.now()}-${crypto.randomUUID()}-${slugify(file.name.replace(/\.[^.]+$/,''))}.${safe}`;const up=await supabase.storage.from(BUCKET).upload(path,file,{upsert:false});if(up.error){msg($('upload-msg'),`Erro no upload de ${file.name}: ${up.error.message}`,'erro');continue}const{data:url}=supabase.storage.from(BUCKET).getPublicUrl(path);order++;const ins=await supabase.from('gallery_photos').insert({gallery_id:g.id,image_url:url.publicUrl,alt_text:g.title,sort_order:order,published:true});if(ins.error){await supabase.storage.from(BUCKET).remove([path]);msg($('upload-msg'),`Erro ao registrar ${file.name}: ${ins.error.message}`,'erro')}}await ensureCover(g.id);await refreshGalleryCache(g.id);await loadPhotos();await loadGalleries();await loadDashboard();msg($('upload-msg'),'Upload concluído. As fotografias foram atualizadas na galeria.','sucesso')}
 async function ensureCover(id){const{data:g}=await supabase.from('galleries').select('cover_url').eq('id',id).single();if(g?.cover_url)return;const{data:p}=await supabase.from('gallery_photos').select('image_url').eq('gallery_id',id).order('sort_order').limit(1).maybeSingle();if(p?.image_url)await supabase.from('galleries').update({cover_url:p.image_url}).eq('id',id)}
 async function setCover(p){if(!currentGallery)return;const{error}=await supabase.from('galleries').update({cover_url:p.image_url}).eq('id',currentGallery.id);if(error){flash(`Erro ao definir capa: ${error.message}`,'erro');return}currentGallery.cover_url=p.image_url;flash('Capa atualizada.','sucesso');await loadPhotos();await loadGalleries()}
