@@ -12,15 +12,25 @@ document.addEventListener('dragstart', (e) => {
   if (e.target.tagName === 'IMG') e.preventDefault();
 });
 
-// Nav fica sólida ao rolar a página
+// Nav fica sólida ao rolar, e some/aparece conforme a cliente rola a tela
 const nav = document.querySelector('.nav');
 if (nav) {
-  const onScroll = () => {
+  let navTimeout = null;
+
+  const atualizarFundoSolido = () => {
     if (window.scrollY > 40) nav.classList.add('is-solid');
     else nav.classList.remove('is-solid');
   };
-  window.addEventListener('scroll', onScroll);
-  onScroll();
+  atualizarFundoSolido(); // só ajusta o fundo, sem esconder, ao carregar a página
+
+  window.addEventListener('scroll', () => {
+    atualizarFundoSolido();
+    nav.classList.add('is-hidden');
+    clearTimeout(navTimeout);
+    navTimeout = setTimeout(() => {
+      nav.classList.remove('is-hidden');
+    }, 500);
+  });
 }
 
 // Menu mobile (hambúrguer)
