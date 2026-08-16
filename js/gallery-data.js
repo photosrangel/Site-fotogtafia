@@ -25,6 +25,7 @@ const ENSAIOS = [
       { src: null, placeholder: 'foto-07.jpg' },
     ],
   },
+   -->
   {
     id: 'sessao-externo-01',
     titulo: 'Retrato Externo',
@@ -73,5 +74,4 @@ const ENSAIOS = [
       { src: null, placeholder: 'foto-18.jpg' },
     ],
   },
-  -->
 ];
