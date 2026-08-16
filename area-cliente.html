@@ -50,6 +50,15 @@
     border-top: 1px solid var(--hairline);
     padding: 18px 24px; margin-top: 40px;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    
+    /* ADICIONE ESTAS DUAS LINHAS ABAIXO */
+    transition: transform 0.3s ease;
+    transform: translateY(0);
+  }
+
+  /* ADICIONE ESTA NOVA REGRA LOGO ABAIXO DA .barra-selecao */
+  .barra-selecao.is-hidden {
+    transform: translateY(100%);
   }
   .download-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -460,29 +469,25 @@ async function salvarSelecao() {
 }
 
 </script>
-<!-- Script Unificado para Esconder Cabeçalho e Rodapé ao Rolar -->
+<!-- Script para esconder Cabeçalho e Barra de Seleção ao Rolar -->
 <script>
   let lastScrollTop = 0;
   const navElement = document.querySelector('.nav');
-  // Captura o rodapé da página
-  const footerElement = document.querySelector('.footer');
+  const barraSelecao = document.querySelector('.barra-selecao');
 
   window.addEventListener('scroll', () => {
     let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
     
-    // Evita problemas com o efeito de scroll elástico em dispositivos iOS
     if (currentScroll < 0) currentScroll = 0; 
 
-    // Se rolar para baixo e passar de 100px da tela
+    // Se rolar para baixo e passar de 100px, aplica a classe de esconder
     if (currentScroll > lastScrollTop && currentScroll > 100) {
-      // Esconde o menu de cima (empurra para cima)
       if (navElement) navElement.classList.add('is-hidden');
-      // Esconde o rodapé de baixo (empurra para baixo)
-      if (footerElement) footerElement.classList.add('is-hidden');
+      if (barraSelecao) barraSelecao.classList.add('is-hidden');
     } else {
-      // Se rolar para cima, mostra ambos novamente
+      // Se rolar para cima, remove a classe e mostra tudo
       if (navElement) navElement.classList.remove('is-hidden');
-      if (footerElement) footerElement.classList.remove('is-hidden');
+      if (barraSelecao) barraSelecao.classList.remove('is-hidden');
     }
     
     lastScrollTop = currentScroll;
