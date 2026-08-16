@@ -150,8 +150,8 @@ function frameHTML(ensaio, index) {
 }
 
 
-// ============================================
-// RENDERIZA GALERIA
+/ ============================================
+// RENDERIZA GALERIA (CORRIGIDA)
 // ============================================
 
 function renderGrid(filter = 'todas') {
@@ -168,6 +168,11 @@ function renderGrid(filter = 'todas') {
         index
       }))
       .filter(({ ensaio }) => {
+
+        // Só mostra se o ensaio tiver fotos válidas
+        if (!ensaio || !ensaio.photos || ensaio.photos.length === 0) {
+          return false;
+        }
 
         if (filter === 'todas') {
           return true;
@@ -214,13 +219,13 @@ function renderGrid(filter = 'todas') {
     .forEach(frame => {
 
       const abrir =
-        () =>
-          openLightbox(
-            Number(
-              frame.dataset
-                .ensaioIndex
-            )
-          );
+        () => {
+          const idx = Number(frame.dataset.ensaioIndex);
+          // Segurança extra: só abre se o índice existir na lista atual
+          if (!isNaN(idx) && ENSAIOS_SITE[idx]) {
+            openLightbox(idx);
+          }
+        };
 
 
       frame.addEventListener(
@@ -250,8 +255,6 @@ function renderGrid(filter = 'todas') {
     });
 
 }
-
-
 // ============================================
 // FILTROS EXISTENTES
 // ============================================
@@ -298,9 +301,18 @@ function configurarFiltros() {
 // LIGHTBOX
 // ============================================
 
+// ============================================
+// LIGHTBOX (CORRIGIDA COM PROTEÇÃO CONTRA TRAVAMENTOS)
+// ============================================
+
 function openLightbox(
   ensaioIndex
 ) {
+
+  // Se o índice não existir ou for inválido, interrompe imediatamente antes de travar
+  if (ensaioIndex === undefined || ensaioIndex === null || !ENSAIOS_SITE[ensaioIndex]) {
+    return;
+  }
 
   currentEnsaio =
     ENSAIOS_SITE[
@@ -352,119 +364,6 @@ function openLightbox(
     ?.focus();
 
 }
-
-
-function closeLightbox() {
-
-  lightbox?.classList.remove(
-    'is-open'
-  );
-
-  document.body.style.overflow =
-    '';
-
-}
-
-
-function showPhoto() {
-
-  if (!currentEnsaio) {
-    return;
-  }
-
-
-  const photo =
-    currentEnsaio.photos[
-      currentPhoto
-    ];
-
-
-  if (!photo) {
-    return;
-  }
-
-
-  if (lightboxStage) {
-
-    lightboxStage.innerHTML =
-      photo.src
-
-        ? `
-          <img
-            src="${esc(photo.src)}"
-            alt="${esc(
-              currentEnsaio.titulo
-            )} — foto ${
-              currentPhoto + 1
-            }"
-          >
-        `
-
-        : `
-          <div class="lightbox-placeholder">
-            SUBSTITUA POR SUA FOTO
-            <br>
-            ${
-              photo.placeholder || ''
-            }
-          </div>
-        `;
-
-  }
-
-
-  if (lightboxCounter) {
-
-    lightboxCounter.textContent =
-      `${currentPhoto + 1} / ${
-        currentEnsaio.photos.length
-      }`;
-
-  }
-
-}
-
-
-function nextPhoto() {
-
-  if (!currentEnsaio) {
-    return;
-  }
-
-
-  currentPhoto =
-    (
-      currentPhoto + 1
-    ) %
-    currentEnsaio.photos.length;
-
-
-  showPhoto();
-
-}
-
-
-function prevPhoto() {
-
-  if (!currentEnsaio) {
-    return;
-  }
-
-
-  currentPhoto =
-    (
-      currentPhoto -
-      1 +
-      currentEnsaio.photos.length
-    ) %
-    currentEnsaio.photos.length;
-
-
-  showPhoto();
-
-}
-
-
 // ============================================
 // EVENTOS DO LIGHTBOX
 // ============================================
