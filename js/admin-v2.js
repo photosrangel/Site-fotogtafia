@@ -170,6 +170,12 @@ function renderGalleries(){
 
           </div>
 
+        <div
+          class="gallery-drag-handle"
+          title="Arraste para mudar a posição"
+          aria-label="Arraste para mudar a posição"
+        >
+          ⋮⋮
         </div>
 
       </div>
