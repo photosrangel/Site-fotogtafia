@@ -75,13 +75,14 @@ function renderGalleries(){
     <article
       class="gallery-admin-card"
       data-gallery-id="${attr(g.id)}"
+      draggable="true"
+      title="Arraste para mudar a posição da galeria"
     >
 
       <div class="gallery-card-main">
 
         ${
           g.cover_url
-
             ? `
               <img
                 class="gallery-thumb"
@@ -89,7 +90,6 @@ function renderGalleries(){
                 alt=""
               >
             `
-
             : `
               <div class="gallery-thumb empty">
                 SEM CAPA
@@ -97,13 +97,11 @@ function renderGalleries(){
             `
         }
 
-
         <div class="gallery-card-content">
 
           <div class="gallery-card-title">
             ${esc(g.title)}
           </div>
-
 
           <div class="gallery-meta">
             /${esc(g.slug)}
@@ -113,7 +111,6 @@ function renderGalleries(){
                 : ''
             }
           </div>
-
 
           <div style="margin-top:9px">
 
@@ -133,12 +130,12 @@ function renderGalleries(){
 
           </div>
 
-
           <div class="card-actions gallery-card-actions">
 
             <button
               class="small-btn"
               data-photos="${attr(g.id)}"
+              type="button"
             >
               Fotos
             </button>
@@ -146,6 +143,7 @@ function renderGalleries(){
             <button
               class="small-btn"
               data-edit-gallery="${attr(g.id)}"
+              type="button"
             >
               Editar
             </button>
@@ -153,6 +151,7 @@ function renderGalleries(){
             <button
               class="small-btn"
               data-toggle-gallery="${attr(g.id)}"
+              type="button"
             >
               ${
                 g.published
@@ -164,19 +163,13 @@ function renderGalleries(){
             <button
               class="small-btn"
               data-delete-gallery="${attr(g.id)}"
+              type="button"
             >
               Excluir
             </button>
 
           </div>
 
-        </div>
-
-
-        <div class="gallery-drag-handle"
-             title="Arraste para mudar a posição"
-             draggable="true">
-          ⋮⋮
         </div>
 
       </div>
@@ -194,12 +187,15 @@ function renderGalleries(){
     .querySelectorAll('[data-photos]')
     .forEach(b => {
 
-      b.addEventListener(
-        'click',
-        () => openGalleryModal(
+      b.addEventListener('click', e => {
+
+        e.stopPropagation();
+
+        openGalleryModal(
           b.dataset.photos
-        )
-      );
+        );
+
+      });
 
     });
 
@@ -212,12 +208,15 @@ function renderGalleries(){
     .querySelectorAll('[data-edit-gallery]')
     .forEach(b => {
 
-      b.addEventListener(
-        'click',
-        () => editGallery(
+      b.addEventListener('click', e => {
+
+        e.stopPropagation();
+
+        editGallery(
           b.dataset.editGallery
-        )
-      );
+        );
+
+      });
 
     });
 
@@ -230,12 +229,15 @@ function renderGalleries(){
     .querySelectorAll('[data-toggle-gallery]')
     .forEach(b => {
 
-      b.addEventListener(
-        'click',
-        () => toggleGallery(
+      b.addEventListener('click', e => {
+
+        e.stopPropagation();
+
+        toggleGallery(
           b.dataset.toggleGallery
-        )
-      );
+        );
+
+      });
 
     });
 
@@ -248,148 +250,24 @@ function renderGalleries(){
     .querySelectorAll('[data-delete-gallery]')
     .forEach(b => {
 
-      b.addEventListener(
-        'click',
-        () => deleteGallery(
+      b.addEventListener('click', e => {
+
+        e.stopPropagation();
+
+        deleteGallery(
           b.dataset.deleteGallery
-        )
-      );
-
-    });
-
-}
-  // ==========================================
-  // DRAG & DROP
-  // ==========================================
-
-function configurarOrdenacaoGalerias() {
-
-  const container = $('galleries-list');
-
-  if (!container) return;
-
-  let draggedCard = null;
-
-
-  container
-    .querySelectorAll('.gallery-admin-card')
-    .forEach(card => {
-
-      const handle =
-        card.querySelector('.gallery-drag-handle');
-
-      if (!handle) return;
-
-
-      // A alça inicia o arraste
-      handle.addEventListener('dragstart', event => {
-
-        draggedCard = card;
-
-        card.classList.add('is-dragging');
-
-        event.dataTransfer.effectAllowed = 'move';
-
-        event.dataTransfer.setData(
-          'text/plain',
-          card.dataset.galleryId
         );
-
-      });
-
-
-      handle.addEventListener('dragend', async () => {
-
-        if (!draggedCard) return;
-
-        draggedCard.classList.remove(
-          'is-dragging'
-        );
-
-        container
-          .querySelectorAll('.gallery-admin-card')
-          .forEach(card => {
-            card.classList.remove('drag-over');
-          });
-
-
-        await salvarOrdemGalerias();
-
-        draggedCard = null;
-
-      });
-
-
-      // Permite receber outro card
-      card.addEventListener('dragover', event => {
-
-        event.preventDefault();
-
-        if (!draggedCard) return;
-
-        if (draggedCard === card) return;
-
-        event.dataTransfer.dropEffect = 'move';
-
-        card.classList.add('drag-over');
-
-      });
-
-
-      card.addEventListener('dragleave', () => {
-
-        card.classList.remove(
-          'drag-over'
-        );
-
-      });
-
-
-      card.addEventListener('drop', event => {
-
-        event.preventDefault();
-
-        card.classList.remove(
-          'drag-over'
-        );
-
-        if (!draggedCard) return;
-
-        if (draggedCard === card) return;
-
-
-        const cards = [
-          ...container.querySelectorAll(
-            '.gallery-admin-card'
-          )
-        ];
-
-        const draggedIndex =
-          cards.indexOf(draggedCard);
-
-        const targetIndex =
-          cards.indexOf(card);
-
-
-        if (draggedIndex < targetIndex) {
-
-          container.insertBefore(
-            draggedCard,
-            card.nextSibling
-          );
-
-        } else {
-
-          container.insertBefore(
-            draggedCard,
-            card
-          );
-
-        }
 
       });
 
     });
+
+
+  // ==========================================
+  // DRAG & DROP DAS GALERIAS
+  // ==========================================
+
+  configurarOrdenacaoGalerias();
 
 }
 async function salvarOrdemGalerias() {
