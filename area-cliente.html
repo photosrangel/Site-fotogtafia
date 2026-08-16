@@ -50,6 +50,11 @@
     border-top: 1px solid var(--hairline);
     padding: 18px 24px; margin-top: 40px;
     display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .barra-selecao.oculta {
+    transform: translateY(100%);
+    opacity: 0;
   }
   .download-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -272,7 +277,7 @@ function mostrarGaleria() {
         </div>
       `).join('')}
     </div>
-    <div class="barra-selecao">
+    <div class="barra-selecao" id="barra-selecao">
       <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
       <button class="btn btn-accent" id="btn-salvar-selecao">Enviar seleção</button>
     </div>
@@ -292,6 +297,23 @@ function mostrarGaleria() {
   });
 
   document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
+  ativarOcultarBarraAoRolar();
+}
+
+// Esconde a barra de seleção (contagem + botão "Enviar seleção") enquanto
+// a cliente está rolando a tela, e mostra de novo assim que ela parar.
+let timeoutBarraSelecao = null;
+function ativarOcultarBarraAoRolar() {
+  const barra = document.getElementById('barra-selecao');
+  if (!barra) return;
+
+  window.addEventListener('scroll', () => {
+    barra.classList.add('oculta');
+    clearTimeout(timeoutBarraSelecao);
+    timeoutBarraSelecao = setTimeout(() => {
+      barra.classList.remove('oculta');
+    }, 500);
+  });
 }
 
 function alternarSelecao(el) {
@@ -458,29 +480,8 @@ async function salvarSelecao() {
     mostrarGaleria();
   }
 }
-
 </script>
-<script>
-  let lastScrollTop = 0;
-  const navElement = document.querySelector('.nav');
-
-  window.addEventListener('scroll', () => {
-    let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-    
-    // Evita problemas com o efeito de scroll elástico em dispositivos iOS
-    if (currentScroll < 0) currentScroll = 0; 
-
-    // Se rolar para baixo e passar de 100px da tela, esconde o menu
-    if (currentScroll > lastScrollTop && currentScroll > 100) {
-      navElement.classList.add('is-hidden');
-    } else {
-      // Se rolar para cima, exibe o menu novamente
-      navElement.classList.remove('is-hidden');
-    }
-    
-    lastScrollTop = currentScroll;
-  });
-</script>
+<script src="js/main.js"></script>
 
 </body>
 </html>
