@@ -68,11 +68,11 @@
     <h2 class="section-title" style="margin-bottom:24px;">Ver minha galeria</h2>
     <form id="acesso-form">
       <div class="field">
-        <label for="input-slug">Link/código do ensaio</label>
+        <label for="input-slug">Login</label>
         <input type="text" id="input-slug" required>
       </div>
       <div class="field">
-        <label for="input-codigo">Código de acesso</label>
+        <label for="input-codigo">Senha</label>
         <input type="text" id="input-codigo" required>
       </div>
       <button type="submit" class="btn btn-accent">Entrar</button>
@@ -114,14 +114,6 @@ const acessoMsg = document.getElementById('acesso-msg');
 
 let ensaioAtual = null;
 let selecaoAtual = new Set();
-
-// Preenche automaticamente se o link já vier com slug e código
-const params = new URLSearchParams(location.search);
-if (params.get('slug')) document.getElementById('input-slug').value = params.get('slug');
-if (params.get('codigo')) document.getElementById('input-codigo').value = params.get('codigo');
-if (params.get('slug') && params.get('codigo')) {
-  entrar(params.get('slug'), params.get('codigo'));
-}
 
 document.getElementById('acesso-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -177,6 +169,30 @@ function mostrarGaleria() {
     return;
   }
 
+  if (ensaioAtual.status === 'selecionado') {
+    const selecionadas = ensaioAtual.fotos.filter(f => f.selecionada);
+    conteudo.innerHTML = `
+      <div style="text-align:center; padding: 40px 0 20px;">
+        <p style="font-family:var(--font-display); font-style:italic; font-size:1.6rem; color:var(--text); margin-bottom:14px;">
+          Obrigado pela sua escolha!
+        </p>
+        <p style="color:var(--text-muted); max-width:50ch; margin:0 auto;">
+          Recebemos sua seleção de ${selecionadas.length} foto${selecionadas.length === 1 ? '' : 's'}.
+          Agora é com o Rangel — assim que as fotos estiverem prontas e tratadas,
+          elas vão aparecer aqui mesmo, nesse link, para você baixar.
+        </p>
+      </div>
+      <div class="grid" style="margin-top:32px; opacity:0.6;">
+        ${selecionadas.map(f => `
+          <div class="frame">
+            <img src="${f.url}" alt="Foto selecionada">
+          </div>
+        `).join('')}
+      </div>
+    `;
+    return;
+  }
+
   conteudo.innerHTML = `
     <p style="color:var(--text-muted); margin-bottom:24px;">
       Clique nas fotos que você mais gostou. Pode escolher quantas quiser, e mudar de ideia antes de enviar.
@@ -213,8 +229,7 @@ async function salvarSelecao() {
   msgEl.textContent = 'Enviando...';
   msgEl.className = 'msg';
 
-  const params2 = new URLSearchParams(location.search);
-  const codigo = document.getElementById('input-codigo').value || params2.get('codigo');
+  const codigo = document.getElementById('input-codigo').value;
 
   const { data, error } = await supabase.rpc('salvar_selecao', {
     p_ensaio_id: ensaioAtual.id,
@@ -226,8 +241,11 @@ async function salvarSelecao() {
     msgEl.textContent = 'Não foi possível salvar. Tente novamente.';
     msgEl.className = 'msg erro';
   } else {
-    msgEl.textContent = 'Seleção enviada! O fotógrafo já foi avisado.';
-    msgEl.className = 'msg sucesso';
+    // Marca localmente as fotos escolhidas e muda o status,
+    // assim a tela já troca para "obrigado" na hora, sem precisar recarregar.
+    ensaioAtual.fotos.forEach(f => { f.selecionada = selecaoAtual.has(f.id); });
+    ensaioAtual.status = 'selecionado';
+    mostrarGaleria();
   }
 }
 </script>

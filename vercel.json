@@ -19,6 +19,10 @@
     {
       "source": "/area-cliente",
       "destination": "/area-cliente.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
     }
   ]
 }

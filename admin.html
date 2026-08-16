@@ -231,7 +231,6 @@ async function carregarEnsaios() {
 }
 
 function ensaioCardHTML(ens) {
-  const linkCliente = `${location.origin}${location.pathname.replace('admin.html','')}area-cliente.html?slug=${ens.slug}&codigo=${ens.codigo_acesso}`;
   return `
     <div class="ensaio-card">
       <div class="ensaio-card-head" id="head-${ens.id}">
@@ -267,8 +266,6 @@ async function toggleDetail(ens) {
   detailEl.classList.add('is-open');
   detalheAberto = detailEl;
 
-  const linkCliente = `${location.origin}${location.pathname.replace('admin.html','')}area-cliente.html?slug=${ens.slug}&codigo=${ens.codigo_acesso}`;
-
   const { data: fotos } = await supabase
     .from('fotos')
     .select('*')
@@ -280,9 +277,18 @@ async function toggleDetail(ens) {
   const selecionadas = provas.filter(f => f.selecionada).length;
 
   detailEl.innerHTML = `
-    <p class="footer-mono">Link para o cliente (envie por WhatsApp/e-mail):</p>
-    <div class="link-box">${linkCliente}</div>
-    <button class="small-btn" onclick="navigator.clipboard.writeText('${linkCliente}'); this.textContent='Copiado!'">Copiar link</button>
+    <p class="footer-mono">Envie esses dois dados para a cliente (ela mesma digita no site, em "Área do Cliente"):</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin:10px 0;">
+      <div style="flex:1; min-width:180px;">
+        <p class="footer-mono" style="margin-bottom:4px;">Login</p>
+        <div class="link-box">${ens.slug}</div>
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <p class="footer-mono" style="margin-bottom:4px;">Senha</p>
+        <div class="link-box">${ens.codigo_acesso}</div>
+      </div>
+    </div>
+    <button class="small-btn" onclick="navigator.clipboard.writeText('Login: ${ens.slug}\\nSenha: ${ens.codigo_acesso}\\nAcesse em: ${location.origin}/area-cliente'); this.textContent='Copiado!'">Copiar login + senha</button>
 
     <p class="footer-mono" style="margin-top:24px;">Fotos para o cliente escolher (provas) — ${provas.length} enviadas, ${selecionadas} selecionadas:</p>
     <div class="upload-area">
@@ -306,6 +312,7 @@ async function toggleDetail(ens) {
       <button class="btn ${ens.status === 'entregue' ? '' : 'btn-accent'}" id="btn-entregar-${ens.id}">
         ${ens.status === 'entregue' ? 'Já entregue ✓' : 'Marcar como entregue'}
       </button>
+      <button class="btn" id="btn-excluir-${ens.id}" style="border-color:#8c877e;">Excluir permanentemente</button>
     </div>
     <p class="msg" id="msg-${ens.id}"></p>
   `;
@@ -313,6 +320,7 @@ async function toggleDetail(ens) {
   document.getElementById(`upload-prova-${ens.id}`).addEventListener('change', (e) => uploadFotos(e, ens.id, 'prova'));
   document.getElementById(`upload-final-${ens.id}`).addEventListener('change', (e) => uploadFotos(e, ens.id, 'final'));
   document.getElementById(`btn-entregar-${ens.id}`).addEventListener('click', () => marcarEntregue(ens.id));
+  document.getElementById(`btn-excluir-${ens.id}`).addEventListener('click', () => excluirEnsaio(ens.id, ens.titulo));
 }
 
 async function uploadFotos(event, ensaioId, tipo) {
@@ -349,6 +357,36 @@ async function marcarEntregue(ensaioId) {
   } else {
     msgEl.textContent = 'Marcado como entregue!';
     msgEl.className = 'msg sucesso';
+    carregarEnsaios();
+  }
+}
+
+async function excluirEnsaio(ensaioId, titulo) {
+  const confirmado = confirm(
+    `Tem certeza que quer excluir "${titulo}"?\n\nIsso apaga TODAS as fotos e dados desse ensaio para sempre. Não tem como desfazer.`
+  );
+  if (!confirmado) return;
+
+  const msgEl = document.getElementById(`msg-${ensaioId}`);
+  msgEl.textContent = 'Excluindo...';
+  msgEl.className = 'msg';
+
+  // Apaga as fotos do armazenamento (pastas "prova" e "final" desse ensaio)
+  for (const subpasta of ['prova', 'final']) {
+    const { data: arquivos } = await supabase.storage.from('fotos').list(`${ensaioId}/${subpasta}`);
+    if (arquivos && arquivos.length) {
+      const caminhos = arquivos.map(a => `${ensaioId}/${subpasta}/${a.name}`);
+      await supabase.storage.from('fotos').remove(caminhos);
+    }
+  }
+
+  // Apaga o ensaio do banco (as fotos na tabela somem juntas automaticamente)
+  const { error } = await supabase.from('ensaios').delete().eq('id', ensaioId);
+
+  if (error) {
+    msgEl.textContent = 'Erro ao excluir: ' + error.message;
+    msgEl.className = 'msg erro';
+  } else {
     carregarEnsaios();
   }
 }
