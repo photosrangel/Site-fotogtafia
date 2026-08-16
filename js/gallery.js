@@ -4,29 +4,23 @@
 // ============================================
 
 const grid = document.getElementById('gallery-grid');
+const filtersContainer = document.getElementById('gallery-filters');
 
 let currentEnsaio = null;
 let currentPhoto = 0;
 
 
 // ============================================
-// IMPORTANTE
+// GALERIAS ANTIGAS
 // ============================================
-// gallery-data.js declara:
-//
-// const ENSAIOS = [...]
-//
-// Portanto NÃO usamos window.ENSAIOS.
-// Como os dois arquivos são scripts clássicos,
-// gallery.js consegue acessar ENSAIOS diretamente.
 
-// Fazemos uma cópia para não alterar os dados originais.
 const ENSAIOS_ANTIGOS = (
   typeof ENSAIOS !== 'undefined' &&
   Array.isArray(ENSAIOS)
 )
   ? ENSAIOS.map(ensaio => ({
       ...ensaio,
+      categoria: String(ensaio.categoria || '').toLowerCase(),
       photos: Array.isArray(ensaio.photos)
         ? [...ensaio.photos]
         : []
@@ -34,8 +28,18 @@ const ENSAIOS_ANTIGOS = (
   : [];
 
 
-// Lista que será exibida no site.
+// ============================================
+// LISTA FINAL DO SITE
+// ============================================
+
 let ENSAIOS_SITE = [...ENSAIOS_ANTIGOS];
+
+
+// ============================================
+// CATEGORIAS
+// ============================================
+
+let CATEGORIAS_SITE = [];
 
 
 // ============================================
@@ -56,7 +60,7 @@ const lightboxCounter =
 
 
 // ============================================
-// SEGURANÇA PARA TEXTOS
+// SEGURANÇA
 // ============================================
 
 function esc(value) {
@@ -72,13 +76,8 @@ function esc(value) {
 
 
 // ============================================
-// VERIFICA SE O ENSAIO TEM PELO MENOS 1 FOTO REAL
+// VERIFICA FOTO REAL
 // ============================================
-// Ensaios que existem só no código (gallery-data.js) mas ainda não têm
-// nenhuma foto de verdade (só "placeholder") ficam escondidos da galeria
-// pública — sem apagar nada do código. Assim que você colocar uma foto
-// real nele (trocando "src: null" por um caminho de imagem), ele aparece
-// sozinho, sem precisar mexer em mais nada.
 
 function temFotoReal(ensaio) {
 
@@ -139,7 +138,7 @@ function frameHTML(ensaio, index) {
     <div
       class="frame"
       data-category="${esc(
-        ensaio.categoria || ''
+        String(ensaio.categoria || '').toLowerCase()
       )}"
       data-ensaio-index="${index}"
       tabindex="0"
@@ -173,6 +172,77 @@ function frameHTML(ensaio, index) {
 
 
 // ============================================
+// RENDERIZA FILTROS
+// ============================================
+
+function renderFiltros() {
+
+  if (!filtersContainer) {
+    return;
+  }
+
+
+  const categorias = [...CATEGORIAS_SITE];
+
+
+  filtersContainer.innerHTML = `
+    <button
+      class="filter-btn active"
+      data-filter="todas"
+    >
+      Todas
+    </button>
+  `;
+
+
+  categorias
+    .sort(
+      (a, b) =>
+        (a.sort_order ?? 0) -
+        (b.sort_order ?? 0)
+    )
+    .forEach(category => {
+
+      const slug =
+        String(category.slug || '')
+          .trim()
+          .toLowerCase();
+
+
+      if (!slug) {
+        return;
+      }
+
+
+      const button =
+        document.createElement('button');
+
+
+      button.className =
+        'filter-btn';
+
+
+      button.dataset.filter =
+        slug;
+
+
+      button.textContent =
+        category.name;
+
+
+      filtersContainer.appendChild(
+        button
+      );
+
+    });
+
+
+  configurarFiltros();
+
+}
+
+
+// ============================================
 // RENDERIZA GALERIA
 // ============================================
 
@@ -183,6 +253,11 @@ function renderGrid(filter = 'todas') {
   }
 
 
+  const filtro =
+    String(filter || 'todas')
+      .toLowerCase();
+
+
   const visiveis =
     ENSAIOS_SITE
       .map((ensaio, index) => ({
@@ -191,18 +266,19 @@ function renderGrid(filter = 'todas') {
       }))
       .filter(({ ensaio }) => {
 
-        // Ensaio sem foto real nenhuma: nunca aparece,
-        // independente do filtro de categoria selecionado.
         if (!temFotoReal(ensaio)) {
           return false;
         }
 
-        if (filter === 'todas') {
+
+        if (filtro === 'todas') {
           return true;
         }
 
+
         return (
-          ensaio.categoria === filter
+          String(ensaio.categoria || '')
+            .toLowerCase() === filtro
         );
 
       });
@@ -245,8 +321,7 @@ function renderGrid(filter = 'todas') {
         () =>
           openLightbox(
             Number(
-              frame.dataset
-                .ensaioIndex
+              frame.dataset.ensaioIndex
             )
           );
 
@@ -281,12 +356,17 @@ function renderGrid(filter = 'todas') {
 
 
 // ============================================
-// FILTROS EXISTENTES
+// FILTROS
 // ============================================
 
 function configurarFiltros() {
 
-  document
+  if (!filtersContainer) {
+    return;
+  }
+
+
+  filtersContainer
     .querySelectorAll('.filter-btn')
     .forEach(button => {
 
@@ -294,10 +374,8 @@ function configurarFiltros() {
         'click',
         () => {
 
-          document
-            .querySelectorAll(
-              '.filter-btn'
-            )
+          filtersContainer
+            .querySelectorAll('.filter-btn')
             .forEach(btn =>
               btn.classList.remove(
                 'active'
@@ -494,7 +572,7 @@ function prevPhoto() {
 
 
 // ============================================
-// EVENTOS DO LIGHTBOX
+// EVENTOS LIGHTBOX
 // ============================================
 
 document
@@ -577,17 +655,6 @@ document.addEventListener(
 
 
 // ============================================
-// INICIALIZAÇÃO
-// ============================================
-
-// Primeiro configura o sistema antigo.
-configurarFiltros();
-
-// Primeiro mostra as galerias antigas.
-renderGrid();
-
-
-// ============================================
 // CMS SUPABASE
 // ============================================
 
@@ -616,6 +683,10 @@ async function carregarGaleriasCMS() {
         SUPABASE_ANON_KEY
       );
 
+
+    // ========================================
+    // GALERIAS
+    // ========================================
 
     const galleriesResult =
       await supabase
@@ -650,9 +721,7 @@ async function carregarGaleriasCMS() {
 
 
     if (galleriesResult.error) {
-
       throw galleriesResult.error;
-
     }
 
 
@@ -660,12 +729,9 @@ async function carregarGaleriasCMS() {
       galleriesResult.data || [];
 
 
-    if (!galleries.length) {
-
-      return;
-
-    }
-
+    // ========================================
+    // CATEGORIAS
+    // ========================================
 
     const categoriesResult =
       await supabase
@@ -680,19 +746,45 @@ async function carregarGaleriasCMS() {
         .eq(
           'published',
           true
+        )
+        .order(
+          'sort_order',
+          {
+            ascending: true
+          }
+        )
+        .order(
+          'name',
+          {
+            ascending: true
+          }
         );
 
 
     if (categoriesResult.error) {
-
       throw categoriesResult.error;
-
     }
 
 
     const categories =
       categoriesResult.data || [];
 
+
+    CATEGORIAS_SITE =
+      categories.map(category => ({
+        ...category,
+        slug:
+          String(
+            category.slug || ''
+          )
+            .trim()
+            .toLowerCase()
+      }));
+
+
+    // ========================================
+    // FOTOS
+    // ========================================
 
     const photosResult =
       await supabase
@@ -718,9 +810,7 @@ async function carregarGaleriasCMS() {
 
 
     if (photosResult.error) {
-
       throw photosResult.error;
-
     }
 
 
@@ -728,15 +818,15 @@ async function carregarGaleriasCMS() {
       photosResult.data || [];
 
 
-    // ----------------------------------------
-    // Categorias
-    // ----------------------------------------
+    // ========================================
+    // MAPA DE CATEGORIAS
+    // ========================================
 
     const categoryMap =
       new Map();
 
 
-    categories.forEach(
+    CATEGORIAS_SITE.forEach(
       category => {
 
         categoryMap.set(
@@ -748,9 +838,9 @@ async function carregarGaleriasCMS() {
     );
 
 
-    // ----------------------------------------
-    // Fotos por galeria
-    // ----------------------------------------
+    // ========================================
+    // MAPA DE FOTOS
+    // ========================================
 
     const photosMap =
       new Map();
@@ -777,12 +867,14 @@ async function carregarGaleriasCMS() {
           .get(photo.gallery_id)
           .push({
 
-            id: photo.id,
+            id:
+              photo.id,
 
             src:
               photo.image_url,
 
-            placeholder: '',
+            placeholder:
+              '',
 
             alt:
               photo.alt_text || '',
@@ -796,9 +888,9 @@ async function carregarGaleriasCMS() {
     );
 
 
-    // ----------------------------------------
-    // Converte para formato do site
-    // ----------------------------------------
+    // ========================================
+    // CONVERTE GALERIAS
+    // ========================================
 
     const novasGalerias =
       galleries
@@ -839,14 +931,18 @@ async function carregarGaleriasCMS() {
               gallery.title,
 
             categoria:
-              category?.slug ||
-              'sem-categoria',
+              String(
+                category?.slug ||
+                'sem-categoria'
+              )
+                .toLowerCase(),
 
             categoriaNome:
               category?.name ||
               'Sem categoria',
 
-            lente: '',
+            lente:
+              '',
 
             cover:
               gallery.cover_url ||
@@ -860,25 +956,27 @@ async function carregarGaleriasCMS() {
 
         })
 
-        // Só adicionamos galerias
-        // que realmente possuem fotos.
         .filter(
           gallery =>
             gallery.photos.length > 0
         );
 
 
-    // ----------------------------------------
-    // Evita duplicar uma galeria antiga
-    // ----------------------------------------
+    // ========================================
+    // EVITA DUPLICAÇÃO
+    // ========================================
 
     const slugsExistentes =
       new Set(
         ENSAIOS_SITE
           .map(
             ensaio =>
-              ensaio.slug ||
-              ensaio.id
+              String(
+                ensaio.slug ||
+                ensaio.id ||
+                ''
+              )
+                .toLowerCase()
           )
       );
 
@@ -888,8 +986,12 @@ async function carregarGaleriasCMS() {
         gallery => {
 
           const chave =
-            gallery.slug ||
-            gallery.id;
+            String(
+              gallery.slug ||
+              gallery.id ||
+              ''
+            )
+              .toLowerCase();
 
 
           return !slugsExistentes.has(
@@ -900,9 +1002,9 @@ async function carregarGaleriasCMS() {
       );
 
 
-    // ----------------------------------------
-    // Acrescenta CMS
-    // ----------------------------------------
+    // ========================================
+    // ADICIONA CMS
+    // ========================================
 
     ENSAIOS_SITE =
       [
@@ -911,19 +1013,39 @@ async function carregarGaleriasCMS() {
       ];
 
 
-    // ----------------------------------------
-    // Disponível no console
-    // ----------------------------------------
+    // ========================================
+    // DISPONÍVEL NO CONSOLE
+    // ========================================
 
     window.ENSAIOS_SITE =
       ENSAIOS_SITE;
 
+    window.CATEGORIAS_SITE =
+      CATEGORIAS_SITE;
 
-    // ----------------------------------------
-    // Redesenha
-    // ----------------------------------------
+
+    // ========================================
+    // ATUALIZA FILTROS
+    // ========================================
+
+    renderFiltros();
+
+
+    // ========================================
+    // ATUALIZA GALERIA
+    // ========================================
 
     renderGrid();
+
+
+    // ========================================
+    // DEBUG
+    // ========================================
+
+    console.log(
+      'Categorias CMS:',
+      CATEGORIAS_SITE
+    );
 
 
     console.log(
@@ -939,15 +1061,12 @@ async function carregarGaleriasCMS() {
 
 
     console.log(
-      'Total:',
+      'Total de galerias:',
       ENSAIOS_SITE.length
     );
 
 
   } catch (error) {
-
-    // O CMS nunca deve impedir
-    // o funcionamento da galeria antiga.
 
     console.error(
       'Erro ao carregar CMS:',
@@ -967,7 +1086,13 @@ async function carregarGaleriasCMS() {
 
 
 // ============================================
-// CARREGA CMS DEPOIS DO SITE ANTIGO
+// INICIALIZAÇÃO
 // ============================================
 
+// Primeiro mostra o conteúdo antigo.
+renderGrid();
+
+
+// Depois carrega as categorias e galerias
+// do Supabase.
 carregarGaleriasCMS();
