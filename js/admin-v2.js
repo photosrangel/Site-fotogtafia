@@ -170,12 +170,6 @@ function renderGalleries(){
 
           </div>
 
-        <div
-          class="gallery-drag-handle"
-          title="Arraste para mudar a posição"
-          aria-label="Arraste para mudar a posição"
-        >
-          ⋮⋮
         </div>
 
       </div>
@@ -867,6 +861,7 @@ async function savePhotoOrder(){
 
   await loadGalleries();
 }
+async function salvarOrdemGalerias() { const cards = [ ...$('galleries-list') .querySelectorAll('.gallery-admin-card') ]; if (!cards.length) return; const atualizacoes = cards.map( (card, index) => { const id = card.dataset.galleryId; return supabase .from('galleries') .update({ sort_order: index + 1 }) .eq('id', id); } ); const resultados = await Promise.all(atualizacoes); const erro = resultados.find( resultado => resultado.error ); if (erro) { flash( Erro ao salvar a ordem: ${ erro.error.message }, 'erro' ); return; } // Atualiza também o cache local cards.forEach((card, index) => { const gallery = galleriesCache.find( g => g.id === card.dataset.galleryId ); if (gallery) { gallery.sort_order = index + 1; } }); // Mantém o cache na mesma ordem visual galleriesCache.sort( (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) ); flash( 'Ordem das galerias atualizada.', 'sucesso' ); }
 async function uploadPhotos(files,g){msg($('upload-msg'),`Enviando ${files.length} fotografia(s)...`);const q=await supabase.from('gallery_photos').select('sort_order').eq('gallery_id',g.id).order('sort_order',{ascending:false}).limit(1);let order=q.data?.[0]?.sort_order??-1;for(const file of files){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const safe=['jpg','jpeg','png','webp'].includes(ext)?ext:'jpg';const path=`${g.id}/${Date.now()}-${crypto.randomUUID()}-${slugify(file.name.replace(/\.[^.]+$/,''))}.${safe}`;const up=await supabase.storage.from(BUCKET).upload(path,file,{upsert:false});if(up.error){msg($('upload-msg'),`Erro no upload de ${file.name}: ${up.error.message}`,'erro');continue}const{data:url}=supabase.storage.from(BUCKET).getPublicUrl(path);order++;const ins=await supabase.from('gallery_photos').insert({gallery_id:g.id,image_url:url.publicUrl,alt_text:g.title,sort_order:order,published:true});if(ins.error){await supabase.storage.from(BUCKET).remove([path]);msg($('upload-msg'),`Erro ao registrar ${file.name}: ${ins.error.message}`,'erro')}}await ensureCover(g.id);await refreshGalleryCache(g.id);await loadPhotos();await loadGalleries();await loadDashboard();msg($('upload-msg'),'Upload concluído. As fotografias foram atualizadas na galeria.','sucesso')}
 async function ensureCover(id){const{data:g}=await supabase.from('galleries').select('cover_url').eq('id',id).single();if(g?.cover_url)return;const{data:p}=await supabase.from('gallery_photos').select('image_url').eq('gallery_id',id).order('sort_order').limit(1).maybeSingle();if(p?.image_url)await supabase.from('galleries').update({cover_url:p.image_url}).eq('id',id)}
 async function setCover(p){if(!currentGallery)return;const{error}=await supabase.from('galleries').update({cover_url:p.image_url}).eq('id',currentGallery.id);if(error){flash(`Erro ao definir capa: ${error.message}`,'erro');return}currentGallery.cover_url=p.image_url;flash('Capa atualizada.','sucesso');await loadPhotos();await loadGalleries()}
