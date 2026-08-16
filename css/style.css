@@ -109,6 +109,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   padding: 6px;
 }
 .nav-toggle span { width: 22px; height: 1px; background: var(--text); }
+.nav.is-hidden {
+  transform: translateY(-100%);
+}
 
 /* ---------- HERO ---------- */
 .hero {
