@@ -499,14 +499,31 @@ img {
 
 /* ---------- FOOTER ---------- */
 .footer {
+  /* Torna o rodapé fixo na parte inferior da tela */
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 99;
+
+  /* Estilos visuais: fundo escuro com desfoque idêntico ao menu superior */
+  background: rgba(11, 11, 10, 0.92);
+  backdrop-filter: blur(6px);
   border-top: 1px solid var(--hairline);
-  padding: 40px 0;
+  padding: 24px 0; /* Reduzido ligeiramente para não ocupar muito espaço na tela */
+
+  /* Configuração para a animação de esconder */
+  transition: transform 0.3s ease;
+  transform: translateY(0);
 }
 .footer .container {
   display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
 }
 .footer-links { display: flex; gap: 24px; }
 .footer-mono { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.04em; }
+
+/* Nova classe que o JavaScript vai usar para empurrar o rodapé para baixo */
+.footer.is-hidden {
+  transform: translateY(100%);
+}
 
 /* ---------- RESPONSIVO: NAV MOBILE ---------- */
 @media (max-width: 760px) {
