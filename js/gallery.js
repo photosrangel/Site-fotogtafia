@@ -1,7 +1,26 @@
 // ============================================
-// CÓPIA LIMPA E SEGURA DOS DADOS
+// GALERIA POR ENSAIO + CMS SUPABASE
+// INTEGRAÇÃO HÍBRIDA
 // ============================================
 
+const grid = document.getElementById('gallery-grid');
+
+let currentEnsaio = null;
+let currentPhoto = 0;
+
+
+// ============================================
+// IMPORTANTE
+// ============================================
+// gallery-data.js declara:
+//
+// const ENSAIOS = [...]
+//
+// Portanto NÃO usamos window.ENSAIOS.
+// Como os dois arquivos são scripts clássicos,
+// gallery.js consegue acessar ENSAIOS diretamente.
+
+// Fazemos uma cópia para não alterar os dados originais.
 const ENSAIOS_ANTIGOS = (
   typeof ENSAIOS !== 'undefined' &&
   Array.isArray(ENSAIOS)
@@ -14,10 +33,10 @@ const ENSAIOS_ANTIGOS = (
     }))
   : [];
 
-// Restauramos a lista pura sem filtros destrutivos no topo
+
+// Lista que será exibida no site.
 let ENSAIOS_SITE = [...ENSAIOS_ANTIGOS];
-  return Array.isArray(ensaio.photos) && ensaio.photos.length > 0;
-});
+
 
 // ============================================
 // ELEMENTOS DO LIGHTBOX
@@ -131,7 +150,7 @@ function frameHTML(ensaio, index) {
 
 
 // ============================================
-// RENDERIZA GALERIA (CORRIGIDA)
+// RENDERIZA GALERIA
 // ============================================
 
 function renderGrid(filter = 'todas') {
@@ -140,6 +159,7 @@ function renderGrid(filter = 'todas') {
     return;
   }
 
+
   const visiveis =
     ENSAIOS_SITE
       .map((ensaio, index) => ({
@@ -147,11 +167,6 @@ function renderGrid(filter = 'todas') {
         index
       }))
       .filter(({ ensaio }) => {
-
-        // Se marcámos o ensaio como oculto, ele não entra na lista
-        if (ensaio && ensaio.oculto === true) {
-          return false;
-        }
 
         if (filter === 'todas') {
           return true;
@@ -198,25 +213,44 @@ function renderGrid(filter = 'todas') {
     .forEach(frame => {
 
       const abrir =
-        () => {
-          const idx = Number(frame.dataset.ensaioIndex);
-          if (!isNaN(idx) && ENSAIOS_SITE[idx]) {
-            openLightbox(idx);
+        () =>
+          openLightbox(
+            Number(
+              frame.dataset
+                .ensaioIndex
+            )
+          );
+
+
+      frame.addEventListener(
+        'click',
+        abrir
+      );
+
+
+      frame.addEventListener(
+        'keydown',
+        event => {
+
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+
+            event.preventDefault();
+
+            abrir();
+
           }
-        };
 
-      frame.addEventListener('click', abrir);
-
-      frame.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          abrir();
         }
-      });
+      );
 
     });
 
 }
+
+
 // ============================================
 // FILTROS EXISTENTES
 // ============================================
@@ -257,22 +291,15 @@ function configurarFiltros() {
     });
 
 }
-// ============================================
-// LIGHTBOX
-// ============================================
+
 
 // ============================================
-// LIGHTBOX (CORRIGIDA COM PROTEÇÃO CONTRA TRAVAMENTOS)
+// LIGHTBOX
 // ============================================
 
 function openLightbox(
   ensaioIndex
 ) {
-
-  // Se o índice não existir ou for inválido, interrompe imediatamente antes de travar
-  if (ensaioIndex === undefined || ensaioIndex === null || !ENSAIOS_SITE[ensaioIndex]) {
-    return;
-  }
 
   currentEnsaio =
     ENSAIOS_SITE[
@@ -324,6 +351,119 @@ function openLightbox(
     ?.focus();
 
 }
+
+
+function closeLightbox() {
+
+  lightbox?.classList.remove(
+    'is-open'
+  );
+
+  document.body.style.overflow =
+    '';
+
+}
+
+
+function showPhoto() {
+
+  if (!currentEnsaio) {
+    return;
+  }
+
+
+  const photo =
+    currentEnsaio.photos[
+      currentPhoto
+    ];
+
+
+  if (!photo) {
+    return;
+  }
+
+
+  if (lightboxStage) {
+
+    lightboxStage.innerHTML =
+      photo.src
+
+        ? `
+          <img
+            src="${esc(photo.src)}"
+            alt="${esc(
+              currentEnsaio.titulo
+            )} — foto ${
+              currentPhoto + 1
+            }"
+          >
+        `
+
+        : `
+          <div class="lightbox-placeholder">
+            SUBSTITUA POR SUA FOTO
+            <br>
+            ${
+              photo.placeholder || ''
+            }
+          </div>
+        `;
+
+  }
+
+
+  if (lightboxCounter) {
+
+    lightboxCounter.textContent =
+      `${currentPhoto + 1} / ${
+        currentEnsaio.photos.length
+      }`;
+
+  }
+
+}
+
+
+function nextPhoto() {
+
+  if (!currentEnsaio) {
+    return;
+  }
+
+
+  currentPhoto =
+    (
+      currentPhoto + 1
+    ) %
+    currentEnsaio.photos.length;
+
+
+  showPhoto();
+
+}
+
+
+function prevPhoto() {
+
+  if (!currentEnsaio) {
+    return;
+  }
+
+
+  currentPhoto =
+    (
+      currentPhoto -
+      1 +
+      currentEnsaio.photos.length
+    ) %
+    currentEnsaio.photos.length;
+
+
+  showPhoto();
+
+}
+
+
 // ============================================
 // EVENTOS DO LIGHTBOX
 // ============================================
