@@ -1,26 +1,7 @@
 // ============================================
-// GALERIA POR ENSAIO + CMS SUPABASE
-// INTEGRAÇÃO HÍBRIDA
+// CÓPIA LIMPA E SEGURA DOS DADOS
 // ============================================
 
-const grid = document.getElementById('gallery-grid');
-
-let currentEnsaio = null;
-let currentPhoto = 0;
-
-
-// ============================================
-// IMPORTANTE
-// ============================================
-// gallery-data.js declara:
-//
-// const ENSAIOS = [...]
-//
-// Portanto NÃO usamos window.ENSAIOS.
-// Como os dois arquivos são scripts clássicos,
-// gallery.js consegue acessar ENSAIOS diretamente.
-
-// Fazemos uma cópia para não alterar os dados originais.
 const ENSAIOS_ANTIGOS = (
   typeof ENSAIOS !== 'undefined' &&
   Array.isArray(ENSAIOS)
@@ -33,9 +14,8 @@ const ENSAIOS_ANTIGOS = (
     }))
   : [];
 
-
-// Lista que será exibida no site (já filtrada para remover ensaios sem fotos)
-let ENSAIOS_SITE = ENSAIOS_ANTIGOS.filter(ensaio => {
+// Restauramos a lista pura sem filtros destrutivos no topo
+let ENSAIOS_SITE = [...ENSAIOS_ANTIGOS];
   return Array.isArray(ensaio.photos) && ensaio.photos.length > 0;
 });
 
