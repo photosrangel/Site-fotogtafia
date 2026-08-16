@@ -2,6 +2,16 @@
 // JS compartilhado por todas as páginas do site
 // ============================================
 
+// Bloqueia o menu de botão direito ("Salvar imagem como...") e o
+// "arrastar para salvar" em qualquer foto do site — proteção básica
+// contra download fácil das fotos da galeria pública.
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+
 // Nav fica sólida ao rolar a página
 const nav = document.querySelector('.nav');
 if (nav) {
