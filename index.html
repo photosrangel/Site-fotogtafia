@@ -103,6 +103,28 @@
   </div>
 </footer>
 
+<!-- Script para esconder o menu ao rolar para baixo -->
+<script>
+  let lastScrollTop = 0;
+  const navElement = document.querySelector('.nav');
+
+  window.addEventListener('scroll', () => {
+    let currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Evita problemas com o efeito de scroll elástico em dispositivos iOS
+    if (currentScroll < 0) currentScroll = 0; 
+
+    // Se rolar para baixo e passar de 100px da tela, esconde o menu
+    if (currentScroll > lastScrollTop && currentScroll > 100) {
+      navElement.classList.add('is-hidden');
+    } else {
+      // Se rolar para cima, exibe o menu novamente
+      navElement.classList.remove('is-hidden');
+    }
+    
+    lastScrollTop = currentScroll;
+  });
+</script>
 <script src="js/main.js"></script>
 </body>
 </html>
