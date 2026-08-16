@@ -72,6 +72,29 @@ function esc(value) {
 
 
 // ============================================
+// VERIFICA SE O ENSAIO TEM PELO MENOS 1 FOTO REAL
+// ============================================
+// Ensaios que existem só no código (gallery-data.js) mas ainda não têm
+// nenhuma foto de verdade (só "placeholder") ficam escondidos da galeria
+// pública — sem apagar nada do código. Assim que você colocar uma foto
+// real nele (trocando "src: null" por um caminho de imagem), ele aparece
+// sozinho, sem precisar mexer em mais nada.
+
+function temFotoReal(ensaio) {
+
+  if (ensaio.cover) {
+    return true;
+  }
+
+  return (
+    Array.isArray(ensaio.photos) &&
+    ensaio.photos.some(photo => photo.src)
+  );
+
+}
+
+
+// ============================================
 // CARD DA GALERIA
 // ============================================
 
@@ -167,6 +190,12 @@ function renderGrid(filter = 'todas') {
         index
       }))
       .filter(({ ensaio }) => {
+
+        // Ensaio sem foto real nenhuma: nunca aparece,
+        // independente do filtro de categoria selecionado.
+        if (!temFotoReal(ensaio)) {
+          return false;
+        }
 
         if (filter === 'todas') {
           return true;
