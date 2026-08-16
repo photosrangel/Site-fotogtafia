@@ -12,39 +12,37 @@
   .msg { font-family: var(--font-mono); font-size: 0.8rem; margin-top: 16px; }
   .msg.erro { color: #e0574a; }
   .msg.sucesso { color: var(--accent); }
-  .foto-selecionavel { position: relative; cursor: pointer; }
-  .foto-selecionavel img {
+  /* Marca d'água + bloqueio de salvar — usada em QUALQUER foto ainda não entregue */
+  .protegida { position: relative; }
+  .protegida img {
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-drag: none;
-    pointer-events: none; /* impede clique-direito/arrastar direto na imagem */
   }
-  .foto-selecionavel::before {
+  .protegida::before {
     content: '';
     position: absolute; inset: 0;
-    z-index: 1;
+    z-index: 3;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Ctext x='-10' y='90' font-family='monospace' font-size='15' fill='rgba(255,255,255,0.22)' transform='rotate(-22 130 70)'%3ERANGEL SANTOS · PROVA%3C/text%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='64'%3E%3Cline x1='0' y1='0' x2='120' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Cline x1='120' y1='0' x2='0' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Ctext x='-8' y='38' font-family='monospace' font-size='10' fill='rgba(255,255,255,0.28)' transform='rotate(-20 60 32)'%3EPHOTOSRANGEL%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
   }
-  .foto-selecionavel::after {
-    content: '';
+
+  /* Caixinha de seleção — usada SÓ na tela onde a cliente ainda pode escolher */
+  .foto-selecionavel { cursor: pointer; }
+  .foto-selecionavel .check-box {
     position: absolute; top: 10px; right: 10px;
     width: 26px; height: 26px;
     border: 1px solid var(--text);
     background: rgba(0,0,0,0.4);
     transition: all 0.2s ease;
+    z-index: 4;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bg); font-weight: bold; font-size: 0.9rem;
   }
-  .foto-selecionavel.marcada::after {
+  .foto-selecionavel.marcada .check-box {
     background: var(--accent);
     border-color: var(--accent);
-  }
-  .foto-selecionavel.marcada::before {
-    content: '✓';
-    position: absolute; top: 10px; right: 10px;
-    width: 26px; height: 26px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--bg); font-weight: bold; z-index: 2;
   }
   .barra-selecao {
     position: sticky; bottom: 0; left: 0; right: 0;
@@ -118,9 +116,19 @@
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
+// foto marcada como protegida (prova/seleção) — sem afetar o resto da página.
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.closest('.protegida')) e.preventDefault();
+});
+document.addEventListener('dragstart', (e) => {
+  if (e.target.closest('.protegida')) e.preventDefault();
+});
 
 const acessoScreen = document.getElementById('acesso-screen');
 const galeriaScreen = document.getElementById('galeria-screen');
@@ -170,17 +178,20 @@ function mostrarGaleria() {
 
   if (ensaioAtual.status === 'entregue') {
     conteudo.innerHTML = `
-      <div style="text-align:center; padding: 20px 0 36px;">
-        <p style="font-family:var(--font-display); font-style:italic; font-size:1.8rem; color:var(--text); margin-bottom:14px;">
-          Suas fotos estão prontas! 🤍
-        </p>
-        <p style="color:var(--text-muted); max-width:52ch; margin:0 auto;">
-          Foi um prazer registrar esse momento com você. Obrigado pela confiança —
-          espero que essas fotos te façam sentir exatamente como você é.
-          Clique em "Baixar" em cada foto para salvar no seu dispositivo.
-        </p>
+      <div class="section-head" style="align-items:flex-start; border-bottom:none;">
+        <div>
+          <p style="font-family:var(--font-display); font-style:italic; font-size:1.8rem; color:var(--text); margin-bottom:14px;">
+            Suas fotos estão prontas! 🤍
+          </p>
+          <p style="color:var(--text-muted); max-width:52ch;">
+            Foi um prazer registrar esse momento com você. Obrigado pela confiança —
+            espero que essas fotos te façam sentir exatamente como você é.
+          </p>
+        </div>
+        <button class="btn btn-accent" id="btn-baixar-tudo" style="flex-shrink:0;">Baixar tudo (.zip)</button>
       </div>
-      <div class="grid">
+      <p class="msg" id="baixar-tudo-msg" style="text-align:right;"></p>
+      <div class="grid" style="margin-top:20px;">
         ${ensaioAtual.fotos.map((f, i) => `
           <div class="frame">
             <img src="${f.url}" alt="Foto final ${i + 1}">
@@ -191,6 +202,7 @@ function mostrarGaleria() {
         `).join('')}
       </div>
     `;
+    document.getElementById('btn-baixar-tudo').addEventListener('click', (e) => baixarTudo(ensaioAtual.fotos, e.target));
     return;
   }
 
@@ -209,7 +221,7 @@ function mostrarGaleria() {
       </div>
       <div class="grid" style="margin-top:32px; opacity:0.6;">
         ${selecionadas.map(f => `
-          <div class="frame foto-selecionavel" style="cursor:default;">
+          <div class="frame protegida">
             <img src="${f.url}" alt="Foto selecionada">
           </div>
         `).join('')}
@@ -224,8 +236,9 @@ function mostrarGaleria() {
     </p>
     <div class="grid" id="grid-selecao">
       ${ensaioAtual.fotos.map(f => `
-        <div class="frame foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}">
+        <div class="frame protegida foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}">
           <img src="${f.url}" alt="Foto do ensaio">
+          <span class="check-box">${selecaoAtual.has(f.id) ? '✓' : ''}</span>
         </div>
       `).join('')}
     </div>
@@ -239,8 +252,14 @@ function mostrarGaleria() {
   document.querySelectorAll('.foto-selecionavel').forEach((el) => {
     el.addEventListener('click', () => {
       const id = el.dataset.id;
-      if (selecaoAtual.has(id)) selecaoAtual.delete(id);
-      else selecaoAtual.add(id);
+      const check = el.querySelector('.check-box');
+      if (selecaoAtual.has(id)) {
+        selecaoAtual.delete(id);
+        check.textContent = '';
+      } else {
+        selecaoAtual.add(id);
+        check.textContent = '✓';
+      }
       el.classList.toggle('marcada');
       document.getElementById('contador-selecao').textContent = `${selecaoAtual.size} foto(s) selecionada(s)`;
     });
@@ -248,6 +267,45 @@ function mostrarGaleria() {
 
   document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
 }
+
+// Baixa todas as fotos de uma vez, compactadas num único arquivo .zip
+window.baixarTudo = async function (fotos, botaoEl) {
+  const textoOriginal = botaoEl.textContent;
+  const msgEl = document.getElementById('baixar-tudo-msg');
+  botaoEl.disabled = true;
+
+  try {
+    const zip = new JSZip();
+
+    for (let i = 0; i < fotos.length; i++) {
+      botaoEl.textContent = `Preparando... (${i + 1}/${fotos.length})`;
+      const resposta = await fetch(fotos[i].url);
+      const blob = await resposta.blob();
+      zip.file(`foto-${i + 1}.jpg`, blob);
+    }
+
+    botaoEl.textContent = 'Compactando...';
+    const conteudoZip = await zip.generateAsync({ type: 'blob' });
+
+    const urlTemporaria = URL.createObjectURL(conteudoZip);
+    const link = document.createElement('a');
+    link.href = urlTemporaria;
+    link.download = 'fotos-rangel-santos.zip';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(urlTemporaria);
+
+    botaoEl.textContent = textoOriginal;
+  } catch (erro) {
+    if (msgEl) {
+      msgEl.textContent = 'Não foi possível compactar. Tente baixar as fotos uma a uma.';
+      msgEl.className = 'msg erro';
+    }
+    botaoEl.textContent = textoOriginal;
+  }
+  botaoEl.disabled = false;
+};
 
 // Força o download de verdade (abre "Salvar como" no dispositivo),
 // em vez de só abrir a imagem numa aba do navegador.
