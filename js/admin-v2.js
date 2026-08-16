@@ -47,7 +47,378 @@ async function loadGalleries() {
   renderGalleries();
   renderCategorySelect();
 }
-function renderGalleries(){const c=$('galleries-list');if(!galleriesCache.length){c.innerHTML='<div class="panel"><p class="section-eyebrow">Ainda vazio</p><h2 style="font-family:var(--font-display);font-weight:400;">Nenhuma galeria criada.</h2><p class="panel-copy" style="margin-top:8px;">Comece criando a primeira galeria do novo CMS.</p></div>';return}c.innerHTML=galleriesCache.map(g=>`<article class="gallery-admin-card"><div class="gallery-card-main">${g.cover_url?`<img class="gallery-thumb" src="${attr(g.cover_url)}" alt="">`:'<div class="gallery-thumb empty">SEM CAPA</div>'}<div><div class="gallery-card-title">${esc(g.title)}</div><div class="gallery-meta">/${esc(g.slug)}${g.categories?.name?` · ${esc(g.categories.name)}`:''}</div><div style="margin-top:9px"><span class="status-pill ${g.published?'published':'draft'}">${g.published?'PUBLICADA':'RASCUNHO'}</span></div></div><div class="card-actions"><button class="small-btn" data-photos="${g.id}">Fotos</button><button class="small-btn" data-edit-gallery="${g.id}">Editar</button><button class="small-btn" data-toggle-gallery="${g.id}">${g.published?'Despublicar':'Publicar'}</button><button class="small-btn" data-delete-gallery="${g.id}">Excluir</button></div></div></article>`).join('');c.querySelectorAll('[data-photos]').forEach(b=>b.addEventListener('click',()=>openGalleryModal(b.dataset.photos)));c.querySelectorAll('[data-edit-gallery]').forEach(b=>b.addEventListener('click',()=>editGallery(b.dataset.editGallery)));c.querySelectorAll('[data-toggle-gallery]').forEach(b=>b.addEventListener('click',()=>toggleGallery(b.dataset.toggleGallery)));c.querySelectorAll('[data-delete-gallery]').forEach(b=>b.addEventListener('click',()=>deleteGallery(b.dataset.deleteGallery)))}
+function renderGalleries() {
+  const c = $('galleries-list');
+
+  if (!galleriesCache.length) {
+    c.innerHTML = `
+      <div class="panel">
+        <p class="section-eyebrow">Ainda vazio</p>
+        <h2 style="font-family:var(--font-display);font-weight:400;">
+          Nenhuma galeria criada.
+        </h2>
+        <p class="panel-copy" style="margin-top:8px;">
+          Comece criando a primeira galeria do novo CMS.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  // Garante que a lista visual respeite a ordem atual
+  galleriesCache.sort((a, b) => {
+    const ordemA = Number(a.sort_order) || 0;
+    const ordemB = Number(b.sort_order) || 0;
+
+    if (ordemA !== ordemB) {
+      return ordemA - ordemB;
+    }
+
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+
+  c.innerHTML = galleriesCache.map((g, index) => `
+    <article
+      class="gallery-admin-card"
+      draggable="true"
+      data-gallery-id="${attr(g.id)}"
+    >
+
+      <div class="gallery-card-main">
+
+        <div
+          class="gallery-drag-handle"
+          title="Arraste para alterar a posição"
+          aria-label="Arrastar galeria"
+        >
+          ☰
+        </div>
+
+        ${
+          g.cover_url
+            ? `
+              <img
+                class="gallery-thumb"
+                src="${attr(g.cover_url)}"
+                alt=""
+                loading="lazy"
+              >
+            `
+            : `
+              <div class="gallery-thumb empty">
+                SEM CAPA
+              </div>
+            `
+        }
+
+        <div>
+          <div class="gallery-card-title">
+            ${esc(g.title)}
+          </div>
+
+          <div class="gallery-meta">
+            /${esc(g.slug)}
+            ${
+              g.categories?.name
+                ? ` · ${esc(g.categories.name)}`
+                : ''
+            }
+          </div>
+
+          <div style="margin-top:9px">
+            <span class="status-pill ${g.published ? 'published' : 'draft'}">
+              ${g.published ? 'PUBLICADA' : 'RASCUNHO'}
+            </span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+
+          <button
+            class="small-btn"
+            data-photos="${attr(g.id)}"
+          >
+            Fotos
+          </button>
+
+          <button
+            class="small-btn"
+            data-edit-gallery="${attr(g.id)}"
+          >
+            Editar
+          </button>
+
+          <button
+            class="small-btn"
+            data-toggle-gallery="${attr(g.id)}"
+          >
+            ${g.published ? 'Despublicar' : 'Publicar'}
+          </button>
+
+          <button
+            class="small-btn"
+            data-delete-gallery="${attr(g.id)}"
+          >
+            Excluir
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+  `).join('');
+
+  // ============================================
+  // BOTÕES EXISTENTES
+  // ============================================
+
+  c.querySelectorAll('[data-photos]').forEach(b => {
+    b.addEventListener(
+      'click',
+      () => openGalleryModal(b.dataset.photos)
+    );
+  });
+
+  c.querySelectorAll('[data-edit-gallery]').forEach(b => {
+    b.addEventListener(
+      'click',
+      () => editGallery(b.dataset.editGallery)
+    );
+  });
+
+  c.querySelectorAll('[data-toggle-gallery]').forEach(b => {
+    b.addEventListener(
+      'click',
+      () => toggleGallery(b.dataset.toggleGallery)
+    );
+  });
+
+  c.querySelectorAll('[data-delete-gallery]').forEach(b => {
+    b.addEventListener(
+      'click',
+      () => deleteGallery(b.dataset.deleteGallery)
+    );
+  });
+
+
+  // ============================================
+  // ARRASTAR E SOLTAR
+  // ============================================
+
+  let draggedId = null;
+
+  c.querySelectorAll('.gallery-admin-card').forEach(card => {
+
+    card.addEventListener('dragstart', event => {
+
+      draggedId = card.dataset.galleryId;
+
+      card.classList.add('gallery-dragging');
+
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData(
+        'text/plain',
+        draggedId
+      );
+
+    });
+
+
+    card.addEventListener('dragend', () => {
+
+      card.classList.remove(
+        'gallery-dragging'
+      );
+
+      c.querySelectorAll(
+        '.gallery-drag-over'
+      ).forEach(el => {
+        el.classList.remove(
+          'gallery-drag-over'
+        );
+      });
+
+      draggedId = null;
+
+    });
+
+
+    card.addEventListener('dragover', event => {
+
+      event.preventDefault();
+
+      if (
+        !draggedId ||
+        draggedId === card.dataset.galleryId
+      ) {
+        return;
+      }
+
+      card.classList.add(
+        'gallery-drag-over'
+      );
+
+      event.dataTransfer.dropEffect = 'move';
+
+    });
+
+
+    card.addEventListener('dragleave', () => {
+
+      card.classList.remove(
+        'gallery-drag-over'
+      );
+
+    });
+
+
+    card.addEventListener('drop', async event => {
+
+      event.preventDefault();
+
+      card.classList.remove(
+        'gallery-drag-over'
+      );
+
+      const targetId =
+        card.dataset.galleryId;
+
+      if (
+        !draggedId ||
+        draggedId === targetId
+      ) {
+        return;
+      }
+
+      await reorderGalleries(
+        draggedId,
+        targetId
+      );
+
+    });
+
+  });
+
+}
+async function reorderGalleries(draggedId, targetId) {
+
+  const draggedIndex =
+    galleriesCache.findIndex(
+      g => g.id === draggedId
+    );
+
+  const targetIndex =
+    galleriesCache.findIndex(
+      g => g.id === targetId
+    );
+
+  if (
+    draggedIndex === -1 ||
+    targetIndex === -1
+  ) {
+    return;
+  }
+
+
+  // ============================================
+  // CRIA NOVA ORDEM LOCAL
+  // ============================================
+
+  const reordered =
+    [...galleriesCache];
+
+  const [movedGallery] =
+    reordered.splice(
+      draggedIndex,
+      1
+    );
+
+  reordered.splice(
+    targetIndex,
+    0,
+    movedGallery
+  );
+
+
+  // ============================================
+  // ATUALIZA sort_order
+  // ============================================
+
+  const updates =
+    reordered.map(
+      (gallery, index) => ({
+        id: gallery.id,
+        sort_order: index + 1
+      })
+    );
+
+
+  flash(
+    'Salvando nova ordem...',
+    ''
+  );
+
+
+  // ============================================
+  // SALVA NO SUPABASE
+  // ============================================
+
+  for (const item of updates) {
+
+    const { error } =
+      await supabase
+        .from('galleries')
+        .update({
+          sort_order: item.sort_order
+        })
+        .eq(
+          'id',
+          item.id
+        );
+
+    if (error) {
+
+      flash(
+        `Erro ao salvar ordem: ${error.message}`,
+        'erro'
+      );
+
+      // Recarrega a ordem verdadeira
+      await loadGalleries();
+
+      return;
+    }
+
+  }
+
+
+  // ============================================
+  // ATUALIZA CACHE
+  // ============================================
+
+  galleriesCache =
+    reordered.map(
+      (gallery, index) => ({
+        ...gallery,
+        sort_order: index + 1
+      })
+    );
+
+
+  // ============================================
+  // REDESENHA
+  // ============================================
+
+  renderGalleries();
+
+
+  flash(
+    'Ordem das galerias atualizada.',
+    'sucesso'
+  );
+
+}
 function openGalleryForm(g=null){$('gallery-form-wrap').hidden=false;$('gallery-form-title').textContent=g?'Editar galeria':'Nova galeria';$('gallery-id').value=g?.id||'';$('gallery-title').value=g?.title||'';$('gallery-slug').value=g?.slug||'';$('gallery-category').value=g?.category_id||'';$('gallery-description').value=g?.description||'';$('gallery-cover').value=g?.cover_url||'';$('gallery-order').value=g?.sort_order??0;$('gallery-title').focus()}
 function closeGalleryForm(){$('gallery-form-wrap').hidden=true;$('gallery-form').reset();$('gallery-id').value='';$('gallery-order').value=0;msg($('gallery-form-msg'),'')}
 async function saveGallery(e){e.preventDefault();const id=$('gallery-id').value,p={title:$('gallery-title').value.trim(),slug:slugify($('gallery-slug').value.trim()),description:$('gallery-description').value.trim()||null,category_id:$('gallery-category').value||null,cover_url:$('gallery-cover').value.trim()||null,sort_order:Number($('gallery-order').value)||0};const r=id?await supabase.from('galleries').update(p).eq('id',id).select().single():await supabase.from('galleries').insert(p).select().single();if(r.error){msg($('gallery-form-msg'),r.error.message,'erro');return}msg($('gallery-form-msg'),'Galeria salva.','sucesso');await loadGalleries();await loadDashboard();if(!id&&r.data)setTimeout(()=>openGalleryModal(r.data.id),250)}
