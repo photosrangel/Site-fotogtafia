@@ -150,7 +150,7 @@ function frameHTML(ensaio, index) {
 }
 
 
-/ ============================================
+// ============================================
 // RENDERIZA GALERIA (CORRIGIDA)
 // ============================================
 
@@ -160,7 +160,6 @@ function renderGrid(filter = 'todas') {
     return;
   }
 
-
   const visiveis =
     ENSAIOS_SITE
       .map((ensaio, index) => ({
@@ -169,8 +168,8 @@ function renderGrid(filter = 'todas') {
       }))
       .filter(({ ensaio }) => {
 
-        // Só mostra se o ensaio tiver fotos válidas
-        if (!ensaio || !ensaio.photos || ensaio.photos.length === 0) {
+        // Se marcámos o ensaio como oculto, ele não entra na lista
+        if (ensaio && ensaio.oculto === true) {
           return false;
         }
 
@@ -221,36 +220,19 @@ function renderGrid(filter = 'todas') {
       const abrir =
         () => {
           const idx = Number(frame.dataset.ensaioIndex);
-          // Segurança extra: só abre se o índice existir na lista atual
           if (!isNaN(idx) && ENSAIOS_SITE[idx]) {
             openLightbox(idx);
           }
         };
 
+      frame.addEventListener('click', abrir);
 
-      frame.addEventListener(
-        'click',
-        abrir
-      );
-
-
-      frame.addEventListener(
-        'keydown',
-        event => {
-
-          if (
-            event.key === 'Enter' ||
-            event.key === ' '
-          ) {
-
-            event.preventDefault();
-
-            abrir();
-
-          }
-
+      frame.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          abrir();
         }
-      );
+      });
 
     });
 
@@ -295,8 +277,6 @@ function configurarFiltros() {
     });
 
 }
-
-
 // ============================================
 // LIGHTBOX
 // ============================================
