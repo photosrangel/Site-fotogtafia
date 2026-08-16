@@ -156,3 +156,98 @@
 .gallery-drag-handle:hover {
   opacity: 1;
 }
+/* ============================================
+   GALERIAS — ORGANIZAÇÃO DO CARD
+   ============================================ */
+
+.gallery-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  position: relative;
+}
+
+.gallery-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.gallery-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.gallery-drag-handle {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 8px 10px;
+  cursor: grab;
+  font-size: 18px;
+  letter-spacing: 2px;
+  opacity: .45;
+  user-select: none;
+}
+
+.gallery-drag-handle:hover {
+  opacity: 1;
+}
+
+.gallery-drag-handle:active {
+  cursor: grabbing;
+}
+
+
+/* Estado durante o arraste */
+
+.gallery-admin-card.is-dragging {
+  opacity: .45;
+}
+
+.gallery-admin-card.drag-over {
+  outline: 1px dashed currentColor;
+  outline-offset: 4px;
+}
+
+
+/* Mantém a miniatura com tamanho controlado */
+
+.gallery-thumb {
+  flex: 0 0 120px;
+  width: 120px;
+  height: 150px;
+  object-fit: cover;
+}
+
+.gallery-thumb.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+
+/* Em telas menores */
+
+@media (max-width: 700px) {
+
+  .gallery-card-main {
+    gap: 12px;
+  }
+
+  .gallery-thumb {
+    flex-basis: 90px;
+    width: 90px;
+    height: 115px;
+  }
+
+  .gallery-card-actions {
+    gap: 5px;
+  }
+
+  .gallery-drag-handle {
+    display: none;
+  }
+
+}
