@@ -65,12 +65,18 @@ async function loadPhotos(){
   }
 
   $('photo-grid').innerHTML=photos.map((x,index)=>`
+
     <div
-      class="admin-photo ${currentGallery.cover_url===x.image_url?'admin-photo-cover':''}"
+      class="
+        admin-photo
+        ${currentGallery.cover_url===x.image_url?'admin-photo-cover':''}
+        ${x.published?'photo-is-published':'photo-is-hidden'}
+      "
       data-photo-id="${attr(x.id)}"
       draggable="true"
-      title="Arraste para reorganizar ou clique para definir como capa"
+      title="Arraste para reorganizar ou clique na fotografia para definir como capa"
     >
+
       <img
         src="${attr(x.image_url)}"
         alt="${attr(x.alt_text||currentGallery.title||'')}"
@@ -78,7 +84,9 @@ async function loadPhotos(){
         onerror="this.parentElement.classList.add('photo-load-error')"
       >
 
-      <span class="photo-order">${index+1}</span>
+      <span class="photo-order">
+        ${index+1}
+      </span>
 
       ${
         currentGallery.cover_url===x.image_url
@@ -87,77 +95,221 @@ async function loadPhotos(){
       }
 
       <button
+        class="photo-status ${x.published?'published':'hidden'}"
+        data-toggle-photo="${attr(x.id)}"
+        title="${x.published?'Ocultar fotografia do site':'Publicar fotografia no site'}"
+        type="button"
+      >
+        ${x.published?'✓ PUBLICADA':'○ OCULTA'}
+      </button>
+
+      <button
         class="photo-delete"
         data-delete-photo="${attr(x.id)}"
         title="Excluir fotografia"
         type="button"
-      >×</button>
+      >
+        ×
+      </button>
+
     </div>
+
   `).join('');
 
   const grid=$('photo-grid');
 
   grid.querySelectorAll('.admin-photo').forEach(el=>{
 
-    const pht=photos.find(x=>x.id===el.dataset.photoId);
+    const pht=photos.find(
+      x=>x.id===el.dataset.photoId
+    );
 
     el.addEventListener('click',e=>{
-      if(e.target.closest('.photo-delete'))return;
-      if(pht)setCover(pht);
+
+      if(
+        e.target.closest('.photo-delete') ||
+        e.target.closest('.photo-status')
+      ){
+        return;
+      }
+
+      if(pht){
+        setCover(pht);
+      }
+
     });
 
     el.addEventListener('dragstart',e=>{
+
       el.classList.add('is-dragging');
+
       e.dataTransfer.effectAllowed='move';
-      e.dataTransfer.setData('text/plain',el.dataset.photoId);
+
+      e.dataTransfer.setData(
+        'text/plain',
+        el.dataset.photoId
+      );
+
     });
 
     el.addEventListener('dragend',()=>{
+
       el.classList.remove('is-dragging');
 
-      grid.querySelectorAll('.admin-photo')
-        .forEach(item=>item.classList.remove('drag-over'));
+      grid
+        .querySelectorAll('.admin-photo')
+        .forEach(item=>
+          item.classList.remove('drag-over')
+        );
 
       savePhotoOrder();
+
     });
 
     el.addEventListener('dragover',e=>{
+
       e.preventDefault();
 
-      const dragging=grid.querySelector('.is-dragging');
+      const dragging=
+        grid.querySelector('.is-dragging');
 
-      if(!dragging || dragging===el)return;
+      if(!dragging || dragging===el){
+        return;
+      }
 
-      const rect=el.getBoundingClientRect();
+      const rect=
+        el.getBoundingClientRect();
+
       const after=
-        e.clientY > rect.top + rect.height/2;
+        e.clientY >
+        rect.top + rect.height/2;
 
       grid.insertBefore(
         dragging,
-        after ? el.nextSibling : el
+        after
+          ? el.nextSibling
+          : el
       );
 
-      el.classList.add('drag-over');
+      el.classList.add(
+        'drag-over'
+      );
+
     });
 
     el.addEventListener('dragleave',()=>{
-      el.classList.remove('drag-over');
+      el.classList.remove(
+        'drag-over'
+      );
     });
 
     el.addEventListener('drop',e=>{
+
       e.preventDefault();
-      el.classList.remove('drag-over');
+
+      el.classList.remove(
+        'drag-over'
+      );
+
     });
+
   });
 
-  grid.querySelectorAll('[data-delete-photo]').forEach(b=>{
-    b.addEventListener('click',e=>{
-      e.stopPropagation();
-      deletePhoto(b.dataset.deletePhoto);
+  grid
+    .querySelectorAll('[data-toggle-photo]')
+    .forEach(button=>{
+
+      button.addEventListener(
+        'click',
+        e=>{
+
+          e.stopPropagation();
+
+          togglePhotoPublished(
+            button.dataset.togglePhoto
+          );
+
+        }
+      );
+
     });
-  });
+
+  grid
+    .querySelectorAll('[data-delete-photo]')
+    .forEach(button=>{
+
+      button.addEventListener(
+        'click',
+        e=>{
+
+          e.stopPropagation();
+
+          deletePhoto(
+            button.dataset.deletePhoto
+          );
+
+        }
+      );
+
+    });
+
 }
 
+
+async function togglePhotoPublished(id){
+
+  const{
+    data:photo,
+    error:findError
+  }=await supabase
+    .from('gallery_photos')
+    .select('id,published')
+    .eq('id',id)
+    .single();
+
+  if(findError || !photo){
+
+    flash(
+      'Fotografia não encontrada.',
+      'erro'
+    );
+
+    return;
+
+  }
+
+  const novoEstado=!photo.published;
+
+  const{error}=await supabase
+    .from('gallery_photos')
+    .update({
+      published:novoEstado
+    })
+    .eq('id',id);
+
+  if(error){
+
+    flash(
+      `Erro ao alterar publicação: ${error.message}`,
+      'erro'
+    );
+
+    return;
+
+  }
+
+  flash(
+    novoEstado
+      ? 'Fotografia publicada no site.'
+      : 'Fotografia ocultada do site.',
+    'sucesso'
+  );
+
+  await loadPhotos();
+
+  await loadDashboard();
+
+}
 
 async function savePhotoOrder(){
 
