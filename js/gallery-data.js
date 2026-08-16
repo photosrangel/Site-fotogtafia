@@ -13,6 +13,7 @@
 
 const ENSAIOS = [
   
+  <!--
   {
     id: 'sessao-estudio-01',
     titulo: 'Retrato em Estúdio',
@@ -72,4 +73,5 @@ const ENSAIOS = [
       { src: null, placeholder: 'foto-18.jpg' },
     ],
   },
+  -->
 ];
