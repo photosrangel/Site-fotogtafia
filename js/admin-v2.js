@@ -495,7 +495,36 @@ function configurarOrdenacaoGalerias(){
 }
 function openGalleryForm(g=null){$('gallery-form-wrap').hidden=false;$('gallery-form-title').textContent=g?'Editar galeria':'Nova galeria';$('gallery-id').value=g?.id||'';$('gallery-title').value=g?.title||'';$('gallery-slug').value=g?.slug||'';$('gallery-category').value=g?.category_id||'';$('gallery-description').value=g?.description||'';$('gallery-cover').value=g?.cover_url||'';$('gallery-order').value=g?.sort_order??0;$('gallery-title').focus()}
 function closeGalleryForm(){$('gallery-form-wrap').hidden=true;$('gallery-form').reset();$('gallery-id').value='';$('gallery-order').value=0;msg($('gallery-form-msg'),'')}
-async function saveGallery(e){e.preventDefault();const id=$('gallery-id').value,p={title:$('gallery-title').value.trim(),slug:slugify($('gallery-slug').value.trim()),description:$('gallery-description').value.trim()||null,category_id:$('gallery-category').value||null,cover_url:$('gallery-cover').value.trim()||null,sort_order:Number($('gallery-order').value)||0};const r=id?await supabase.from('galleries').update(p).eq('id',id).select().single():await supabase.from('galleries').insert(p).select().single();if(r.error){msg($('gallery-form-msg'),r.error.message,'erro');return}msg($('gallery-form-msg'),'Galeria salva.','sucesso');await loadGalleries();await loadDashboard();if(!id&&r.data)setTimeout(()=>openGalleryModal(r.data.id),250)}
+async function saveGallery(e){
+  e.preventDefault();
+
+  const id=$('gallery-id').value,
+  p={
+    title:$('gallery-title').value.trim(),
+    slug:slugify($('gallery-slug').value.trim()),
+    description:$('gallery-description').value.trim()||null,
+    category_id:$('gallery-category').value||null,
+    cover_url:$('gallery-cover').value.trim()||null,
+    sort_order:Number($('gallery-order').value)||0
+  };
+
+  const r=id
+    ?await supabase.from('galleries').update(p).eq('id',id).select().single()
+    :await supabase.from('galleries').insert(p).select().single();
+
+  if(r.error){
+    msg($('gallery-form-msg'),r.error.message,'erro');
+    return;
+  }
+
+  msg($('gallery-form-msg'),'Galeria salva.','sucesso');
+
+  await loadGalleries();
+  await loadDashboard();
+
+  if(!id&&r.data)
+    setTimeout(()=>openGalleryModal(r.data.id),250);
+}
 function editGallery(id){const g=galleriesCache.find(x=>x.id===id);if(g){openGalleryForm(g);window.scrollTo({top:0,behavior:'smooth'})}}
 async function toggleGallery(id){const g=galleriesCache.find(x=>x.id===id);if(!g)return;const{error}=await supabase.from('galleries').update({published:!g.published}).eq('id',id);if(error){flash(`Erro: ${error.message}`,'erro');return}flash(g.published?'Galeria despublicada.':'Galeria publicada.','sucesso');await loadGalleries();await loadDashboard()}
 async function deleteGallery(id){const g=galleriesCache.find(x=>x.id===id);if(!g||!confirm(`Excluir "${g.title}" e todas as suas fotografias? Esta ação não pode ser desfeita.`))return;const{data:photos,error:qerr}=await supabase.from('gallery_photos').select('id,image_url').eq('gallery_id',id);if(qerr){flash(`Erro ao localizar fotos: ${qerr.message}`,'erro');return}const paths=(photos||[]).map(p=>storagePath(p.image_url)).filter(Boolean);if(paths.length){const{error}=await supabase.storage.from(BUCKET).remove(paths);if(error){flash(`Não foi possível apagar os arquivos: ${error.message}`,'erro');return}}const{error}=await supabase.from('galleries').delete().eq('id',id);if(error){flash(`Erro ao excluir galeria: ${error.message}`,'erro');return}flash('Galeria excluída.','sucesso');await loadGalleries();await loadDashboard()}
