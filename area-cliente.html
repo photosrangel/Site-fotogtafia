@@ -13,6 +13,20 @@
   .msg.erro { color: #e0574a; }
   .msg.sucesso { color: var(--accent); }
   .foto-selecionavel { position: relative; cursor: pointer; }
+  .foto-selecionavel img {
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    pointer-events: none; /* impede clique-direito/arrastar direto na imagem */
+  }
+  .foto-selecionavel::before {
+    content: '';
+    position: absolute; inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='140'%3E%3Ctext x='-10' y='90' font-family='monospace' font-size='15' fill='rgba(255,255,255,0.22)' transform='rotate(-22 130 70)'%3ERANGEL SANTOS · PROVA%3C/text%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
   .foto-selecionavel::after {
     content: '';
     position: absolute; top: 10px; right: 10px;
@@ -156,15 +170,26 @@ function mostrarGaleria() {
 
   if (ensaioAtual.status === 'entregue') {
     conteudo.innerHTML = `
-      <p style="color:var(--text-muted); margin-bottom:24px;">
-        Clique em cada foto para baixar em alta resolução.
-      </p>
-      ${ensaioAtual.fotos.map((f, i) => `
-        <div class="download-item">
-          <span class="footer-mono">Foto ${i + 1}</span>
-          <a href="${f.url}" download class="btn">Baixar</a>
-        </div>
-      `).join('')}
+      <div style="text-align:center; padding: 20px 0 36px;">
+        <p style="font-family:var(--font-display); font-style:italic; font-size:1.8rem; color:var(--text); margin-bottom:14px;">
+          Suas fotos estão prontas! 🤍
+        </p>
+        <p style="color:var(--text-muted); max-width:52ch; margin:0 auto;">
+          Foi um prazer registrar esse momento com você. Obrigado pela confiança —
+          espero que essas fotos te façam sentir exatamente como você é.
+          Clique em "Baixar" em cada foto para salvar no seu dispositivo.
+        </p>
+      </div>
+      <div class="grid">
+        ${ensaioAtual.fotos.map((f, i) => `
+          <div class="frame">
+            <img src="${f.url}" alt="Foto final ${i + 1}">
+            <div class="frame-caption" style="transform:translateY(0); justify-content:center;">
+              <button class="btn btn-accent" style="padding:8px 16px;" onclick="baixarFoto('${f.url}', 'foto-${i + 1}.jpg', this)">Baixar</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
     `;
     return;
   }
@@ -184,7 +209,7 @@ function mostrarGaleria() {
       </div>
       <div class="grid" style="margin-top:32px; opacity:0.6;">
         ${selecionadas.map(f => `
-          <div class="frame">
+          <div class="frame foto-selecionavel" style="cursor:default;">
             <img src="${f.url}" alt="Foto selecionada">
           </div>
         `).join('')}
@@ -223,6 +248,30 @@ function mostrarGaleria() {
 
   document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
 }
+
+// Força o download de verdade (abre "Salvar como" no dispositivo),
+// em vez de só abrir a imagem numa aba do navegador.
+window.baixarFoto = async function (url, nomeArquivo, botaoEl) {
+  const textoOriginal = botaoEl.textContent;
+  botaoEl.textContent = 'Baixando...';
+  try {
+    const resposta = await fetch(url);
+    const blob = await resposta.blob();
+    const urlTemporaria = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = urlTemporaria;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(urlTemporaria);
+  } catch (erro) {
+    // Se por algum motivo não conseguir baixar direto, abre a foto
+    // numa aba nova como alternativa (a pessoa pode salvar por lá).
+    window.open(url, '_blank');
+  }
+  botaoEl.textContent = textoOriginal;
+};
 
 async function salvarSelecao() {
   const msgEl = document.getElementById('selecao-msg');

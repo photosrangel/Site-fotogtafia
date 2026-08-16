@@ -293,18 +293,20 @@ async function toggleDetail(ens) {
   const selecionadas = provas.filter(f => f.selecionada).length;
 
   detailEl.innerHTML = `
-    <p class="footer-mono">Envie esses dois dados para a cliente (ela mesma digita no site, em "Área do Cliente"):</p>
-    <div style="display:flex; gap:12px; flex-wrap:wrap; margin:10px 0;">
-      <div style="flex:1; min-width:180px;">
-        <p class="footer-mono" style="margin-bottom:4px;">Login</p>
-        <div class="link-box">${ens.slug}</div>
-      </div>
-      <div style="flex:1; min-width:180px;">
-        <p class="footer-mono" style="margin-bottom:4px;">Senha</p>
-        <div class="link-box">${ens.codigo_acesso}</div>
-      </div>
+    <p class="footer-mono">Envie esses dados para a cliente (ela mesma acessa e digita no site):</p>
+    <div style="margin:10px 0;">
+      <p class="footer-mono" style="margin-bottom:4px;">Link da Área do Cliente</p>
+      <div class="link-box">${location.origin}/area-cliente</div>
     </div>
-    <button class="small-btn" onclick="navigator.clipboard.writeText('Login: ${ens.slug}\\nSenha: ${ens.codigo_acesso}\\nAcesse em: ${location.origin}/area-cliente'); this.textContent='Copiado!'">Copiar login + senha</button>
+    <div style="margin:10px 0;">
+      <p class="footer-mono" style="margin-bottom:4px;">Login</p>
+      <div class="link-box">${ens.slug}</div>
+    </div>
+    <div style="margin:10px 0;">
+      <p class="footer-mono" style="margin-bottom:4px;">Senha</p>
+      <div class="link-box">${ens.codigo_acesso}</div>
+    </div>
+    <button class="small-btn" onclick="navigator.clipboard.writeText('Acesse em: ${location.origin}/area-cliente\\nLogin: ${ens.slug}\\nSenha: ${ens.codigo_acesso}'); this.textContent='Copiado!'">Copiar tudo</button>
 
     <p class="footer-mono" style="margin-top:24px;">Fotos para o cliente escolher (provas) — ${provas.length} enviadas, ${selecionadas} selecionadas:</p>
     <div class="upload-area">
