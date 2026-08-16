@@ -257,12 +257,139 @@ function renderGalleries(){
 
     });
 
-
+}
   // ==========================================
   // DRAG & DROP
   // ==========================================
 
-  configurarOrdenacaoGalerias();
+function configurarOrdenacaoGalerias() {
+
+  const container = $('galleries-list');
+
+  if (!container) return;
+
+  let draggedCard = null;
+
+
+  container
+    .querySelectorAll('.gallery-admin-card')
+    .forEach(card => {
+
+      const handle =
+        card.querySelector('.gallery-drag-handle');
+
+      if (!handle) return;
+
+
+      // A alça inicia o arraste
+      handle.addEventListener('dragstart', event => {
+
+        draggedCard = card;
+
+        card.classList.add('is-dragging');
+
+        event.dataTransfer.effectAllowed = 'move';
+
+        event.dataTransfer.setData(
+          'text/plain',
+          card.dataset.galleryId
+        );
+
+      });
+
+
+      handle.addEventListener('dragend', async () => {
+
+        if (!draggedCard) return;
+
+        draggedCard.classList.remove(
+          'is-dragging'
+        );
+
+        container
+          .querySelectorAll('.gallery-admin-card')
+          .forEach(card => {
+            card.classList.remove('drag-over');
+          });
+
+
+        await salvarOrdemGalerias();
+
+        draggedCard = null;
+
+      });
+
+
+      // Permite receber outro card
+      card.addEventListener('dragover', event => {
+
+        event.preventDefault();
+
+        if (!draggedCard) return;
+
+        if (draggedCard === card) return;
+
+        event.dataTransfer.dropEffect = 'move';
+
+        card.classList.add('drag-over');
+
+      });
+
+
+      card.addEventListener('dragleave', () => {
+
+        card.classList.remove(
+          'drag-over'
+        );
+
+      });
+
+
+      card.addEventListener('drop', event => {
+
+        event.preventDefault();
+
+        card.classList.remove(
+          'drag-over'
+        );
+
+        if (!draggedCard) return;
+
+        if (draggedCard === card) return;
+
+
+        const cards = [
+          ...container.querySelectorAll(
+            '.gallery-admin-card'
+          )
+        ];
+
+        const draggedIndex =
+          cards.indexOf(draggedCard);
+
+        const targetIndex =
+          cards.indexOf(card);
+
+
+        if (draggedIndex < targetIndex) {
+
+          container.insertBefore(
+            draggedCard,
+            card.nextSibling
+          );
+
+        } else {
+
+          container.insertBefore(
+            draggedCard,
+            card
+          );
+
+        }
+
+      });
+
+    });
 
 }
 function openGalleryForm(g=null){$('gallery-form-wrap').hidden=false;$('gallery-form-title').textContent=g?'Editar galeria':'Nova galeria';$('gallery-id').value=g?.id||'';$('gallery-title').value=g?.title||'';$('gallery-slug').value=g?.slug||'';$('gallery-category').value=g?.category_id||'';$('gallery-description').value=g?.description||'';$('gallery-cover').value=g?.cover_url||'';$('gallery-order').value=g?.sort_order??0;$('gallery-title').focus()}
