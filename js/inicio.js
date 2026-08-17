@@ -584,20 +584,22 @@ document.addEventListener(
       'CMS: DOM carregado.'
     );
 
-
     if (
-      typeof supabase ===
+      typeof window.supabaseClient ===
       'undefined'
     ) {
 
       console.error(
-        'CMS: Supabase não foi encontrado.'
+        'CMS: Supabase ainda não foi inicializado.'
       );
 
       return;
 
     }
 
+    console.log(
+      'CMS: cliente Supabase encontrado.'
+    );
 
     carregarPaginaInicio();
 
