@@ -2,7 +2,18 @@
 // INÍCIO — CMS
 // ============================================
 
-console.log('CMS: inicio.js carregado');
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+} from './config.js';
+
+const supabase = window.supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+console.log('CMS: Supabase inicializado');
 
 
 // ============================================
