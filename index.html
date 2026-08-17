@@ -272,8 +272,23 @@
     caso ele já esteja no projeto.
   -->
 
-<script src="js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script type="module">
+  import {
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  } from './js/config.js';
+
+  window.supabase = window.supabaseClient =
+    window.supabaseJs.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+</script>
+
 <script type="module" src="js/inicio.js"></script>
+<script src="js/main.js"></script>
 
 </body>
 
