@@ -2,8 +2,18 @@
 // INÍCIO — CMS
 // ============================================
 
-const supabase = window.supabaseClient;
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+} from './supabase-config.js';
 
+const supabase = window.supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+console.log('CMS: Supabase inicializado');
 console.log('CMS: inicio.js carregado');
 
 
@@ -17,7 +27,6 @@ console.log('CMS: inicio.js carregado');
 // ============================================
 
 async function carregarPaginaInicio() {
-
   console.log('CMS: carregando página inicial...');
 
   try {
