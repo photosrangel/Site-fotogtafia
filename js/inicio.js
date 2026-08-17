@@ -356,77 +356,51 @@ function carregarHero(hero) {
 async function carregarTrabalhosRecentes(config) {
 
   if (!config) {
-
     console.warn(
       'CMS: seção recent_work não encontrada.'
     );
-
     return;
-
   }
 
-
-  // --------------------------------------------
+  // ============================================
   // TEXTOS
-  // --------------------------------------------
+  // ============================================
 
   const eyebrow =
-    document.getElementById(
-      'recent-work-eyebrow'
-    );
-
+    document.getElementById('recent-work-eyebrow');
 
   const title =
-    document.getElementById(
-      'recent-work-title'
-    );
-
+    document.getElementById('recent-work-title');
 
   const button =
-    document.getElementById(
-      'recent-work-button'
-    );
-
+    document.getElementById('recent-work-button');
 
   if (eyebrow) {
-
     eyebrow.textContent =
       config.eyebrow || '';
-
   }
-
 
   if (title) {
-
     title.textContent =
       config.title || '';
-
   }
 
-
   if (button) {
-
     button.href =
-      config.button?.url ||
-      '/galeria';
-
+      config.button?.url || '/galeria';
 
     button.textContent =
       config.button?.text ||
       'Galeria completa →';
-
   }
 
 
-  // --------------------------------------------
+  // ============================================
   // GRID
-  // --------------------------------------------
+  // ============================================
 
   const grid =
-    document.getElementById(
-      'recent-work-grid'
-    );
-
+    document.getElementById('recent-work-grid');
 
   if (!grid) {
 
@@ -435,187 +409,153 @@ async function carregarTrabalhosRecentes(config) {
     );
 
     return;
-
   }
 
 
-  // --------------------------------------------
-  // BUSCAR FOTOS
-  // --------------------------------------------
+  // ============================================
+  // QUANTIDADE
+  // ============================================
 
   const limit =
-    Number(
-      config.gallery_limit || 6
-    );
+    Number(config.gallery_limit || 6);
 
 
-  const { data, error } =
-    await supabase
+  // ============================================
+  // BUSCAR FOTOGRAFIAS
+  // SEM RELACIONAMENTO COM GALLERIES
+  // ============================================
 
-      .from('gallery_photos')
+  const {
+    data: photos,
+    error: photosError
+  } = await supabase
 
-      .select(`
-        id,
-        image_url,
-        title,
-        order_index,
-        published,
-        gallery_id,
-        galleries (
-          id,
-          title,
-          slug,
-          published
-        )
-      `)
+    .from('gallery_photos')
 
-      .eq(
-        'published',
-        true
-      )
+    .select(`
+      id,
+      image_url,
+      title,
+      order_index,
+      published,
+      gallery_id
+    `)
 
-      .order(
-        'order_index',
-        {
-          ascending: true
-        }
-      )
+    .eq(
+      'published',
+      true
+    )
 
-      .limit(limit);
+    .order(
+      'order_index',
+      {
+        ascending: true
+      }
+    )
+
+    .limit(limit);
 
 
-  if (error) {
+  if (photosError) {
 
     console.error(
       'CMS: erro ao buscar gallery_photos:',
-      error
+      photosError
     );
 
     return;
-
   }
 
 
   console.log(
     'CMS: fotografias encontradas:',
-    data
+    photos
   );
 
 
-  if (!data || data.length === 0) {
+  if (!photos || photos.length === 0) {
 
     console.warn(
       'CMS: nenhuma fotografia publicada encontrada.'
     );
 
     return;
-
   }
 
 
-  // --------------------------------------------
+  // ============================================
   // LIMPAR GRID
-  // --------------------------------------------
+  // ============================================
 
   grid.innerHTML = '';
 
 
-  // --------------------------------------------
+  // ============================================
   // CRIAR FOTOS
-  // --------------------------------------------
+  // ============================================
 
-  data.forEach(
+  photos.forEach(
     (photo, index) => {
-
-      /*
-        Caso a relação galleries venha vazia,
-        ainda conseguimos mostrar a fotografia.
-      */
-
-      if (
-        photo.galleries &&
-        photo.galleries.published === false
-      ) {
-
-        return;
-
-      }
-
 
       const frame =
         document.createElement('div');
-
 
       frame.className =
         'frame';
 
 
-      frame.dataset.category =
-        photo.galleries?.slug || '';
-
-
-
+      // ========================================
       // IMAGEM
+      // ========================================
 
       const img =
         document.createElement('img');
 
-
       img.src =
         photo.image_url;
 
-
       img.alt =
         photo.title ||
-        photo.galleries?.title ||
         'Fotografia de retrato feminino';
-
 
       img.loading =
         'lazy';
-
 
       img.draggable =
         false;
 
 
-
+      // ========================================
       // NÚMERO
+      // ========================================
 
       const number =
         document.createElement('span');
 
-
       number.className =
         'frame-num';
-
 
       number.textContent =
         String(index + 1)
           .padStart(2, '0');
 
 
-
+      // ========================================
       // LEGENDA
+      // ========================================
 
       const caption =
         document.createElement('div');
-
 
       caption.className =
         'frame-caption';
 
 
-
       const name =
         document.createElement('span');
 
-
       name.textContent =
-        photo.title ||
-        photo.galleries?.title ||
-        '';
-
+        photo.title || '';
 
 
       caption.appendChild(
@@ -623,22 +563,21 @@ async function carregarTrabalhosRecentes(config) {
       );
 
 
+      // ========================================
       // MONTAR
+      // ========================================
 
       frame.appendChild(
         img
       );
 
-
       frame.appendChild(
         number
       );
 
-
       frame.appendChild(
         caption
       );
-
 
       grid.appendChild(
         frame
@@ -648,7 +587,6 @@ async function carregarTrabalhosRecentes(config) {
   );
 
 }
-
 
 // ============================================
 // ESCAPAR HTML
