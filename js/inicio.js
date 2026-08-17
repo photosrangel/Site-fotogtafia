@@ -386,7 +386,7 @@ async function carregarTrabalhosRecentes(config) {
     Primeiro buscamos somente as fotografias.
   */
 
-  const {
+    const {
     data: photos,
     error: photosError
   } = await supabase
@@ -396,7 +396,8 @@ async function carregarTrabalhosRecentes(config) {
     .select(`
       id,
       image_url,
-      order_index,
+      alt_text,
+      sort_order,
       published,
       gallery_id
     `)
@@ -407,7 +408,7 @@ async function carregarTrabalhosRecentes(config) {
     )
 
     .order(
-      'order_index',
+      'sort_order',
       {
         ascending: true
       }
@@ -422,15 +423,6 @@ async function carregarTrabalhosRecentes(config) {
       'CMS: erro ao buscar gallery_photos:',
       photosError
     );
-
-    /*
-      MUITO IMPORTANTE:
-
-      Não apagamos o conteúdo existente
-      quando a consulta falha.
-
-      Assim a página continua funcionando.
-    */
 
     return;
 
@@ -455,7 +447,7 @@ async function carregarTrabalhosRecentes(config) {
 
 
   // --------------------------------------------
-  // SÓ AGORA LIMPA O GRID
+  // LIMPAR GRID SOMENTE DEPOIS DA BUSCA
   // --------------------------------------------
 
   grid.innerHTML = '';
@@ -494,6 +486,7 @@ async function carregarTrabalhosRecentes(config) {
         photo.image_url || '';
 
       img.alt =
+        photo.alt_text ||
         'Fotografia de retrato feminino';
 
       img.loading =
@@ -531,7 +524,9 @@ async function carregarTrabalhosRecentes(config) {
       const name =
         document.createElement('span');
 
-       name.textContent = '';
+      name.textContent =
+        photo.alt_text || '';
+
 
       caption.appendChild(name);
 
@@ -550,9 +545,6 @@ async function carregarTrabalhosRecentes(config) {
 
     }
   );
-
-}
-
 
 
 // ============================================
