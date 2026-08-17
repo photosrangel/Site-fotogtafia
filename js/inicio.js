@@ -396,7 +396,6 @@ async function carregarTrabalhosRecentes(config) {
     .select(`
       id,
       image_url,
-      title,
       order_index,
       published,
       gallery_id
@@ -495,7 +494,6 @@ async function carregarTrabalhosRecentes(config) {
         photo.image_url || '';
 
       img.alt =
-        photo.title ||
         'Fotografia de retrato feminino';
 
       img.loading =
@@ -533,9 +531,7 @@ async function carregarTrabalhosRecentes(config) {
       const name =
         document.createElement('span');
 
-      name.textContent =
-        photo.title || '';
-
+       name.textContent = '';
 
       caption.appendChild(name);
 
