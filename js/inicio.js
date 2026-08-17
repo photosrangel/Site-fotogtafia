@@ -1,22 +1,12 @@
-```javascript
 // ============================================
-// INÍCIO — CONTEÚDO VINDO DO CMS
+// INÍCIO — CMS
 // ============================================
-//
-// Este arquivo controla a página inicial.
-// O conteúdo textual vem de:
-// public.site_content
-//
-// As fotografias vêm de:
-// public.gallery_photos
-//
-// IMPORTANTE:
-// O Supabase precisa estar disponível globalmente
-// através do seu arquivo de configuração.
-//
+
+console.log('CMS: inicio.js carregado');
+
 
 // ============================================
-// CARREGAR CONTEÚDO DA PÁGINA
+// CARREGAR PÁGINA INICIAL
 // ============================================
 
 async function carregarPaginaInicio() {
@@ -31,67 +21,42 @@ async function carregarPaginaInicio() {
       .eq('slug', 'inicio');
 
     if (error) {
-      console.error(
-        'CMS: erro ao buscar site_content:',
-        error
-      );
-
+      console.error('CMS: erro ao buscar site_content:', error);
       return;
     }
 
     if (!data || data.length === 0) {
-
-      console.warn(
-        'CMS: nenhum conteúdo encontrado para a página inicial.'
-      );
-
+      console.warn('CMS: nenhum conteúdo encontrado.');
       return;
     }
 
-    console.log(
-      'CMS: conteúdo encontrado:',
-      data
-    );
+    console.log('CMS: conteúdo encontrado:', data);
 
     const sections = {};
 
     data.forEach(section => {
-
-      sections[section.section_key] =
-        section.content;
-
+      sections[section.section_key] = section.content;
     });
 
-    // ========================================
-    // HERO
-    // ========================================
+    // Carrega HERO
+    carregarHero(sections.hero);
 
-    carregarHero(
-      sections.hero
-    );
+    // Carrega trabalhos recentes
+    await carregarTrabalhosRecentes(sections.recent_work);
 
-    // ========================================
-    // TRABALHOS RECENTES
-    // ========================================
-
-    await carregarTrabalhosRecentes(
-      sections.recent_work
-    );
-
-    console.log(
-      'CMS: página inicial carregada com sucesso.'
-    );
+    console.log('CMS: página inicial carregada com sucesso.');
 
   } catch (error) {
 
     console.error(
-      'CMS: erro ao carregar página inicial:',
+      'CMS: erro inesperado ao carregar página inicial:',
       error
     );
 
   }
 
 }
+
 
 
 // ============================================
@@ -101,57 +66,37 @@ async function carregarPaginaInicio() {
 function carregarHero(hero) {
 
   if (!hero) {
-
-    console.warn(
-      'CMS: conteúdo do Hero não encontrado.'
-    );
-
+    console.warn('CMS: seção hero não encontrada.');
     return;
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // EYEBROW
-  // ========================================
+  // --------------------------------------------
 
   const eyebrow =
-    document.getElementById(
-      'hero-eyebrow'
-    );
+    document.getElementById('hero-eyebrow');
 
   if (eyebrow) {
-
-    eyebrow.textContent =
-      hero.eyebrow || '';
-
+    eyebrow.textContent = hero.eyebrow || '';
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // TÍTULO
-  // ========================================
+  // --------------------------------------------
 
   const title =
-    document.getElementById(
-      'hero-title'
-    );
+    document.getElementById('hero-title');
 
   if (title) {
 
     const texto =
-      (hero.title || '').trim();
-
-    /*
-      Mantém o visual:
-
-      Você, como
-      sempre foi.
-
-      A última palavra fica em itálico.
-    */
+      hero.title || '';
 
     const palavras =
-      texto.split(/\s+/);
+      texto.trim().split(/\s+/);
 
     if (palavras.length >= 2) {
 
@@ -167,48 +112,39 @@ function carregarHero(hero) {
 
     } else {
 
-      title.textContent =
-        texto;
+      title.textContent = texto;
 
     }
 
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // DESCRIÇÃO
-  // ========================================
+  // --------------------------------------------
 
   const description =
-    document.getElementById(
-      'hero-description'
-    );
+    document.getElementById('hero-description');
 
   if (description) {
-
     description.textContent =
       hero.description || '';
-
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // IMAGEM DESKTOP
-  // ========================================
+  // --------------------------------------------
 
   const desktopImage =
     document.getElementById(
       'hero-desktop-image'
     );
 
-  if (desktopImage) {
+  if (desktopImage && hero.desktop_image) {
 
-    if (hero.desktop_image) {
-
-      desktopImage.src =
-        hero.desktop_image;
-
-    }
+    desktopImage.src =
+      hero.desktop_image;
 
     desktopImage.alt =
       hero.image_alt ||
@@ -217,19 +153,16 @@ function carregarHero(hero) {
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // IMAGEM MOBILE
-  // ========================================
+  // --------------------------------------------
 
   const mobileImage =
     document.getElementById(
       'hero-mobile-image'
     );
 
-  if (
-    mobileImage &&
-    hero.mobile_image
-  ) {
+  if (mobileImage && hero.mobile_image) {
 
     mobileImage.srcset =
       hero.mobile_image;
@@ -237,9 +170,9 @@ function carregarHero(hero) {
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // BOTÃO PRINCIPAL
-  // ========================================
+  // --------------------------------------------
 
   const primaryButton =
     document.getElementById(
@@ -259,9 +192,9 @@ function carregarHero(hero) {
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // BOTÃO SECUNDÁRIO
-  // ========================================
+  // --------------------------------------------
 
   const secondaryButton =
     document.getElementById(
@@ -281,25 +214,20 @@ function carregarHero(hero) {
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // META
-  // ========================================
+  // --------------------------------------------
 
   const meta =
     document.getElementById(
       'hero-meta'
     );
 
-  if (meta) {
+  if (meta && Array.isArray(hero.meta)) {
 
     meta.innerHTML = '';
 
-    const lista =
-      Array.isArray(hero.meta)
-        ? hero.meta
-        : [];
-
-    lista.forEach(item => {
+    hero.meta.forEach(item => {
 
       const div =
         document.createElement('div');
@@ -310,9 +238,7 @@ function carregarHero(hero) {
       strong.textContent =
         item.label || '';
 
-      div.appendChild(
-        strong
-      );
+      div.appendChild(strong);
 
       div.appendChild(
         document.createTextNode(
@@ -320,9 +246,7 @@ function carregarHero(hero) {
         )
       );
 
-      meta.appendChild(
-        div
-      );
+      meta.appendChild(div);
 
     });
 
@@ -331,31 +255,24 @@ function carregarHero(hero) {
 }
 
 
+
 // ============================================
 // TRABALHOS RECENTES
 // ============================================
 
 async function carregarTrabalhosRecentes(config) {
 
-  console.log(
-    'CMS: carregando trabalhos recentes...'
-  );
-
-
   if (!config) {
-
     console.warn(
-      'CMS: configuração de trabalhos recentes não encontrada.'
+      'CMS: configuração recent_work não encontrada.'
     );
-
     return;
-
   }
 
 
-  // ========================================
-  // TÍTULOS
-  // ========================================
+  // --------------------------------------------
+  // TÍTULO DA SEÇÃO
+  // --------------------------------------------
 
   const eyebrow =
     document.getElementById(
@@ -374,18 +291,14 @@ async function carregarTrabalhosRecentes(config) {
 
 
   if (eyebrow) {
-
     eyebrow.textContent =
       config.eyebrow || '';
-
   }
 
 
   if (title) {
-
     title.textContent =
       config.title || '';
-
   }
 
 
@@ -402,9 +315,9 @@ async function carregarTrabalhosRecentes(config) {
   }
 
 
-  // ========================================
+  // --------------------------------------------
   // GRID
-  // ========================================
+  // --------------------------------------------
 
   const grid =
     document.getElementById(
@@ -414,7 +327,7 @@ async function carregarTrabalhosRecentes(config) {
   if (!grid) {
 
     console.warn(
-      'CMS: elemento #recent-work-grid não encontrado.'
+      'CMS: recent-work-grid não encontrado no HTML.'
     );
 
     return;
@@ -422,69 +335,94 @@ async function carregarTrabalhosRecentes(config) {
   }
 
 
-  grid.innerHTML = '';
-
-
-  // ========================================
+  // --------------------------------------------
   // QUANTIDADE
-  // ========================================
+  // --------------------------------------------
 
-  const limite =
-    Number(
-      config.gallery_limit || 6
-    );
+  const limit =
+    Number(config.gallery_limit) || 6;
 
 
-  // ========================================
-  // PRIMEIRA CONSULTA
-  //
-  // Buscamos somente fotografias publicadas.
-  //
-  // NÃO usamos:
-  //
-  // .eq('galleries.published', true)
-  //
-  // porque esse filtro em relacionamento
-  // estava provocando o erro HTTP 400.
-  // ========================================
+  // --------------------------------------------
+  // BUSCAR FOTOGRAFIAS
+  // --------------------------------------------
 
-  const { data, error } =
-    await supabase
-      .from('gallery_photos')
-      .select(`
-        id,
-        image_url,
-        title,
-        order_index,
-        published,
-        gallery_id
-      `)
-      .eq(
-        'published',
-        true
-      )
-      .order(
-        'order_index',
-        {
-          ascending: true
-        }
-      )
-      .limit(limite);
+  console.log(
+    'CMS: buscando fotografias...'
+  );
 
 
-  if (error) {
+  /*
+    IMPORTANTE:
+
+    Não usamos mais:
+
+    galleries (
+      id,
+      title,
+      slug,
+      published
+    )
+
+    porque essa relação estava causando
+    o erro HTTP 400.
+
+    Primeiro buscamos somente as fotografias.
+  */
+
+  const {
+    data: photos,
+    error: photosError
+  } = await supabase
+
+    .from('gallery_photos')
+
+    .select(`
+      id,
+      image_url,
+      title,
+      order_index,
+      published,
+      gallery_id
+    `)
+
+    .eq(
+      'published',
+      true
+    )
+
+    .order(
+      'order_index',
+      {
+        ascending: true
+      }
+    )
+
+    .limit(limit);
+
+
+  if (photosError) {
 
     console.error(
       'CMS: erro ao buscar gallery_photos:',
-      error
+      photosError
     );
+
+    /*
+      MUITO IMPORTANTE:
+
+      Não apagamos o conteúdo existente
+      quando a consulta falha.
+
+      Assim a página continua funcionando.
+    */
 
     return;
 
   }
 
 
-  if (!data || data.length === 0) {
+  if (!photos || photos.length === 0) {
 
     console.warn(
       'CMS: nenhuma fotografia publicada encontrada.'
@@ -497,252 +435,112 @@ async function carregarTrabalhosRecentes(config) {
 
   console.log(
     'CMS: fotografias encontradas:',
-    data
+    photos
   );
 
 
-  // ========================================
-  // BUSCAR GALERIAS
-  //
-  // Em vez de depender de JOIN no Supabase,
-  // buscamos as galerias separadamente.
-  // ========================================
+  // --------------------------------------------
+  // SÓ AGORA LIMPA O GRID
+  // --------------------------------------------
 
-  const galleryIds =
-    [
-      ...new Set(
-        data
-          .map(photo => photo.gallery_id)
-          .filter(Boolean)
-      )
-    ];
+  grid.innerHTML = '';
 
 
-  let galleriesMap = {};
+  // --------------------------------------------
+  // CRIAR FOTOGRAFIAS
+  // --------------------------------------------
+
+  photos.forEach(
+    (photo, index) => {
+
+      const frame =
+        document.createElement('div');
+
+      frame.className =
+        'frame';
 
 
-  if (galleryIds.length > 0) {
+      // ------------------------------------------
+      // CATEGORIA
+      // ------------------------------------------
 
-    const {
-      data: galleries,
-      error: galleriesError
-    } = await supabase
-      .from('galleries')
-      .select(`
-        id,
-        title,
-        slug,
-        published
-      `)
-      .in(
-        'id',
-        galleryIds
-      );
+      frame.dataset.category =
+        photo.gallery_id || '';
 
 
-    if (galleriesError) {
+      // ------------------------------------------
+      // IMAGEM
+      // ------------------------------------------
 
-      console.error(
-        'CMS: erro ao buscar galleries:',
-        galleriesError
-      );
+      const img =
+        document.createElement('img');
 
-    } else if (galleries) {
+      img.src =
+        photo.image_url || '';
 
-      galleries.forEach(gallery => {
+      img.alt =
+        photo.title ||
+        'Fotografia de retrato feminino';
 
-        galleriesMap[
-          gallery.id
-        ] = gallery;
+      img.loading =
+        index < 3
+          ? 'eager'
+          : 'lazy';
 
-      });
+
+      // ------------------------------------------
+      // NÚMERO
+      // ------------------------------------------
+
+      const number =
+        document.createElement('span');
+
+      number.className =
+        'frame-num';
+
+      number.textContent =
+        String(index + 1)
+          .padStart(2, '0');
+
+
+      // ------------------------------------------
+      // LEGENDA
+      // ------------------------------------------
+
+      const caption =
+        document.createElement('div');
+
+      caption.className =
+        'frame-caption';
+
+
+      const name =
+        document.createElement('span');
+
+      name.textContent =
+        photo.title || '';
+
+
+      caption.appendChild(name);
+
+
+      // ------------------------------------------
+      // MONTAR
+      // ------------------------------------------
+
+      frame.appendChild(img);
+
+      frame.appendChild(number);
+
+      frame.appendChild(caption);
+
+      grid.appendChild(frame);
 
     }
-
-  }
-
-
-  // ========================================
-  // FILTRAR APENAS GALERIAS PUBLICADAS
-  // ========================================
-
-  const fotosPublicadas =
-    data.filter(photo => {
-
-      const gallery =
-        galleriesMap[
-          photo.gallery_id
-        ];
-
-      /*
-        Se a fotografia não possuir galeria,
-        não mostramos na página inicial.
-
-        Se possuir galeria, ela precisa estar
-        publicada.
-      */
-
-      if (!gallery) {
-        return false;
-      }
-
-      return gallery.published === true;
-
-    });
-
-
-  // ========================================
-  // SE NÃO HOUVER FOTOS
-  // ========================================
-
-  if (
-    fotosPublicadas.length === 0
-  ) {
-
-    console.warn(
-      'CMS: nenhuma fotografia pertence a uma galeria publicada.'
-    );
-
-    return;
-
-  }
-
-
-  // ========================================
-  // RENDERIZAR FOTOGRAFIAS
-  // ========================================
-
-  fotosPublicadas
-    .slice(0, limite)
-    .forEach(
-      (photo, index) => {
-
-        const gallery =
-          galleriesMap[
-            photo.gallery_id
-          ];
-
-
-        // ------------------------------------
-        // FRAME
-        // ------------------------------------
-
-        const frame =
-          document.createElement(
-            'div'
-          );
-
-        frame.className =
-          'frame';
-
-
-        frame.dataset.category =
-          gallery?.slug || '';
-
-
-        // ------------------------------------
-        // IMAGEM
-        // ------------------------------------
-
-        const img =
-          document.createElement(
-            'img'
-          );
-
-        img.src =
-          photo.image_url || '';
-
-        img.alt =
-          photo.title ||
-          gallery?.title ||
-          'Fotografia de retrato feminino';
-
-
-        // Proteção básica contra arrastar
-        img.draggable = false;
-
-
-        // ------------------------------------
-        // NÚMERO
-        // ------------------------------------
-
-        const number =
-          document.createElement(
-            'span'
-          );
-
-        number.className =
-          'frame-num';
-
-        number.textContent =
-          String(index + 1)
-            .padStart(2, '0');
-
-
-        // ------------------------------------
-        // LEGENDA
-        // ------------------------------------
-
-        const caption =
-          document.createElement(
-            'div'
-          );
-
-        caption.className =
-          'frame-caption';
-
-
-        const name =
-          document.createElement(
-            'span'
-          );
-
-        name.textContent =
-          photo.title ||
-          gallery?.title ||
-          '';
-
-
-        caption.appendChild(
-          name
-        );
-
-
-        // ------------------------------------
-        // MONTAR FRAME
-        // ------------------------------------
-
-        frame.appendChild(
-          img
-        );
-
-        frame.appendChild(
-          number
-        );
-
-        frame.appendChild(
-          caption
-        );
-
-
-        // ------------------------------------
-        // ADICIONAR AO GRID
-        // ------------------------------------
-
-        grid.appendChild(
-          frame
-        );
-
-      }
-    );
-
-
-  console.log(
-    'CMS: trabalhos recentes renderizados:',
-    fotosPublicadas.length
   );
 
 }
+
 
 
 // ============================================
@@ -752,9 +550,7 @@ async function carregarTrabalhosRecentes(config) {
 function escapeHTML(value) {
 
   const div =
-    document.createElement(
-      'div'
-    );
+    document.createElement('div');
 
   div.textContent =
     value || '';
@@ -764,6 +560,7 @@ function escapeHTML(value) {
 }
 
 
+
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
@@ -771,6 +568,11 @@ function escapeHTML(value) {
 document.addEventListener(
   'DOMContentLoaded',
   () => {
+
+    console.log(
+      'CMS: DOM carregado.'
+    );
+
 
     if (
       typeof supabase ===
@@ -790,4 +592,3 @@ document.addEventListener(
 
   }
 );
-```
