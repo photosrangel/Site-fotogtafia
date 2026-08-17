@@ -271,12 +271,30 @@
     MANTENHA AQUI O SEU SCRIPT DO SUPABASE
     caso ele já esteja no projeto.
   -->
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script type="module" src="js/inicio.js"></script>
+<script type="module">
+  import {
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  } from './js/supabase-config.js';
 
-<script src="js/main.js"></script>
+  window.supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+  console.log('CMS: Supabase inicializado');
+
+  window.dispatchEvent(
+    new Event('supabase-ready')
+  );
+</script>
+
+<script type="module" src="./js/inicio.js"></script>
+
+<script src="./js/main.js"></script>
   
 </body>
 
