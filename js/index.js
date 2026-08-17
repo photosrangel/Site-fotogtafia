@@ -1,15 +1,35 @@
 // ============================================
-// INÍCIO — CONTEÚDO VINDO DO CMS
+// INÍCIO — CMS
 // ============================================
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+import {
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+} from './supabase-config.js';
 
 
 // ============================================
-// CARREGAR CONTEÚDO DA PÁGINA
+// CONEXÃO SUPABASE
+// ============================================
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+
+// ============================================
+// CARREGAR PÁGINA INICIAL
 // ============================================
 
 async function carregarPaginaInicio() {
 
   try {
+
+    console.log('CMS: carregando página inicial...');
+
 
     const { data, error } = await supabase
       .from('site_content')
@@ -18,19 +38,30 @@ async function carregarPaginaInicio() {
 
 
     if (error) {
-      throw error;
+
+      console.error(
+        'CMS: erro ao buscar site_content:',
+        error
+      );
+
+      return;
     }
 
 
     if (!data || data.length === 0) {
 
       console.warn(
-        'Nenhum conteúdo encontrado para a página inicial.'
+        'CMS: nenhum conteúdo encontrado para slug "inicio".'
       );
 
       return;
-
     }
+
+
+    console.log(
+      'CMS: conteúdo encontrado:',
+      data
+    );
 
 
     const sections = {};
@@ -44,26 +75,35 @@ async function carregarPaginaInicio() {
     });
 
 
-    // Carrega cada parte da página
+    // HERO
 
-    carregarHero(sections.hero);
+    carregarHero(
+      sections.hero
+    );
+
+
+    // TRABALHOS RECENTES
 
     carregarTrabalhosRecentes(
       sections.recent_work
     );
 
 
+    console.log(
+      'CMS: página inicial carregada com sucesso.'
+    );
+
+
   } catch (error) {
 
     console.error(
-      'Erro ao carregar página inicial:',
+      'CMS: erro inesperado:',
       error
     );
 
   }
 
 }
-
 
 
 // ============================================
@@ -75,7 +115,7 @@ function carregarHero(hero) {
   if (!hero) {
 
     console.warn(
-      'Conteúdo do Hero não encontrado.'
+      'CMS: seção hero não encontrada.'
     );
 
     return;
@@ -99,7 +139,6 @@ function carregarHero(hero) {
   }
 
 
-
   // --------------------------------------------
   // TÍTULO
   // --------------------------------------------
@@ -110,20 +149,19 @@ function carregarHero(hero) {
 
   if (title) {
 
+    const texto =
+      hero.title || '';
+
+
     /*
-      Mantemos o efeito visual do título:
-
-      Você, como
-      sempre foi.
-
-      A última parte fica em itálico.
+      Mantém a última palavra em itálico.
     */
 
     const palavras =
-      (hero.title || '').trim().split(/\s+/);
+      texto.trim().split(/\s+/);
 
 
-    if (palavras.length >= 2) {
+    if (palavras.length > 1) {
 
       const ultima =
         palavras.pop();
@@ -132,19 +170,18 @@ function carregarHero(hero) {
       title.innerHTML =
         `${escapeHTML(
           palavras.join(' ')
-        )} <br><em>${escapeHTML(
+        )}<br><em>${escapeHTML(
           ultima
         )}</em>`;
 
     } else {
 
       title.textContent =
-        hero.title || '';
+        texto;
 
     }
 
   }
-
 
 
   // --------------------------------------------
@@ -165,7 +202,6 @@ function carregarHero(hero) {
   }
 
 
-
   // --------------------------------------------
   // IMAGEM DESKTOP
   // --------------------------------------------
@@ -176,17 +212,17 @@ function carregarHero(hero) {
     );
 
 
-  if (desktopImage) {
+  if (desktopImage && hero.desktop_image) {
 
     desktopImage.src =
-      hero.desktop_image || '';
+      hero.desktop_image;
+
 
     desktopImage.alt =
       hero.image_alt ||
       'Rangel Santos, fotógrafo';
 
   }
-
 
 
   // --------------------------------------------
@@ -199,13 +235,12 @@ function carregarHero(hero) {
     );
 
 
-  if (mobileImage) {
+  if (mobileImage && hero.mobile_image) {
 
     mobileImage.srcset =
-      hero.mobile_image || '';
+      hero.mobile_image;
 
   }
-
 
 
   // --------------------------------------------
@@ -232,7 +267,6 @@ function carregarHero(hero) {
   }
 
 
-
   // --------------------------------------------
   // BOTÃO SECUNDÁRIO
   // --------------------------------------------
@@ -257,7 +291,6 @@ function carregarHero(hero) {
   }
 
 
-
   // --------------------------------------------
   // META
   // --------------------------------------------
@@ -273,7 +306,13 @@ function carregarHero(hero) {
     meta.innerHTML = '';
 
 
-    (hero.meta || []).forEach(item => {
+    const items =
+      Array.isArray(hero.meta)
+        ? hero.meta
+        : [];
+
+
+    items.forEach(item => {
 
       const div =
         document.createElement('div');
@@ -287,7 +326,9 @@ function carregarHero(hero) {
         item.label || '';
 
 
-      div.appendChild(strong);
+      div.appendChild(
+        strong
+      );
 
 
       div.appendChild(
@@ -297,14 +338,15 @@ function carregarHero(hero) {
       );
 
 
-      meta.appendChild(div);
+      meta.appendChild(
+        div
+      );
 
     });
 
   }
 
 }
-
 
 
 // ============================================
@@ -316,7 +358,7 @@ async function carregarTrabalhosRecentes(config) {
   if (!config) {
 
     console.warn(
-      'Configuração de trabalhos recentes não encontrada.'
+      'CMS: seção recent_work não encontrada.'
     );
 
     return;
@@ -325,7 +367,7 @@ async function carregarTrabalhosRecentes(config) {
 
 
   // --------------------------------------------
-  // TÍTULOS
+  // TEXTOS
   // --------------------------------------------
 
   const eyebrow =
@@ -376,7 +418,6 @@ async function carregarTrabalhosRecentes(config) {
   }
 
 
-
   // --------------------------------------------
   // GRID
   // --------------------------------------------
@@ -387,15 +428,19 @@ async function carregarTrabalhosRecentes(config) {
     );
 
 
-  if (!grid) return;
+  if (!grid) {
 
+    console.warn(
+      'CMS: #recent-work-grid não encontrado.'
+    );
 
-  grid.innerHTML = '';
+    return;
 
+  }
 
 
   // --------------------------------------------
-  // QUANTIDADE
+  // BUSCAR FOTOS
   // --------------------------------------------
 
   const limit =
@@ -403,11 +448,6 @@ async function carregarTrabalhosRecentes(config) {
       config.gallery_limit || 6
     );
 
-
-
-  // --------------------------------------------
-  // BUSCAR FOTOGRAFIAS
-  // --------------------------------------------
 
   const { data, error } =
     await supabase
@@ -420,6 +460,7 @@ async function carregarTrabalhosRecentes(config) {
         title,
         order_index,
         published,
+        gallery_id,
         galleries (
           id,
           title,
@@ -433,11 +474,6 @@ async function carregarTrabalhosRecentes(config) {
         true
       )
 
-      .eq(
-        'galleries.published',
-        true
-      )
-
       .order(
         'order_index',
         {
@@ -448,11 +484,10 @@ async function carregarTrabalhosRecentes(config) {
       .limit(limit);
 
 
-
   if (error) {
 
     console.error(
-      'Erro ao carregar trabalhos recentes:',
+      'CMS: erro ao buscar gallery_photos:',
       error
     );
 
@@ -461,21 +496,28 @@ async function carregarTrabalhosRecentes(config) {
   }
 
 
+  console.log(
+    'CMS: fotografias encontradas:',
+    data
+  );
 
-  // --------------------------------------------
-  // NENHUMA FOTO
-  // --------------------------------------------
 
   if (!data || data.length === 0) {
 
     console.warn(
-      'Nenhuma fotografia publicada encontrada.'
+      'CMS: nenhuma fotografia publicada encontrada.'
     );
 
     return;
 
   }
 
+
+  // --------------------------------------------
+  // LIMPAR GRID
+  // --------------------------------------------
+
+  grid.innerHTML = '';
 
 
   // --------------------------------------------
@@ -484,6 +526,21 @@ async function carregarTrabalhosRecentes(config) {
 
   data.forEach(
     (photo, index) => {
+
+      /*
+        Caso a relação galleries venha vazia,
+        ainda conseguimos mostrar a fotografia.
+      */
+
+      if (
+        photo.galleries &&
+        photo.galleries.published === false
+      ) {
+
+        return;
+
+      }
+
 
       const frame =
         document.createElement('div');
@@ -512,6 +569,14 @@ async function carregarTrabalhosRecentes(config) {
         photo.title ||
         photo.galleries?.title ||
         'Fotografia de retrato feminino';
+
+
+      img.loading =
+        'lazy';
+
+
+      img.draggable =
+        false;
 
 
 
@@ -553,26 +618,36 @@ async function carregarTrabalhosRecentes(config) {
 
 
 
-      caption.appendChild(name);
+      caption.appendChild(
+        name
+      );
 
 
-      // MONTAR FRAME
+      // MONTAR
 
-      frame.appendChild(img);
-
-      frame.appendChild(number);
-
-      frame.appendChild(caption);
+      frame.appendChild(
+        img
+      );
 
 
-      grid.appendChild(frame);
+      frame.appendChild(
+        number
+      );
+
+
+      frame.appendChild(
+        caption
+      );
+
+
+      grid.appendChild(
+        frame
+      );
 
     }
-
   );
 
 }
-
 
 
 // ============================================
@@ -594,7 +669,6 @@ function escapeHTML(value) {
 }
 
 
-
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
@@ -602,20 +676,6 @@ function escapeHTML(value) {
 document.addEventListener(
   'DOMContentLoaded',
   () => {
-
-    if (
-      typeof supabase ===
-      'undefined'
-    ) {
-
-      console.error(
-        'Supabase não foi encontrado.'
-      );
-
-      return;
-
-    }
-
 
     carregarPaginaInicio();
 
