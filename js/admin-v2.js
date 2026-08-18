@@ -821,7 +821,7 @@ function renderGalleries() {
       title="Arraste para mudar a posição da galeria"
     >
       <div class="gallery-drag-handle"
-        title="Arraste para mudar a posição"
+        title="Arraste para mudar a posição ou clique para usar como capa"
         aria-label="Arraste para mudar a posição"
       >⋮⋮</div>
 
@@ -3428,7 +3428,7 @@ function renderSessionDetail() {
           class="session-photo ${f.selecionada ? 'selecionada' : ''} ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
           data-session-photo-id="${attr(f.id)}"
           draggable="true"
-          title="Arraste para mudar a posição"
+          title="Arraste para mudar a posição ou clique para usar como capa"
         >
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
@@ -3452,6 +3452,14 @@ function renderSessionDetail() {
 
   configurarOrdenacaoFotosEnsaio($('prova-grid'));
 
+  $('prova-grid').querySelectorAll('.session-photo[data-session-photo-id]').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
+      const id = card.dataset.sessionPhotoId;
+      if (id && id !== coverPhotoId) definirCapaEnsaio(id);
+    });
+  });
+
   const numerosSelecionados = selecionadas.map(f => numero(provas.indexOf(f))).join(', ');
   $('selecionadas-box').innerHTML = selecionadas.length
     ? `<div class="session-select-box"><p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${selecionadas.length}):</p><p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);">${esc(numerosSelecionados.replaceAll(', ', '.cr3, ') + '.cr3')}</p></div>`
@@ -3463,7 +3471,7 @@ function renderSessionDetail() {
           class="session-photo ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
           data-session-photo-id="${attr(f.id)}"
           draggable="true"
-          title="Arraste para mudar a posição"
+          title="Arraste para mudar a posição ou clique para usar como capa"
         >
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
@@ -3473,6 +3481,14 @@ function renderSessionDetail() {
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
 
   configurarOrdenacaoFotosEnsaio($('final-grid'));
+
+  $('final-grid').querySelectorAll('.session-photo[data-session-photo-id]').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('button')) return;
+      const id = card.dataset.sessionPhotoId;
+      if (id && id !== coverPhotoId) definirCapaEnsaio(id);
+    });
+  });
 
   const linkWhatsSelecao = s.cliente_telefone
     ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
