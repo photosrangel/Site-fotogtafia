@@ -150,13 +150,50 @@
       order: 2;
     }
   }
+
+
+  /* Botões da confirmação: contraste fixo em desktop, iPhone e Android */
+  #btn-voltar-selecao {
+    background: #f0ede6;
+    border-color: #f0ede6;
+    color: #0b0b0a;
+  }
+
+  #btn-voltar-selecao:hover,
+  #btn-voltar-selecao:focus-visible {
+    background: #dedbd4;
+    border-color: #dedbd4;
+    color: #0b0b0a;
+  }
+
+  #btn-confirmar-selecao {
+    background: #f0ede6 !important;
+    border-color: #f0ede6 !important;
+    color: #0b0b0a !important;
+    opacity: 1;
+  }
+
+  #btn-confirmar-selecao:hover,
+  #btn-confirmar-selecao:focus-visible,
+  #btn-confirmar-selecao:active {
+    background: #dedbd4 !important;
+    border-color: #dedbd4 !important;
+    color: #0b0b0a !important;
+  }
+
+  #btn-confirmar-selecao:disabled {
+    background: #f0ede6 !important;
+    color: #0b0b0a !important;
+    opacity: .55;
+  }
+
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
+    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
