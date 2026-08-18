@@ -2903,7 +2903,7 @@ function renderSessionDetail() {
 
   $('modal-session-title').textContent = s.titulo;
   $('session-link').textContent = linkCliente;
-  $('session-login').textContent = s.slug;
+  $('session-login-box').textContent = s.slug;
   $('session-senha').textContent = s.codigo_acesso;
 
   const provas = currentSessionPhotos.filter(f => f.tipo === 'prova');
