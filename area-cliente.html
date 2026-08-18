@@ -60,6 +60,96 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0; border-bottom: 1px solid var(--hairline);
   }
+
+
+  /* Confirmação universal da seleção — funciona em desktop, iPhone e Android */
+  .selection-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .selection-confirm-overlay[hidden] {
+    display: none !important;
+  }
+
+  .selection-confirm-dialog {
+    width: min(100%, 520px);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    background: #121210;
+    border: 1px solid var(--hairline);
+    padding: 38px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.45);
+  }
+
+  .selection-confirm-dialog .section-eyebrow {
+    margin-bottom: 18px;
+  }
+
+  .selection-confirm-dialog h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2rem, 6vw, 2.8rem);
+    line-height: 1.05;
+    margin: 0 0 18px;
+  }
+
+  .selection-confirm-copy {
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+
+  .selection-confirm-count {
+    border: 1px solid var(--hairline);
+    padding: 18px;
+    text-align: center;
+    font-family: var(--font-mono);
+    margin-bottom: 24px;
+  }
+
+  .selection-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .selection-confirm-actions .btn {
+    width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .selection-confirm-overlay {
+      align-items: flex-end;
+      padding: 12px;
+    }
+
+    .selection-confirm-dialog {
+      width: 100%;
+      padding: 26px 20px max(22px, env(safe-area-inset-bottom));
+      max-height: calc(100dvh - 24px);
+    }
+
+    .selection-confirm-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .selection-confirm-actions #btn-confirmar-selecao {
+      order: 1;
+    }
+
+    .selection-confirm-actions #btn-voltar-selecao {
+      order: 2;
+    }
+  }
 </style>
 </head>
 <body>
@@ -127,6 +217,45 @@
   <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-sel-next" aria-label="Próxima foto">›</button>
   <div style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
     <button class="btn btn-accent" id="lightbox-sel-toggle"></button>
+  </div>
+</div>
+
+<!-- CONFIRMAÇÃO UNIVERSAL DA SELEÇÃO -->
+<div
+  id="selection-confirm-overlay"
+  class="selection-confirm-overlay"
+  hidden
+  aria-hidden="true"
+>
+  <div
+    class="selection-confirm-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="selection-confirm-title"
+  >
+    <p class="section-eyebrow">Confirmar seleção</p>
+    <h2 id="selection-confirm-title">Finalizar sua seleção?</h2>
+
+    <p class="selection-confirm-copy">
+      Confira a quantidade abaixo. Depois de confirmar, sua seleção será enviada
+      para edição e não poderá ser alterada por esta página.
+    </p>
+
+    <div class="selection-confirm-count" id="selection-confirm-count">
+      0 fotografias selecionadas
+    </div>
+
+    <div class="selection-confirm-actions">
+      <button type="button" class="btn" id="btn-voltar-selecao">
+        Voltar e revisar
+      </button>
+
+      <button type="button" class="btn btn-accent" id="btn-confirmar-selecao">
+        Confirmar seleção
+      </button>
+    </div>
+
+    <p class="msg" id="selection-confirm-msg"></p>
   </div>
 </div>
 
@@ -321,7 +450,7 @@ function mostrarGaleria() {
     });
   });
 
-  document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
+  document.getElementById('btn-salvar-selecao').addEventListener('click', abrirConfirmacaoSelecao);
   ativarOcultarBarraAoRolar();
 }
 
@@ -481,6 +610,63 @@ lightboxSelToggle.addEventListener('click', () => {
   atualizarBotaoLightbox(foto);
 });
 
+const selectionConfirmOverlay = document.getElementById('selection-confirm-overlay');
+const selectionConfirmCount = document.getElementById('selection-confirm-count');
+const selectionConfirmMsg = document.getElementById('selection-confirm-msg');
+const btnVoltarSelecao = document.getElementById('btn-voltar-selecao');
+const btnConfirmarSelecao = document.getElementById('btn-confirmar-selecao');
+
+function abrirConfirmacaoSelecao() {
+  const msgEl = document.getElementById('selecao-msg');
+
+  if (!selecaoAtual.size) {
+    if (msgEl) {
+      msgEl.textContent = 'Selecione pelo menos uma fotografia.';
+      msgEl.className = 'msg erro';
+    }
+    return;
+  }
+
+  const quantidade = selecaoAtual.size;
+  selectionConfirmCount.textContent =
+    `${quantidade} fotografia${quantidade === 1 ? '' : 's'} selecionada${quantidade === 1 ? '' : 's'}`;
+
+  selectionConfirmMsg.textContent = '';
+  selectionConfirmMsg.className = 'msg';
+  btnConfirmarSelecao.disabled = false;
+
+  selectionConfirmOverlay.hidden = false;
+  selectionConfirmOverlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+
+  // Pequeno atraso melhora o foco no Safari/iOS após tornar o modal visível.
+  setTimeout(() => btnConfirmarSelecao.focus(), 30);
+}
+
+function fecharConfirmacaoSelecao() {
+  selectionConfirmOverlay.hidden = true;
+  selectionConfirmOverlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  selectionConfirmMsg.textContent = '';
+
+  const btnEnviar = document.getElementById('btn-salvar-selecao');
+  if (btnEnviar) btnEnviar.focus();
+}
+
+btnVoltarSelecao.addEventListener('click', fecharConfirmacaoSelecao);
+
+selectionConfirmOverlay.addEventListener('click', (e) => {
+  if (e.target === selectionConfirmOverlay) fecharConfirmacaoSelecao();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !selectionConfirmOverlay.hidden) {
+    fecharConfirmacaoSelecao();
+  }
+});
+
+btnConfirmarSelecao.addEventListener('click', salvarSelecao);
+
 async function notificarSelecaoFinalizada(codigo) {
   const { data, error } = await supabase.functions.invoke('ensaio-notifications', {
     body: {
@@ -497,8 +683,9 @@ async function notificarSelecaoFinalizada(codigo) {
 }
 
 async function salvarSelecao() {
-  const msgEl = document.getElementById('selecao-msg');
-  const btnSalvar = document.getElementById('btn-salvar-selecao');
+  const pageMsgEl = document.getElementById('selecao-msg');
+  const msgEl = selectionConfirmMsg;
+  const btnSalvar = btnConfirmarSelecao;
 
   if (!selecaoAtual.size) {
     msgEl.textContent = 'Selecione pelo menos uma fotografia.';
@@ -536,6 +723,8 @@ async function salvarSelecao() {
     });
 
     ensaioAtual.status = data?.status || 'selecao_finalizada';
+
+    fecharConfirmacaoSelecao();
     mostrarGaleria();
 
     // Dispara as notificações depois que a seleção já foi salva.
