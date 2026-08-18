@@ -2907,3 +2907,142 @@
   min-width: 0;
   box-sizing: border-box;
 }
+
+
+/* =========================================================
+   WORKFLOW DE ENSAIOS + NOTIFICAÇÕES
+   ========================================================= */
+
+.session-progress-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, .55fr) minmax(420px, 1.45fr);
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  border: 1px solid var(--admin-line-soft);
+  border-radius: var(--admin-radius);
+  background: linear-gradient(145deg, rgba(255,255,255,.025), transparent 50%), var(--surface);
+}
+
+.session-progress-copy .panel-copy { margin-bottom: 0; }
+
+.session-progress {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.session-progress-step {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.session-progress-dot {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 50%;
+  color: var(--text-muted);
+  background: #11110f;
+  font-family: var(--font-mono);
+  font-size: .58rem;
+}
+
+.session-progress-step.active .session-progress-dot {
+  border-color: rgba(255,255,255,.46);
+  color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(255,255,255,.035);
+}
+
+.session-progress-step.done .session-progress-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0b0b0a;
+}
+
+.session-progress-text { min-width: 0; }
+.session-progress-text strong,
+.session-progress-text small { display: block; }
+.session-progress-text strong {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: .61rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.session-progress-text small {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: .66rem;
+  white-space: nowrap;
+}
+.session-progress-step.pending { opacity: .52; }
+
+.session-progress-line {
+  flex: 1 1 54px;
+  min-width: 24px;
+  height: 1px;
+  margin: 0 14px;
+  background: var(--admin-line-strong);
+}
+
+.session-client-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, .8fr) minmax(360px, 1.2fr);
+  align-items: end;
+  gap: 26px;
+}
+
+.session-client-panel-copy {
+  min-width: 0;
+}
+
+.session-client-panel-copy .panel-copy { margin-bottom: 12px; }
+
+.session-email-state {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.session-client-email-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: end;
+}
+
+.session-client-email-row .small-btn { min-height: 43px; }
+
+@media (max-width: 980px) {
+  .session-progress-panel,
+  .session-client-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .session-progress-panel { padding: 18px; }
+  .session-progress {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0;
+  }
+  .session-progress-line {
+    flex: 0 0 24px;
+    width: 1px;
+    min-width: 1px;
+    height: 24px;
+    margin: 2px 0 2px 16px;
+  }
+  .session-progress-step { min-height: 42px; }
+  .session-client-email-row { grid-template-columns: 1fr; }
+  .session-client-email-row .small-btn { width: 100%; }
+}

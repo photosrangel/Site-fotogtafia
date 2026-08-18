@@ -3179,8 +3179,9 @@ const SESSIONS_BUCKET = 'fotos';
 const numero = (i) => String(i + 1).padStart(4, '0');
 
 function statusLabel(status) {
-  if (status === 'entregue') return 'Entregue';
-  if (status === 'selecionado') return 'Cliente escolheu';
+  if (status === 'fotos_disponiveis' || status === 'entregue') return 'Fotos disponíveis';
+  if (status === 'em_edicao') return 'Em edição';
+  if (status === 'selecao_finalizada' || status === 'selecionado') return 'Seleção finalizada';
   if (status === 'aguardando_selecao') return 'Aguardando seleção';
   return 'Preparando fotos';
 }
@@ -3353,6 +3354,7 @@ async function saveSession(e) {
     titulo: $('session-titulo').value.trim(),
     cliente_nome: $('session-cliente').value.trim(),
     cliente_telefone: $('session-telefone').value.replace(/\D/g, ''),
+    cliente_email: $('session-email').value.trim().toLowerCase(),
     categoria: $('session-categoria').value,
     codigo_acesso: $('session-codigo').value,
     slug: slugify($('session-login').value)
@@ -3397,6 +3399,156 @@ async function loadSessionPhotos() {
   renderSessionDetail();
 }
 
+
+function sessionStatusNormalizado(status) {
+  if (status === 'selecionado') return 'selecao_finalizada';
+  if (status === 'entregue') return 'fotos_disponiveis';
+  return status || 'preparando';
+}
+
+function renderSessionProgress(s) {
+  const el = $('session-progress');
+  if (!el) return;
+
+  const status = sessionStatusNormalizado(s.status);
+  const rank = {
+    preparando: 0,
+    aguardando_selecao: 0,
+    selecao_finalizada: 1,
+    em_edicao: 2,
+    fotos_disponiveis: 3
+  }[status] ?? 0;
+
+  const steps = [
+    { key: 'selecao', label: 'Seleção', detail: status === 'aguardando_selecao' ? 'Aguardando cliente' : 'Recebida' },
+    { key: 'edicao', label: 'Edição', detail: status === 'em_edicao' ? 'Em andamento' : 'Tratamento' },
+    { key: 'entrega', label: 'Entrega', detail: 'Fotos finais' }
+  ];
+
+  el.innerHTML = steps.map((step, index) => {
+    const stepRank = index + 1;
+    let state = 'pending';
+    if (rank > stepRank) state = 'done';
+    else if (rank === stepRank) state = 'active';
+
+    if (index === 0) {
+      state = ['selecao_finalizada', 'em_edicao', 'fotos_disponiveis'].includes(status)
+        ? 'done'
+        : 'active';
+    }
+    if (index === 1) {
+      if (status === 'fotos_disponiveis') state = 'done';
+      else if (status === 'em_edicao') state = 'active';
+      else state = 'pending';
+    }
+    if (index === 2) {
+      state = status === 'fotos_disponiveis' ? 'done' : 'pending';
+    }
+
+    return `
+      <div class="session-progress-step ${state}">
+        <span class="session-progress-dot">${state === 'done' ? '✓' : index + 1}</span>
+        <span class="session-progress-text">
+          <strong>${step.label}</strong>
+          <small>${step.detail}</small>
+        </span>
+      </div>`;
+  }).join('<span class="session-progress-line" aria-hidden="true"></span>');
+}
+
+function renderSessionEmailState(s) {
+  const el = $('session-email-state');
+  if (!el) return;
+
+  const items = [];
+  if (s.email_selecao_cliente_enviado_em) items.push('Cliente: seleção ✓');
+  if (s.email_selecao_fotografo_enviado_em) items.push('Fotógrafo: seleção ✓');
+  if (s.email_entrega_cliente_enviado_em) items.push('Cliente: entrega ✓');
+
+  el.innerHTML = items.length
+    ? items.map(t => `<span class="status-pill published">${esc(t)}</span>`).join('')
+    : '<span class="status-pill draft">E-mails ainda não enviados</span>';
+}
+
+async function salvarEmailClienteEnsaio() {
+  if (!currentSession) return;
+  const input = $('session-client-email');
+  const email = input.value.trim().toLowerCase();
+  if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) {
+    flash('Informe um e-mail válido para a cliente.', 'erro');
+    input.focus();
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from('ensaios')
+    .update({ cliente_email: email })
+    .eq('id', currentSession.id)
+    .select('*')
+    .single();
+
+  if (error) {
+    flash(`Erro ao salvar e-mail: ${error.message}`, 'erro');
+    return;
+  }
+
+  currentSession = data || { ...currentSession, cliente_email: email };
+  const cacheIndex = sessionsCache.findIndex(s => s.id === currentSession.id);
+  if (cacheIndex >= 0) sessionsCache[cacheIndex] = { ...sessionsCache[cacheIndex], ...currentSession };
+  flash('E-mail da cliente atualizado.', 'sucesso');
+  renderSessionDetail();
+}
+
+async function invocarNotificacaoEnsaio(action, extra = {}) {
+  const { data, error } = await supabase.functions.invoke('ensaio-notifications', {
+    body: {
+      action,
+      ensaio_id: currentSession?.id,
+      ...extra
+    }
+  });
+
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data || {};
+}
+
+async function iniciarEdicao() {
+  if (!currentSession) return;
+  const { data, error } = await supabase
+    .from('ensaios')
+    .update({ status: 'em_edicao' })
+    .eq('id', currentSession.id)
+    .select('*')
+    .single();
+
+  if (error) {
+    flash(`Erro ao iniciar edição: ${error.message}`, 'erro');
+    return;
+  }
+
+  currentSession = data || { ...currentSession, status: 'em_edicao' };
+  flash('Ensaio marcado como “Em edição”.', 'sucesso');
+  await loadSessions();
+  renderSessionDetail();
+}
+
+async function reenviarNotificacoesSelecao() {
+  if (!currentSession) return;
+  try {
+    flash('Verificando notificações da seleção...', 'sucesso');
+    const result = await invocarNotificacaoEnsaio('selection_finalized', {
+      codigo: currentSession.codigo_acesso
+    });
+    if (result.ensaio) currentSession = { ...currentSession, ...result.ensaio };
+    flash(result.message || 'Notificações verificadas.', 'sucesso');
+    await loadSessions();
+    renderSessionDetail();
+  } catch (error) {
+    flash(`Não foi possível enviar as notificações: ${error.message}`, 'erro');
+  }
+}
+
 function renderSessionDetail() {
   if (!currentSession) return;
   const s = currentSession;
@@ -3406,6 +3558,9 @@ function renderSessionDetail() {
   $('session-link').textContent = linkCliente;
   $('session-login-box').textContent = s.slug;
   $('session-senha').textContent = s.codigo_acesso;
+  $('session-client-email').value = s.cliente_email || '';
+  renderSessionProgress(s);
+  renderSessionEmailState(s);
 
   const provas = currentSessionPhotos.filter(f => f.tipo === 'prova');
   const finais = currentSessionPhotos.filter(f => f.tipo === 'final');
@@ -3490,28 +3645,55 @@ function renderSessionDetail() {
     });
   });
 
+  const statusAtual = sessionStatusNormalizado(s.status);
+
   const linkWhatsSelecao = s.cliente_telefone
     ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
     : null;
 
   const acoes = $('selecao-actions');
-  if (s.status === 'preparando') {
+  if (statusAtual === 'preparando') {
     acoes.innerHTML = `<button class="btn btn-accent" id="btn-enviar-selecao" ${provas.length === 0 ? 'disabled' : ''}>Enviar fotos para seleção</button>`;
     $('btn-enviar-selecao').addEventListener('click', enviarParaSelecao);
+  } else if (statusAtual === 'aguardando_selecao') {
+    acoes.innerHTML = `
+      <span class="status-pill published">Aguardando seleção da cliente</span>
+      ${linkWhatsSelecao ? `<a href="${attr(linkWhatsSelecao)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : ''}`;
   } else {
-    acoes.innerHTML = `<span class="status-pill published">✓ Já enviado para seleção</span>` + (linkWhatsSelecao ? `<a href="${attr(linkWhatsSelecao)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : '');
+    const faltamEmailsSelecao = !s.email_selecao_cliente_enviado_em || !s.email_selecao_fotografo_enviado_em;
+    acoes.innerHTML = `
+      <span class="status-pill published">✓ Seleção finalizada</span>
+      ${statusAtual === 'selecao_finalizada' ? '<button class="btn btn-accent" id="btn-iniciar-edicao" type="button">Iniciar edição</button>' : ''}
+      ${faltamEmailsSelecao ? '<button class="small-btn" id="btn-reenviar-selecao" type="button">Tentar e-mails novamente</button>' : ''}`;
+
+    if ($('btn-iniciar-edicao')) $('btn-iniciar-edicao').addEventListener('click', iniciarEdicao);
+    if ($('btn-reenviar-selecao')) $('btn-reenviar-selecao').addEventListener('click', reenviarNotificacoesSelecao);
   }
 
   const btnEntregar = $('btn-entregar');
-  btnEntregar.textContent = s.status === 'entregue' ? 'Já entregue ✓' : 'Marcar como entregue';
-  btnEntregar.className = s.status === 'entregue' ? 'btn' : 'btn btn-accent';
-  btnEntregar.disabled = s.status === 'entregue' || finais.length === 0;
+  const jaPublicado = statusAtual === 'fotos_disponiveis';
+  const podePublicar = statusAtual === 'em_edicao' && finais.length > 0;
+
+  if (jaPublicado) {
+    btnEntregar.textContent = s.email_entrega_cliente_enviado_em
+      ? 'Fotos publicadas ✓'
+      : 'Reenviar e-mail de entrega';
+    btnEntregar.className = s.email_entrega_cliente_enviado_em ? 'btn' : 'btn btn-accent';
+    btnEntregar.disabled = Boolean(s.email_entrega_cliente_enviado_em);
+  } else {
+    btnEntregar.textContent = 'Publicar fotos finais';
+    btnEntregar.className = 'btn btn-accent';
+    btnEntregar.disabled = !podePublicar;
+    btnEntregar.title = statusAtual !== 'em_edicao'
+      ? 'Marque o ensaio como “Em edição” antes de publicar.'
+      : (finais.length === 0 ? 'Adicione pelo menos uma foto final.' : 'Publicar e avisar a cliente por e-mail.');
+  }
 
   const linkWhatsEntrega = s.cliente_telefone
     ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos finais já estão prontas para download! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
     : null;
   const whatsEntrega = $('link-whats-entrega');
-  if (s.status === 'entregue' && linkWhatsEntrega) {
+  if (jaPublicado && linkWhatsEntrega) {
     whatsEntrega.href = linkWhatsEntrega;
     whatsEntrega.style.display = '';
   } else {
@@ -3748,17 +3930,36 @@ async function enviarParaSelecao() {
 async function marcarEntregue() {
   if (!currentSession) return;
   const msgEl = $('session-msg');
-  const { error } = await supabase.from('ensaios').update({ status: 'entregue' }).eq('id', currentSession.id);
-  if (error) {
-    msgEl.textContent = 'Erro: ' + error.message;
+  const statusAtual = sessionStatusNormalizado(currentSession.status);
+
+  if (statusAtual !== 'em_edicao' && statusAtual !== 'fotos_disponiveis') {
+    msgEl.textContent = 'Primeiro marque o ensaio como “Em edição”.';
     msgEl.className = 'msg erro';
     return;
   }
-  currentSession.status = 'entregue';
-  msgEl.textContent = 'Marcado como entregue!';
-  msgEl.className = 'msg sucesso';
-  await loadSessions();
-  renderSessionDetail();
+
+  try {
+    msgEl.textContent = statusAtual === 'fotos_disponiveis'
+      ? 'Reenviando e-mail de entrega...'
+      : 'Publicando fotos finais e notificando a cliente...';
+    msgEl.className = 'msg';
+
+    const result = await invocarNotificacaoEnsaio('publish_final');
+
+    if (result.ensaio) currentSession = { ...currentSession, ...result.ensaio };
+    else currentSession.status = 'fotos_disponiveis';
+
+    msgEl.textContent = result.email_sent === false
+      ? (result.message || 'Fotos publicadas. O e-mail não foi enviado; verifique o e-mail da cliente e a configuração do serviço.')
+      : (result.message || 'Fotos publicadas e cliente notificada por e-mail!');
+    msgEl.className = result.email_sent === false ? 'msg erro' : 'msg sucesso';
+
+    await loadSessions();
+    renderSessionDetail();
+  } catch (error) {
+    msgEl.textContent = 'Não foi possível publicar: ' + error.message;
+    msgEl.className = 'msg erro';
+  }
 }
 
 async function excluirSession(id) {
@@ -3803,6 +4004,7 @@ $('session-form').addEventListener('submit', saveSession);
 $('btn-gerar-login').addEventListener('click', () => { $('session-login').value = 'cliente-' + Math.random().toString(36).slice(2, 8); });
 $('btn-gerar-codigo').addEventListener('click', () => { $('session-codigo').value = Math.random().toString(36).slice(2, 8).toUpperCase(); });
 $('btn-copy-session').addEventListener('click', copySession);
+$('btn-save-session-email').addEventListener('click', salvarEmailClienteEnsaio);
 $('btn-entregar').addEventListener('click', marcarEntregue);
 $('btn-excluir-session').addEventListener('click', () => excluirSession(currentSession && currentSession.id));
 $('upload-prova').addEventListener('change', async e => {

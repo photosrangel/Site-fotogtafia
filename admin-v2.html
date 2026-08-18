@@ -41,6 +41,7 @@
 <div class="field"><label for="session-titulo">Título (ex: Sessão Autoestima — Maria)</label><input id="session-titulo" required></div>
 <div class="field"><label for="session-cliente">Nome do cliente</label><input id="session-cliente"></div>
 <div class="field"><label for="session-telefone">WhatsApp do cliente (com código do país — ex: 351912345678)</label><input id="session-telefone"></div>
+<div class="field"><label for="session-email">E-mail da cliente</label><input id="session-email" type="email" required placeholder="cliente@email.com"></div>
 <div class="field"><label for="session-categoria">Categoria</label><select id="session-categoria"><option value="autoestima">Autoestima</option><option value="estudio">Estúdio</option><option value="externo">Externo</option></select></div>
 <div class="field"><label for="session-login">Login do cliente</label><input id="session-login" required><button type="button" class="small-btn" id="btn-gerar-login">Gerar login aleatório</button></div>
 <div class="field"><label for="session-codigo">Senha do cliente</label><input id="session-codigo" required><button type="button" class="small-btn" id="btn-gerar-codigo">Gerar senha aleatória</button></div>
@@ -135,6 +136,31 @@
 <div class="modal-dialog">
 <div class="modal-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="modal-session-title">Ensaio</h2></div><button class="icon-btn" data-close-session-modal type="button">×</button></div>
 
+<div class="session-progress-panel">
+  <div class="session-progress-copy">
+    <p class="section-eyebrow">Fluxo do ensaio</p>
+    <p class="panel-copy">Acompanhe a cliente da seleção até a entrega final.</p>
+  </div>
+  <div class="session-progress" id="session-progress" aria-label="Progresso do ensaio"></div>
+</div>
+
+<div class="panel session-client-panel">
+  <div class="session-client-panel-copy">
+    <div>
+      <p class="section-eyebrow">Cliente e notificações</p>
+      <p class="panel-copy">O e-mail abaixo será usado nas confirmações automáticas.</p>
+    </div>
+    <div class="session-email-state" id="session-email-state"></div>
+  </div>
+  <div class="session-client-email-row">
+    <div class="field">
+      <label for="session-client-email">E-mail da cliente</label>
+      <input id="session-client-email" type="email" placeholder="cliente@email.com">
+    </div>
+    <button class="small-btn" id="btn-save-session-email" type="button">Salvar e-mail</button>
+  </div>
+</div>
+
 <div class="panel session-access-panel">
   <div class="session-access-head">
     <div>
@@ -185,10 +211,10 @@
       <span class="session-stage-count"><span id="final-count">0</span> enviadas</span>
     </div>
     <div class="session-stage-body">
-      <div class="upload-drop"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>O cliente só vê depois de “Marcar como entregue”</span></label></div>
+      <div class="upload-drop"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>A cliente só vê depois de “Publicar fotos finais”</span></label></div>
       <div id="final-grid" class="session-grid"></div>
       <div class="session-actions">
-        <button class="btn btn-accent" id="btn-entregar">Marcar como entregue</button>
+        <button class="btn btn-accent" id="btn-entregar">Publicar fotos finais</button>
         <a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
       </div>
     </div>

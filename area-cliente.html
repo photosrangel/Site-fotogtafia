@@ -72,6 +72,50 @@
     .cliente-wrap { padding-inline: 16px; }
     .barra-selecao { align-items: stretch; flex-direction: column; }
   }
+
+  .confirmacao-selecao {
+    position: fixed; inset: 0; z-index: 2200;
+    display: grid; place-items: center;
+    padding: 18px;
+  }
+  .confirmacao-selecao[hidden] { display: none !important; }
+  .confirmacao-selecao-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(5,5,5,.82);
+    backdrop-filter: blur(8px);
+  }
+  .confirmacao-selecao-card {
+    position: relative;
+    width: min(100%, 520px);
+    padding: clamp(24px, 5vw, 38px);
+    border: 1px solid var(--hairline);
+    background: #11110f;
+    box-shadow: 0 28px 90px rgba(0,0,0,.5);
+  }
+  .confirmacao-selecao-card h3 {
+    margin: 8px 0 12px;
+    font-family: var(--font-display);
+    font-size: clamp(1.7rem, 5vw, 2.25rem);
+    font-weight: 400;
+  }
+  .confirmacao-selecao-card p { color: var(--text-muted); line-height: 1.7; }
+  .confirmacao-selecao-count {
+    margin: 20px 0;
+    padding: 16px;
+    border: 1px solid var(--hairline);
+    text-align: center;
+    font-family: var(--font-mono);
+    color: var(--accent);
+  }
+  .confirmacao-selecao-actions {
+    display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  @media (max-width: 520px) {
+    .confirmacao-selecao-actions { flex-direction: column-reverse; }
+    .confirmacao-selecao-actions .btn { width: 100%; }
+  }
+
 </style>
 </head>
 <body>
@@ -139,6 +183,22 @@
   <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-sel-next" aria-label="Próxima foto">›</button>
   <div style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
     <button class="btn btn-accent" id="lightbox-sel-toggle"></button>
+  </div>
+</div>
+
+
+<div class="confirmacao-selecao" id="confirmacao-selecao" hidden>
+  <div class="confirmacao-selecao-backdrop" id="confirmacao-selecao-backdrop"></div>
+  <div class="confirmacao-selecao-card" role="dialog" aria-modal="true" aria-labelledby="confirmacao-selecao-titulo">
+    <p class="section-eyebrow">Confirmar seleção</p>
+    <h3 id="confirmacao-selecao-titulo">Finalizar sua seleção?</h3>
+    <p>Confira a quantidade abaixo. Depois de confirmar, sua seleção será enviada para edição e não poderá ser alterada por esta página.</p>
+    <div class="confirmacao-selecao-count" id="confirmacao-selecao-count"></div>
+    <div class="confirmacao-selecao-actions">
+      <button class="btn" id="btn-voltar-revisar" type="button">Voltar e revisar</button>
+      <button class="btn btn-accent" id="btn-confirmar-selecao" type="button">Confirmar seleção</button>
+    </div>
+    <p class="msg" id="confirmacao-selecao-msg"></p>
   </div>
 </div>
 
@@ -221,7 +281,10 @@ function mostrarGaleria() {
     preparando: 'Suas fotos estão sendo preparadas',
     aguardando_selecao: 'Escolha suas fotos favoritas',
     selecionado: 'Seleção enviada — aguardando edição',
-    entregue: 'Suas fotos estão prontas!'
+    selecao_finalizada: 'Seleção recebida — aguardando edição',
+    em_edicao: 'Suas fotografias estão em edição',
+    entregue: 'Suas fotos estão prontas!',
+    fotos_disponiveis: 'Suas fotos estão prontas!'
   };
   document.getElementById('cliente-status').textContent = statusTextos[ensaioAtual.status] || '';
 
@@ -242,7 +305,7 @@ function mostrarGaleria() {
     return;
   }
 
-  if (ensaioAtual.status === 'entregue') {
+  if (ensaioAtual.status === 'entregue' || ensaioAtual.status === 'fotos_disponiveis') {
     conteudo.innerHTML = `
       <div class="section-head" style="align-items:flex-start; border-bottom:none;">
         <div>
@@ -272,7 +335,7 @@ function mostrarGaleria() {
     return;
   }
 
-  if (ensaioAtual.status === 'selecionado') {
+  if (['selecionado', 'selecao_finalizada', 'em_edicao'].includes(ensaioAtual.status)) {
     const selecionadas = ensaioAtual.fotos.filter(f => f.selecionada);
     conteudo.innerHTML = `
       <div style="text-align:center; padding: 40px 0 20px;">
@@ -281,8 +344,8 @@ function mostrarGaleria() {
         </p>
         <p style="color:var(--text-muted); max-width:50ch; margin:0 auto;">
           Recebemos sua seleção de ${selecionadas.length} foto${selecionadas.length === 1 ? '' : 's'}.
-          Agora é com o Rangel — assim que as fotos estiverem prontas e tratadas,
-          elas vão aparecer aqui mesmo, nesse link, para você baixar.
+          Sua escolha já foi registrada e as fotografias seguem para a etapa de edição.
+          Assim que o resultado final estiver disponível, você receberá um novo e-mail e poderá acessá-lo por este mesmo link.
         </p>
       </div>
       <div class="grid" style="margin-top:32px; opacity:0.6;">
@@ -310,7 +373,7 @@ function mostrarGaleria() {
     </div>
     <div class="barra-selecao" id="barra-selecao">
       <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
-      <button class="btn btn-accent" id="btn-salvar-selecao">Enviar seleção</button>
+      <button class="btn btn-accent" id="btn-salvar-selecao">Finalizar seleção</button>
     </div>
     <p class="msg" id="selecao-msg"></p>
   `;
@@ -327,7 +390,7 @@ function mostrarGaleria() {
     });
   });
 
-  document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
+  document.getElementById('btn-salvar-selecao').addEventListener('click', abrirConfirmacaoSelecao);
   ativarOcultarBarraAoRolar();
 }
 
@@ -487,12 +550,39 @@ lightboxSelToggle.addEventListener('click', () => {
   atualizarBotaoLightbox(foto);
 });
 
-async function salvarSelecao() {
+function abrirConfirmacaoSelecao() {
   const msgEl = document.getElementById('selecao-msg');
-  msgEl.textContent = 'Enviando...';
-  msgEl.className = 'msg';
+  if (selecaoAtual.size === 0) {
+    msgEl.textContent = 'Selecione pelo menos uma fotografia antes de finalizar.';
+    msgEl.className = 'msg erro';
+    return;
+  }
 
+  document.getElementById('confirmacao-selecao-count').textContent =
+    `${selecaoAtual.size} fotografia${selecaoAtual.size === 1 ? '' : 's'} selecionada${selecaoAtual.size === 1 ? '' : 's'}`;
+  document.getElementById('confirmacao-selecao-msg').textContent = '';
+  document.getElementById('confirmacao-selecao').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharConfirmacaoSelecao() {
+  document.getElementById('confirmacao-selecao').hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('btn-voltar-revisar').addEventListener('click', fecharConfirmacaoSelecao);
+document.getElementById('confirmacao-selecao-backdrop').addEventListener('click', fecharConfirmacaoSelecao);
+document.getElementById('btn-confirmar-selecao').addEventListener('click', salvarSelecao);
+
+async function salvarSelecao() {
+  const msgEl = document.getElementById('confirmacao-selecao-msg');
+  const btn = document.getElementById('btn-confirmar-selecao');
   const codigo = document.getElementById('input-codigo').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  msgEl.textContent = 'Registrando sua seleção...';
+  msgEl.className = 'msg';
 
   const { data, error } = await supabase.rpc('salvar_selecao', {
     p_ensaio_id: ensaioAtual.id,
@@ -501,15 +591,32 @@ async function salvarSelecao() {
   });
 
   if (error || (data && data.erro)) {
-    msgEl.textContent = 'Não foi possível salvar. Tente novamente.';
+    msgEl.textContent = (data && data.erro) || 'Não foi possível salvar. Tente novamente.';
     msgEl.className = 'msg erro';
-  } else {
-    // Marca localmente as fotos escolhidas e muda o status,
-    // assim a tela já troca para "obrigado" na hora, sem precisar recarregar.
-    ensaioAtual.fotos.forEach(f => { f.selecionada = selecaoAtual.has(f.id); });
-    ensaioAtual.status = 'selecionado';
-    mostrarGaleria();
+    btn.disabled = false;
+    btn.textContent = 'Confirmar seleção';
+    return;
   }
+
+  // O registro da seleção é a operação principal. O e-mail é uma segunda
+  // etapa: se o provedor estiver temporariamente indisponível, a escolha
+  // da cliente continua salva e o Admin poderá tentar os avisos novamente.
+  try {
+    await supabase.functions.invoke('ensaio-notifications', {
+      body: {
+        action: 'selection_finalized',
+        ensaio_id: ensaioAtual.id,
+        codigo
+      }
+    });
+  } catch (emailError) {
+    console.warn('Seleção salva, mas a notificação por e-mail não foi concluída:', emailError);
+  }
+
+  ensaioAtual.fotos.forEach(f => { f.selecionada = selecaoAtual.has(f.id); });
+  ensaioAtual.status = 'selecao_finalizada';
+  fecharConfirmacaoSelecao();
+  mostrarGaleria();
 }
 </script>
 <script src="js/main.js"></script>
