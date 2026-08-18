@@ -218,10 +218,9 @@ document.getElementById('form-novo-ensaio').addEventListener('submit', async (e)
   const codigo_acesso = document.getElementById('novo-codigo').value;
   const slug = limparLogin(document.getElementById('novo-login').value);
 
-  // Alteração importante: Adicionamos o '.select()' no final para o Supabase nos devolver os dados do ensaio criado
-  const { data, error } = await supabase.from('ensaios').insert({
+  const { error } = await supabase.from('ensaios').insert({
     titulo, cliente_nome, cliente_telefone, categoria, codigo_acesso, slug
-  }).select();
+  });
 
   if (error) {
     if (error.message.includes('duplicate') || error.message.includes('unique')) {
@@ -231,27 +230,12 @@ document.getElementById('form-novo-ensaio').addEventListener('submit', async (e)
     }
     msg.className = 'msg erro';
   } else {
-    msg.textContent = 'Ensaio criado! Abrindo área de upload...';
+    msg.textContent = 'Ensaio criado!';
     msg.className = 'msg sucesso';
-    
-    // Guardamos o ID e os dados do novo ensaio em variáveis globais para as próximas etapas
-    window.idEnsaioAtual = data[0].id;
-    window.clienteNomeAtual = cliente_nome;
-    window.clienteTelefoneAtual = cliente_telefone;
-
-    // --- LOGICA DE TRANSIÇÃO VISUAL ---
-    
-    // 1. Esconde o formulário de criação (ajuste os IDs conforme os seus elementos HTML reais)
-    document.getElementById('container-criacao-ensaio').style.display = 'none';
-    
-    // 2. Torna visível na mesma hora a janela/área de upload das fotos
-    document.getElementById('container-upload-fotos').style.display = 'block';
-    
-    // Se a sua função 'carregarEnsaios()' for importante para rodar em segundo plano, mantemos ela aqui
+    e.target.reset();
     carregarEnsaios();
   }
 });
-
 
 // -------- Carregar lista de ensaios --------
 async function carregarEnsaios() {
