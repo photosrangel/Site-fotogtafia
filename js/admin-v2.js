@@ -2592,157 +2592,335 @@ function fecharFormularioCliente() {
 
 
 // ============================================================
-// UPLOAD CLIENTE
+// UPLOAD DE FOTOS DO ENSAIO — VERSÃO CORRIGIDA
 // ============================================================
 
-async function uploadFotosCliente(
-  event,
-  ensaio,
-  tipo
-) {
+async function uploadFotosCliente(event, ensaio, tipo = 'prova') {
 
-  const arquivos =
-    Array.from(
-      event.target.files || []
-    );
+  const arquivos = Array.from(
+    event.target.files || []
+  );
 
-
-  if (!arquivos.length)
+  if (!arquivos.length) {
     return;
-
+  }
 
   const mensagem =
-    $(`client-msg-${ensaio.id}`);
-
+    document.getElementById(
+      `msg-${ensaio.id}`
+    );
 
   let enviadas = 0;
-
   let erros = 0;
 
+  mostrarMensagem(
+    mensagem,
+    `Preparando ${arquivos.length} foto(s)...`
+  );
 
-  for (
-    let i = 0;
-    i < arquivos.length;
-    i++
-  ) {
+  // ----------------------------------------------------------
+  // CONFIRMAR SESSÃO
+  // ----------------------------------------------------------
 
-    const arquivo =
-      arquivos[i];
+  const {
+    data: sessionData,
+    error: sessionError
+  } = await supabase.auth.getSession();
 
+  if (sessionError) {
+
+    console.error(
+      'ADMIN V2: erro de sessão:',
+      sessionError
+    );
+
+    mostrarMensagem(
+      mensagem,
+      'Erro ao verificar sua sessão.',
+      'erro'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+  if (!sessionData?.session) {
+
+    mostrarMensagem(
+      mensagem,
+      'Sua sessão expirou. Faça login novamente.',
+      'erro'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // UPLOAD FOTO POR FOTO
+  // ----------------------------------------------------------
+
+  for (let i = 0; i < arquivos.length; i++) {
+
+    const arquivo = arquivos[i];
+
+    let caminho = null;
 
     try {
 
-      mostrarMensagem(
-        mensagem,
-        `Enviando ${i + 1} de ${arquivos.length}...`
+      console.log(
+        '========================================'
+      );
+
+      console.log(
+        'ADMIN V2 — UPLOAD FOTO'
+      );
+
+      console.log(
+        'Ensaio:',
+        ensaio.id
+      );
+
+      console.log(
+        'Tipo:',
+        tipo
+      );
+
+      console.log(
+        'Arquivo:',
+        arquivo.name
+      );
+
+      console.log(
+        'Tamanho:',
+        arquivo.size
+      );
+
+      console.log(
+        'MIME:',
+        arquivo.type
       );
 
 
-      const {
-        data: sessionData,
-        error: sessionError
-      } =
-        await supabase.auth.getSession();
-
-
-      if (sessionError)
-        throw sessionError;
-
-
-      if (!sessionData?.session)
-        throw new Error(
-          'Sessão administrativa não encontrada.'
-        );
-
+      // ------------------------------------------------------
+      // NOME SEGURO
+      // ------------------------------------------------------
 
       const nomeSeguro =
         nomeArquivoSeguro(
           arquivo.name
         );
 
+      const identificador =
+        `${Date.now()}-${crypto.randomUUID()}`;
 
-      const caminho =
-        `${ensaio.id}/${tipo}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
+      caminho =
+        `${ensaio.id}/${tipo}/${identificador}-${nomeSeguro}`;
 
+
+      // ------------------------------------------------------
+      // STORAGE
+      // ------------------------------------------------------
+
+      mostrarMensagem(
+        mensagem,
+        `Enviando foto ${i + 1} de ${arquivos.length}...`
+      );
 
       const {
+        data: uploadData,
         error: uploadError
-      } =
-        await supabase
-          .storage
-          .from('fotos')
-          .upload(
-            caminho,
-            arquivo,
-            {
-              cacheControl: '3600',
-              upsert: false,
-              contentType:
-                arquivo.type
-            }
-          );
-
-
-      if (uploadError)
-        throw uploadError;
-
-
-      const {
-        data: urlData
-      } =
-        supabase
-          .storage
-          .from('fotos')
-          .getPublicUrl(
-            caminho
-          );
-
-
-      if (!urlData?.publicUrl)
-        throw new Error(
-          'URL pública não foi gerada.'
+      } = await supabase
+        .storage
+        .from('fotos')
+        .upload(
+          caminho,
+          arquivo,
+          {
+            cacheControl: '3600',
+            upsert: false,
+            contentType:
+              arquivo.type
+          }
         );
 
+      console.log(
+        'Storage:',
+        uploadData
+      );
 
-      const {
-        error: fotoError
-      } =
-        await supabase
-          .from('fotos')
-          .insert({
+      if (uploadError) {
 
-            ensaio_id:
-              ensaio.id,
+        console.error(
+          'ADMIN V2: erro Storage:',
+          uploadError
+        );
 
-            url:
-              urlData.publicUrl,
-
-            tipo,
-
-            selecionada:
-              false,
-
-            ordem:
-              Date.now()
-
-          });
-
-
-      if (fotoError) {
-
-        await supabase
-          .storage
-          .from('fotos')
-          .remove([
-            caminho
-          ]);
-
-        throw fotoError;
+        throw new Error(
+          `Erro no Storage: ${uploadError.message}`
+        );
       }
 
 
-      enviadas++;
+      // ------------------------------------------------------
+      // URL PÚBLICA
+      // ------------------------------------------------------
 
+      const {
+        data: publicUrlData
+      } = supabase
+        .storage
+        .from('fotos')
+        .getPublicUrl(
+          caminho
+        );
+
+      const publicUrl =
+        publicUrlData?.publicUrl;
+
+      console.log(
+        'URL pública:',
+        publicUrl
+      );
+
+      if (!publicUrl) {
+
+        throw new Error(
+          'Não foi possível obter a URL pública da foto.'
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // BANCO — TABELA FOTOS
+      //
+      // IMPORTANTE:
+      // Usamos SOMENTE as colunas existentes.
+      // ------------------------------------------------------
+
+      const registroFoto = {
+
+        ensaio_id:
+          ensaio.id,
+
+        url:
+          publicUrl,
+
+        tipo:
+          tipo,
+
+        selecionada:
+          false,
+
+        ordem:
+          i
+
+      };
+
+      console.log(
+        'Inserindo em fotos:',
+        registroFoto
+      );
+
+
+      const {
+        data: fotoInserida,
+        error: fotoError
+      } = await supabase
+        .from('fotos')
+        .insert(
+          registroFoto
+        )
+        .select(
+          'id, ensaio_id, url, tipo, selecionada, ordem, created_at'
+        )
+        .single();
+
+
+      // ------------------------------------------------------
+      // ERRO NO BANCO
+      // ------------------------------------------------------
+
+      if (fotoError) {
+
+        console.error(
+          '========================================'
+        );
+
+        console.error(
+          'ADMIN V2 — ERRO INSERT FOTOS'
+        );
+
+        console.error(
+          'Código:',
+          fotoError.code
+        );
+
+        console.error(
+          'Mensagem:',
+          fotoError.message
+        );
+
+        console.error(
+          'Detalhes:',
+          fotoError.details
+        );
+
+        console.error(
+          'Hint:',
+          fotoError.hint
+        );
+
+        console.error(
+          'Registro enviado:',
+          registroFoto
+        );
+
+        console.error(
+          '========================================'
+        );
+
+
+        // ----------------------------------------------------
+        // ROLLBACK STORAGE
+        // ----------------------------------------------------
+
+        if (caminho) {
+
+          const {
+            error: removeError
+          } = await supabase
+            .storage
+            .from('fotos')
+            .remove([
+              caminho
+            ]);
+
+          if (removeError) {
+
+            console.error(
+              'Erro ao remover arquivo após falha:',
+              removeError
+            );
+          }
+        }
+
+        throw new Error(
+          `Banco de fotos: ${fotoError.message}`
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // SUCESSO
+      // ------------------------------------------------------
+
+      console.log(
+        'Foto registrada com sucesso:',
+        fotoInserida
+      );
+
+      enviadas++;
 
     } catch (error) {
 
@@ -2755,15 +2933,23 @@ async function uploadFotosCliente(
 
       mostrarMensagem(
         mensagem,
-        `Erro em "${arquivo.name}": ${error.message}`,
+        `Erro na foto "${arquivo.name}": ${error.message}`,
         'erro'
       );
     }
   }
 
 
+  // ----------------------------------------------------------
+  // LIMPAR INPUT
+  // ----------------------------------------------------------
+
   event.target.value = '';
 
+
+  // ----------------------------------------------------------
+  // RESULTADO
+  // ----------------------------------------------------------
 
   if (erros === 0) {
 
@@ -2773,64 +2959,50 @@ async function uploadFotosCliente(
       'sucesso'
     );
 
+  } else if (enviadas > 0) {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} foto(s) enviada(s) e ${erros} com erro.`,
+      'erro'
+    );
+
   } else {
 
     mostrarMensagem(
       mensagem,
-      `${enviadas} enviada(s), ${erros} com erro.`,
+      'Nenhuma foto foi registrada. Veja o Console para o erro.',
       'erro'
     );
   }
 
 
-  await carregarDetalheCliente(
-    ensaio
-  );
-}
+  // ----------------------------------------------------------
+  // RECARREGAR O DETALHE DO ENSAIO
+  // ----------------------------------------------------------
 
+  if (
+    typeof atualizarDetalheEnsaio ===
+    'function'
+  ) {
 
-async function copiarAcessoCliente(
-  ensaio,
-  botao
-) {
-
-  const texto =
-`Acesse em: ${location.origin}/area-cliente
-Login: ${ensaio.slug}
-Senha: ${ensaio.codigo_acesso}`;
-
-
-  try {
-
-    await navigator.clipboard.writeText(
-      texto
+    await atualizarDetalheEnsaio(
+      ensaio
     );
 
+  } else if (
+    typeof carregarClientes ===
+    'function'
+  ) {
 
-    const original =
-      botao.textContent;
+    await carregarClientes();
 
+  } else if (
+    typeof carregarEnsaios ===
+    'function'
+  ) {
 
-    botao.textContent =
-      'Copiado!';
-
-
-    setTimeout(
-      () => {
-
-        botao.textContent =
-          original;
-
-      },
-      2000
-    );
-
-
-  } catch (error) {
-
-    console.error(
-      error
-    );
+    await carregarEnsaios();
   }
 }
 
