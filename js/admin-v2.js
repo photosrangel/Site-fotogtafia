@@ -135,24 +135,44 @@ $('login-form').addEventListener(
       'Entrando...'
     );
 
-    const {
-      error
-    } = await supabase.auth.signInWithPassword({
-      email: $('login-email').value.trim(),
-      password: $('login-password').value
-    });
+    try {
+      const resultado = await Promise.race([
+        supabase.auth.signInWithPassword({
+          email: $('login-email').value.trim(),
+          password: $('login-password').value
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 20000)
+        )
+      ]);
 
-    if (error) {
-      msg(
-        $('login-msg'),
-        'E-mail ou senha incorretos.',
-        'erro'
-      );
+      if (resultado.error) {
+        msg(
+          $('login-msg'),
+          'E-mail ou senha incorretos.',
+          'erro'
+        );
 
-      return;
+        return;
+      }
+
+      await requireAdmin();
+    } catch (err) {
+      if (err && err.message === 'timeout') {
+        msg(
+          $('login-msg'),
+          'Demorou demais para conectar ao servidor. Verifique sua internet e tente novamente.',
+          'erro'
+        );
+      } else {
+        console.error('Erro no login:', err);
+        msg(
+          $('login-msg'),
+          'Erro inesperado ao entrar. Veja o console do navegador (F12).',
+          'erro'
+        );
+      }
     }
-
-    await requireAdmin();
   }
 );
 
@@ -298,7 +318,10 @@ async function loadDashboard() {
       .from('mensagens')
       .select('id')
       .eq('lida', false)
-      .catch(() => ({ data: [] }))
+      .then(
+        r => r,
+        () => ({ data: [] })
+      )
 
   ]);
 
@@ -3040,10 +3063,13 @@ async function loadMessages() {
     .from('mensagens')
     .select('*')
     .order('created_at', { ascending: false })
-    .catch(() => ({
-      data: null,
-      error: { message: 'tabela-inexistente' }
-    }));
+    .then(
+      r => r,
+      () => ({
+        data: null,
+        error: { message: 'tabela-inexistente' }
+      })
+    );
 
   if (error) {
     list.innerHTML = `
@@ -3173,7 +3199,11 @@ supabase.auth.onAuthStateChange(
 );
 
 
-requireAdmin();
+requireAdmin().catch(err => {
+  console.error('Erro ao verificar sessão:', err);
+  $('login-screen').hidden = false;
+  $('app').hidden = true;
+});
 
 
 /* =========================================================

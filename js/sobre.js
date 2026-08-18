@@ -49,14 +49,19 @@ async function carregarSobre() {
       ? c.specs
       : DEFAULTS.specs;
 
-  specs = specs.map(spec => {
-    const valor = {
-      'Baseado em': settings.location,
-      'Especialidade': settings.specialty,
-      'Atende': settings.availability
-    }[spec.label];
+  const fallbacks = {
+    'Baseado em': settings.location,
+    'Especialidade': settings.specialty,
+    'Atende': settings.availability
+  };
 
-    return valor ? { ...spec, value: valor } : spec;
+  specs = specs.map(spec => {
+    const valorSalvo = String(spec.value ?? '').trim();
+    const fallback = fallbacks[spec.label];
+
+    return !valorSalvo && fallback
+      ? { ...spec, value: fallback }
+      : spec;
   });
 
   const specsEl = document.getElementById('sobre-specs');
