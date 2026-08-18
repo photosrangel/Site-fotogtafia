@@ -60,7 +60,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   top: 0; left: 0; right: 0;
   z-index: 100;
   padding: 22px 0;
-  transition: background 0.3s ease, border-color 0.3s ease, padding 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, padding 0.3s ease,
+    transform 0.25s ease, opacity 0.25s ease;
   border-bottom: 1px solid transparent;
 }
 .nav.is-solid {
@@ -109,6 +110,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   padding: 6px;
 }
 .nav-toggle span { width: 22px; height: 1px; background: var(--text); }
+.nav.is-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+}
 
 /* ---------- HERO ---------- */
 .hero {
@@ -250,12 +255,20 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  background: linear-gradient(145deg, #1c1a17, #0e0d0c);
+  background: #111;
   cursor: pointer;
 }
+img {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
 .frame img {
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
+  display: block;
   object-fit: cover;
+  object-position: center center;
   transition: transform 0.6s ease, filter 0.4s ease;
 }
 .frame:hover img { transform: scale(1.04); }
@@ -516,9 +529,364 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .section { padding: 80px 0; }
 }
 
+
 /* =========================================================
-   MARCA DO TOPO — PADRÃO ÚNICO EM TODAS AS PÁGINAS
-   Mantém "Rangel Santos Fotografia" sempre visível e estável.
+   SITE PÚBLICO — LAYOUT FLUIDO / RESPONSIVO FULL WIDTH
+   Mantém a identidade Darkroom, tipografia e botões atuais.
+   ========================================================= */
+
+html, body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+.container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-inline: clamp(18px, 4vw, 76px);
+}
+
+.nav .container,
+.footer .container {
+  width: 100%;
+}
+
+.section {
+  width: 100%;
+  padding-block: clamp(76px, 8vw, 132px);
+}
+
+.section[style*="padding-top:160px"] {
+  padding-top: clamp(124px, 11vw, 176px) !important;
+}
+
+.section-head {
+  margin-bottom: clamp(34px, 4vw, 60px);
+  gap: clamp(18px, 3vw, 42px);
+}
+
+.section-title {
+  font-size: clamp(2.4rem, 5vw, 5rem);
+  line-height: .98;
+}
+
+/* HOME */
+.hero {
+  min-height: max(720px, 100svh);
+  padding-bottom: clamp(48px, 7vh, 90px);
+}
+
+.hero .container {
+  width: 100%;
+}
+
+.hero-title {
+  font-size: clamp(3rem, 6.4vw, 7.4rem);
+  max-width: 13ch;
+}
+
+.hero-sub {
+  max-width: min(52ch, 60vw);
+  font-size: clamp(.96rem, 1.2vw, 1.18rem);
+}
+
+.hero-meta {
+  max-width: 100%;
+  gap: clamp(22px, 4vw, 56px);
+}
+
+/* Galerias: cresce junto com a tela sem deixar o conteúdo preso no centro. */
+.grid {
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.filters {
+  width: 100%;
+}
+
+/* SOBRE */
+.about-grid {
+  width: 100%;
+  grid-template-columns: minmax(320px, .9fr) minmax(380px, 1.1fr);
+  gap: clamp(38px, 5vw, 100px);
+  align-items: center;
+}
+
+.about-portrait {
+  width: 100%;
+  min-height: 520px;
+  max-height: 82vh;
+}
+
+.about-text {
+  width: 100%;
+  max-width: 900px;
+}
+
+.about-text p {
+  max-width: 68ch;
+  font-size: clamp(.94rem, 1vw, 1.08rem);
+}
+
+/* CONTATO */
+.contact-grid {
+  width: 100%;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap: clamp(44px, 7vw, 120px);
+}
+
+.contact-grid > * {
+  min-width: 0;
+}
+
+/* FOOTER */
+.footer {
+  width: 100%;
+  padding-block: clamp(30px, 4vw, 52px);
+}
+
+/* Monitores largos: usa a largura disponível de forma elegante. */
+@media (min-width: 1600px) {
+  .container {
+    padding-inline: clamp(64px, 5vw, 120px);
+  }
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .about-grid {
+    grid-template-columns: minmax(420px, .9fr) minmax(520px, 1.1fr);
+  }
+}
+
+@media (min-width: 2400px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .container {
+    padding-inline: clamp(18px, 3.5vw, 34px);
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .about-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+  .about-portrait {
+    width: min(100%, 760px);
+    min-height: 0;
+    max-height: none;
+  }
+  .about-text {
+    max-width: none;
+  }
+  .hero-sub {
+    max-width: 52ch;
+  }
+}
+
+@media (max-width: 760px) {
+  .nav {
+    padding: 16px 0;
+  }
+  .nav.is-solid {
+    padding: 12px 0;
+  }
+  .nav-links {
+    width: min(86vw, 390px);
+    padding: 94px 28px 36px;
+  }
+  .section {
+    padding-block: 72px;
+  }
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .section-head .btn {
+    align-self: flex-start;
+  }
+  .hero {
+    min-height: 100svh;
+    padding-bottom: 42px;
+  }
+  .hero-title {
+    font-size: clamp(2.65rem, 12vw, 4.8rem);
+  }
+  .hero-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 16px 22px;
+    margin-top: 36px;
+  }
+  .about-grid,
+  .contact-grid {
+    gap: 30px;
+  }
+  .footer .container {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .footer-links {
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+}
+
+@media (max-width: 520px) {
+  .container {
+    padding-inline: 16px;
+  }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+  }
+  .frame-title-bar {
+    font-size: .84rem;
+  }
+  .frame-num,
+  .frame-count {
+    top: 7px;
+    font-size: .55rem;
+  }
+  .frame-num { left: 7px; }
+  .frame-count { right: 7px; }
+  .specs > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .specs dd {
+    text-align: left;
+  }
+  .btn {
+    padding: 12px 18px;
+  }
+}
+
+
+/* =========================================================
+   HOME — AJUSTE EXCLUSIVO PARA CELULAR
+   Mantém desktop/tablet intactos.
+   Objetivos:
+   - título do hero em apenas 2 linhas
+   - informações "Baseado em / Especialidade / Disponibilidade"
+     mais compactas e horizontais
+   - proporções mais equilibradas no celular
+   ========================================================= */
+
+@media (max-width: 520px) {
+
+  /* Hero: melhor proporção vertical no telefone */
+  .hero {
+    min-height: 100svh;
+    padding-bottom: 30px;
+  }
+
+  /* Eyebrow um pouco menor, sem perder o estilo mono/editorial */
+  .hero-eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 13px;
+  }
+
+  /*
+     O JS já insere uma quebra antes da última palavra.
+     white-space: nowrap impede a primeira metade de quebrar novamente,
+     fazendo "Você, como sempre" ficar na primeira linha e "foi." na segunda.
+  */
+  .hero-title {
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    font-size: clamp(2.05rem, 9.8vw, 2.55rem);
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+  }
+
+  .hero-sub {
+    max-width: 34ch;
+    margin-top: 17px;
+    font-size: 0.88rem;
+    line-height: 1.62;
+  }
+
+  /* Mantém os dois botões elegantes, mas menos dominantes no celular */
+  .hero .btn {
+    padding: 11px 16px;
+    font-size: 0.64rem;
+    letter-spacing: 0.07em;
+  }
+
+  /*
+     Cada informação fica em uma linha:
+     Baseado em  Vale de Cambra, Portugal
+     Especialidade  Retrato Feminino
+     Disponibilidade  Agenda 2026 aberta
+  */
+  .hero-meta {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    margin-top: 28px;
+    padding-top: 14px;
+    font-size: 0.62rem;
+  }
+
+  .hero-meta > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .hero-meta strong {
+    flex: 0 0 auto;
+    display: inline;
+    margin: 0;
+    font-size: 0.61rem;
+    line-height: 1.45;
+    white-space: nowrap;
+  }
+
+  .hero-meta > div:not(:has(strong)) {
+    font-size: 0.62rem;
+  }
+
+  .hero-meta > div {
+    line-height: 1.45;
+  }
+}
+
+/* Telefones muito estreitos: mantém segurança contra overflow. */
+@media (max-width: 360px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-meta > div {
+    gap: 7px;
+  }
+
+  .hero-meta strong,
+  .hero-meta {
+    font-size: 0.57rem;
+  }
+}
+
+
+/* =========================================================
+   MARCA DO TOPO — RANGEL SANTOS FOTOGRAFIA
+   Mantém a marca completa sem alterar a responsividade geral.
    ========================================================= */
 .nav-logo {
   display: inline-flex;
