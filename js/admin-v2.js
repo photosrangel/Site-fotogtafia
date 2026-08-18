@@ -796,259 +796,96 @@ async function loadGalleries() {
 
 function renderGalleries() {
 
-  const c =
-    $('galleries-list');
+  const c = $('galleries-list');
 
   if (!galleriesCache.length) {
-
     c.innerHTML = `
       <div class="panel">
-
-        <p class="section-eyebrow">
-          Ainda vazio
-        </p>
-
-        <h2
-          style="
-            font-family:var(--font-display);
-            font-weight:400;
-          "
-        >
+        <p class="section-eyebrow">Ainda vazio</p>
+        <h2 style="font-family:var(--font-display);font-weight:400;">
           Nenhuma galeria criada.
         </h2>
-
-        <p
-          class="panel-copy"
-          style="margin-top:8px;"
-        >
+        <p class="panel-copy" style="margin-top:8px;">
           Comece criando a primeira galeria do novo CMS.
         </p>
-
       </div>
     `;
-
     return;
   }
 
+  c.innerHTML = galleriesCache.map(g => `
+    <article
+      class="gallery-admin-card"
+      data-gallery-id="${attr(g.id)}"
+      draggable="true"
+      title="Arraste para mudar a posição da galeria"
+    >
+      <div class="gallery-drag-handle"
+        title="Arraste para mudar a posição"
+        aria-label="Arraste para mudar a posição"
+      >⋮⋮</div>
 
-  c.innerHTML =
-    galleriesCache
-      .map(
-        g => `
+      ${
+        g.cover_url
+          ? `<img class="gallery-thumb" src="${attr(g.cover_url)}" alt="" loading="lazy">`
+          : `<div class="gallery-thumb empty">SEM CAPA</div>`
+      }
 
-          <article
-            class="gallery-admin-card"
-            data-gallery-id="${attr(g.id)}"
-            draggable="true"
-            title="Arraste para mudar a posição da galeria"
-          >
-
-            <div class="gallery-card-main">
-
-              ${
-                g.cover_url
-                  ? `
-                    <img
-                      class="gallery-thumb"
-                      src="${attr(g.cover_url)}"
-                      alt=""
-                    >
-                  `
-                  : `
-                    <div class="gallery-thumb empty">
-                      SEM CAPA
-                    </div>
-                  `
-              }
-
-              <div class="gallery-card-content">
-
-                <div class="gallery-card-title">
-                  ${esc(g.title)}
-                </div>
-
-                <div class="gallery-meta">
-
-                  /${esc(g.slug)}
-
-                  ${
-                    g.categories?.name
-                      ? ` · ${esc(g.categories.name)}`
-                      : ''
-                  }
-
-                </div>
-
-                <div style="margin-top:9px">
-
-                  <span
-                    class="status-pill ${
-                      g.published
-                        ? 'published'
-                        : 'draft'
-                    }"
-                  >
-                    ${
-                      g.published
-                        ? 'PUBLICADA'
-                        : 'RASCUNHO'
-                    }
-                  </span>
-
-                </div>
-
-                <div
-                  class="card-actions gallery-card-actions"
-                >
-
-                  <button
-                    class="small-btn"
-                    data-photos="${attr(g.id)}"
-                    type="button"
-                  >
-                    Fotos
-                  </button>
-
-                  <button
-                    class="small-btn"
-                    data-edit-gallery="${attr(g.id)}"
-                    type="button"
-                  >
-                    Editar
-                  </button>
-
-                  <button
-                    class="small-btn"
-                    data-toggle-gallery="${attr(g.id)}"
-                    type="button"
-                  >
-                    ${
-                      g.published
-                        ? 'Despublicar'
-                        : 'Publicar'
-                    }
-                  </button>
-
-                  <button
-                    class="small-btn"
-                    data-delete-gallery="${attr(g.id)}"
-                    type="button"
-                  >
-                    Excluir
-                  </button>
-
-                 </div>
-
-        <div
-          class="gallery-drag-handle"
-          title="Arraste para mudar a posição"
-          aria-label="Arraste para mudar a posição"
-        >
-          ⋮⋮
+      <div class="gallery-card-content">
+        <div class="gallery-card-title">${esc(g.title)}</div>
+        <div class="gallery-meta">
+          /${esc(g.slug)}
+          ${g.categories?.name ? ` · ${esc(g.categories.name)}` : ''}
         </div>
-
       </div>
 
+      <div class="gallery-card-controls">
+        <span class="status-pill ${g.published ? 'published' : 'draft'}">
+          ${g.published ? 'PUBLICADA' : 'RASCUNHO'}
+        </span>
+
+        <div class="card-actions gallery-card-actions">
+          <button class="small-btn" data-photos="${attr(g.id)}" type="button">Fotos</button>
+          <button class="small-btn" data-edit-gallery="${attr(g.id)}" type="button">Editar</button>
+          <button class="small-btn" data-toggle-gallery="${attr(g.id)}" type="button">
+            ${g.published ? 'Despublicar' : 'Publicar'}
+          </button>
+          <button class="small-btn danger-btn" data-delete-gallery="${attr(g.id)}" type="button">Excluir</button>
+        </div>
+      </div>
     </article>
+  `).join('');
 
-        `
-      )
-      .join('');
-
-
-  /* BOTÃO FOTOS */
-
-  c
-    .querySelectorAll('[data-photos]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          openGalleryModal(
-            b.dataset.photos
-          );
-
-        }
-      );
-
+  c.querySelectorAll('[data-photos]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      openGalleryModal(b.dataset.photos);
     });
+  });
 
-
-  /* BOTÃO EDITAR */
-
-  c
-    .querySelectorAll('[data-edit-gallery]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          editGallery(
-            b.dataset.editGallery
-          );
-
-        }
-      );
-
+  c.querySelectorAll('[data-edit-gallery]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      editGallery(b.dataset.editGallery);
     });
+  });
 
-
-  /* PUBLICAR / DESPUBLICAR */
-
-  c
-    .querySelectorAll('[data-toggle-gallery]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          toggleGallery(
-            b.dataset.toggleGallery
-          );
-
-        }
-      );
-
+  c.querySelectorAll('[data-toggle-gallery]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleGallery(b.dataset.toggleGallery);
     });
+  });
 
-
-  /* EXCLUIR */
-
-  c
-    .querySelectorAll('[data-delete-gallery]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          deleteGallery(
-            b.dataset.deleteGallery
-          );
-
-        }
-      );
-
+  c.querySelectorAll('[data-delete-gallery]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteGallery(b.dataset.deleteGallery);
     });
-
-
-  /* DRAG & DROP */
+  });
 
   configurarOrdenacaoGalerias();
 }
-
 
 /* =========================================================
    ORDENAÇÃO DAS GALERIAS
@@ -1078,7 +915,7 @@ function configurarOrdenacaoGalerias() {
       event => {
 
         if (
-          event.target.closest('button')
+          !event.target.closest('.gallery-drag-handle')
         ) {
 
           event.preventDefault();
@@ -2687,21 +2524,16 @@ async function refreshGalleryCache(id) {
    STORAGE
 ========================================================= */
 
-function storagePath(url) {
-
+function storagePathForBucket(url, bucket) {
   const marker =
-    `/storage/v1/object/public/${BUCKET}/`;
+    `/storage/v1/object/public/${bucket}/`;
 
   const i =
-    (url || '').indexOf(
-      marker
-    );
-
+    (url || '').indexOf(marker);
 
   if (i === -1) {
     return null;
   }
-
 
   return decodeURIComponent(
     url.slice(
@@ -2710,6 +2542,16 @@ function storagePath(url) {
   );
 }
 
+function storagePath(url) {
+  return storagePathForBucket(url, BUCKET);
+}
+
+/* Legacy implementation kept above as a compatible wrapper. */
+/* Original body replaced by the generic helper. */
+/*
+function storagePath(url) {
+  const marker =
+    `/storage/v1/object/public/${BUCKET}/`;
 
 /* =========================================================
    CONFIGURAÇÕES
@@ -3328,44 +3170,135 @@ function statusLabel(status) {
 }
 
 async function loadSessions() {
-  const { data, error } = await supabase.from('ensaios').select('*').order('created_at', { ascending: false });
+
+  const { data, error } = await supabase
+    .from('ensaios')
+    .select('*')
+    .order('created_at', { ascending: false });
+
   if (error) {
     flash(`Erro ao carregar ensaios: ${error.message}`, 'erro');
     return;
   }
+
   sessionsCache = data || [];
+
+  // Busca as fotografias apenas para obter a capa de cada ensaio.
+  // Não altera a estrutura da tabela ensaios nem a lógica das sessões.
+  if (sessionsCache.length) {
+    const ids = sessionsCache.map(s => s.id);
+
+    const { data: photos, error: photosError } = await supabase
+      .from('fotos')
+      .select('id, ensaio_id, url, tipo, ordem, created_at')
+      .in('ensaio_id', ids)
+      .order('ordem', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (photosError) {
+      console.warn('Não foi possível carregar as capas dos ensaios:', photosError.message);
+    }
+
+    const bySession = new Map();
+
+    (photos || []).forEach(photo => {
+      if (!bySession.has(photo.ensaio_id)) {
+        bySession.set(photo.ensaio_id, []);
+      }
+      bySession.get(photo.ensaio_id).push(photo);
+    });
+
+    sessionsCache = sessionsCache.map(s => {
+      const photosForSession = bySession.get(s.id) || [];
+
+      const coverPhoto =
+        photosForSession.find(p => p.tipo === 'prova') ||
+        photosForSession.find(p => p.tipo === 'final') ||
+        photosForSession[0] ||
+        null;
+
+      return {
+        ...s,
+        cover_url: coverPhoto?.url || null
+      };
+    });
+  }
+
   renderSessions();
 }
 
 function renderSessions() {
+
   const c = $('sessions-list');
+
   if (!sessionsCache.length) {
     c.innerHTML = `
       <div class="panel">
         <p class="section-eyebrow">Ainda vazio</p>
-        <h2 style="font-family:var(--font-display);font-weight:400;">Nenhum ensaio criado.</h2>
-        <p class="panel-copy" style="margin-top:8px;">Comece criando a primeira sessão de cliente.</p>
+        <h2 style="font-family:var(--font-display);font-weight:400;">
+          Nenhum ensaio criado.
+        </h2>
+        <p class="panel-copy" style="margin-top:8px;">
+          Comece criando a primeira sessão de cliente.
+        </p>
       </div>`;
     return;
   }
-  c.innerHTML = sessionsCache.map(s => `
-    <article class="gallery-admin-card" data-session-id="${attr(s.id)}" title="Clique para abrir o ensaio">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
-        <div>
-          <div class="gallery-card-title">${esc(s.titulo)}</div>
-          <div class="gallery-meta">${esc(s.cliente_nome || '—')} · /${esc(s.slug)}</div>
-        </div>
-        <span class="status-pill ${s.status === 'preparando' ? 'draft' : 'published'}">${esc(statusLabel(s.status))}</span>
-      </div>
-      <div class="card-actions" style="margin-top:14px;justify-content:flex-start;">
-        <button class="small-btn" data-open-session="${attr(s.id)}" type="button">Abrir</button>
-        <button class="small-btn" data-delete-session="${attr(s.id)}" type="button">Excluir</button>
-      </div>
-    </article>`).join('');
 
-  c.querySelectorAll('.gallery-admin-card').forEach(card => card.addEventListener('click', () => openSessionModal(card.dataset.sessionId)));
-  c.querySelectorAll('[data-open-session]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openSessionModal(b.dataset.openSession); }));
-  c.querySelectorAll('[data-delete-session]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); excluirSession(b.dataset.deleteSession); }));
+  c.innerHTML = sessionsCache.map(s => `
+    <article
+      class="gallery-admin-card session-admin-card"
+      data-session-id="${attr(s.id)}"
+      title="Clique para abrir o ensaio"
+    >
+      <div class="gallery-drag-handle session-drag-placeholder"
+        title="Ensaio"
+        aria-hidden="true"
+      >⋮⋮</div>
+
+      ${
+        s.cover_url
+          ? `<img class="gallery-thumb" src="${attr(s.cover_url)}" alt="" loading="lazy">`
+          : `<div class="gallery-thumb empty">SEM CAPA</div>`
+      }
+
+      <div class="gallery-card-content">
+        <div class="gallery-card-title">${esc(s.titulo)}</div>
+        <div class="gallery-meta">
+          ${esc(s.cliente_nome || '—')} · /${esc(s.slug)}
+        </div>
+      </div>
+
+      <div class="gallery-card-controls">
+        <span class="status-pill ${s.status === 'preparando' ? 'draft' : 'published'}">
+          ${esc(statusLabel(s.status))}
+        </span>
+
+        <div class="card-actions gallery-card-actions">
+          <button class="small-btn" data-open-session="${attr(s.id)}" type="button">Abrir</button>
+          <button class="small-btn danger-btn" data-delete-session="${attr(s.id)}" type="button">Excluir</button>
+        </div>
+      </div>
+    </article>
+  `).join('');
+
+  c.querySelectorAll('.session-admin-card').forEach(card => {
+    card.addEventListener('click', () => openSessionModal(card.dataset.sessionId));
+  });
+
+  c.querySelectorAll('[data-open-session]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      openSessionModal(b.dataset.openSession);
+    });
+  });
+
+  c.querySelectorAll('[data-delete-session]').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      excluirSession(b.dataset.deleteSession);
+    });
+  });
 }
 
 function openSessionForm() {
@@ -3452,11 +3385,24 @@ function renderSessionDetail() {
 
   $('prova-grid').innerHTML = provas.length
     ? provas.map((f, i) => `
-        <div class="session-photo ${f.selecionada ? 'selecionada' : ''}">
+        <div class="session-photo ${f.selecionada ? 'selecionada' : ''}" data-session-photo-id="${attr(f.id)}">
           <img src="${attr(f.url)}" alt="" loading="lazy">
           <span class="photo-order">${numero(i)}</span>
+          <button
+            class="photo-delete session-photo-delete"
+            data-delete-session-photo="${attr(f.id)}"
+            title="Excluir esta prova"
+            type="button"
+          >×</button>
         </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma prova enviada ainda.</p>';
+
+  $('prova-grid').querySelectorAll('[data-delete-session-photo]').forEach(button => {
+    button.addEventListener('click', e => {
+      e.stopPropagation();
+      excluirFotoEnsaio(button.dataset.deleteSessionPhoto);
+    });
+  });
 
   const numerosSelecionados = selecionadas.map(f => numero(provas.indexOf(f))).join(', ');
   $('selecionadas-box').innerHTML = selecionadas.length
@@ -3496,6 +3442,50 @@ function renderSessionDetail() {
   }
 
   msg($('session-msg'), '');
+}
+
+async function excluirFotoEnsaio(id) {
+  if (!currentSession) return;
+
+  const foto = currentSessionPhotos.find(f => f.id === id);
+  if (!foto) {
+    flash('Fotografia não encontrada.', 'erro');
+    return;
+  }
+
+  const confirmado = confirm(
+    'Excluir esta prova?\n\nEsta ação remove a fotografia do ensaio e não pode ser desfeita.'
+  );
+  if (!confirmado) return;
+
+  flash('Excluindo fotografia...', 'erro');
+
+  const path = storagePathForBucket(foto.url, SESSIONS_BUCKET);
+
+  if (path) {
+    const { error: storageError } = await supabase
+      .storage
+      .from(SESSIONS_BUCKET)
+      .remove([path]);
+
+    if (storageError) {
+      flash(`Erro ao excluir arquivo: ${storageError.message}`, 'erro');
+      return;
+    }
+  }
+
+  const { error } = await supabase
+    .from('fotos')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    flash(`Erro ao excluir registro: ${error.message}`, 'erro');
+    return;
+  }
+
+  flash('Fotografia excluída.', 'sucesso');
+  await loadSessionPhotos();
 }
 
 async function uploadSessionPhotos(files, tipo) {
