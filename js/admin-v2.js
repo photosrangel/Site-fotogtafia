@@ -825,11 +825,13 @@ function renderGalleries() {
         aria-label="Arraste para mudar a posição"
       >⋮⋮</div>
 
-      ${
-        g.cover_url
-          ? `<img class="gallery-thumb" src="${attr(g.cover_url)}" alt="" loading="lazy">`
-          : `<div class="gallery-thumb empty">SEM CAPA</div>`
-      }
+      <div class="gallery-thumb-wrap">
+        ${
+          g.cover_url
+            ? `<img class="gallery-thumb" src="${attr(g.cover_url)}" alt="Capa da galeria ${attr(g.title)}" loading="lazy"><span class="gallery-cover-label">CAPA</span>`
+            : `<div class="gallery-thumb empty">SEM CAPA</div>`
+        }
+      </div>
 
       <div class="gallery-card-content">
         <div class="gallery-card-title">${esc(g.title)}</div>
@@ -841,14 +843,14 @@ function renderGalleries() {
 
       <div class="gallery-card-controls">
         <span class="status-pill ${g.published ? 'published' : 'draft'}">
-          ${g.published ? 'PUBLICADA' : 'RASCUNHO'}
+          ${g.published ? 'PUBLICADA' : 'OCULTA'}
         </span>
 
         <div class="card-actions gallery-card-actions">
           <button class="small-btn" data-photos="${attr(g.id)}" type="button">Fotos</button>
           <button class="small-btn" data-edit-gallery="${attr(g.id)}" type="button">Editar</button>
           <button class="small-btn" data-toggle-gallery="${attr(g.id)}" type="button">
-            ${g.published ? 'Despublicar' : 'Publicar'}
+            ${g.published ? 'Ocultar' : 'Publicar'}
           </button>
           <button class="small-btn danger-btn" data-delete-gallery="${attr(g.id)}" type="button">Excluir</button>
         </div>
@@ -3212,6 +3214,12 @@ async function loadSessions() {
       const photosForSession = bySession.get(s.id) || [];
 
       const coverPhoto =
+        [...photosForSession]
+          .sort((a, b) => {
+            const ao = Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 999999;
+            const bo = Number.isFinite(Number(b.ordem)) ? Number(b.ordem) : 999999;
+            return ao - bo;
+          })[0] ||
         photosForSession.find(p => p.tipo === 'prova') ||
         photosForSession.find(p => p.tipo === 'final') ||
         photosForSession[0] ||
@@ -3256,11 +3264,13 @@ function renderSessions() {
         aria-hidden="true"
       >⋮⋮</div>
 
-      ${
-        s.cover_url
-          ? `<img class="gallery-thumb" src="${attr(s.cover_url)}" alt="" loading="lazy">`
-          : `<div class="gallery-thumb empty">SEM CAPA</div>`
-      }
+      <div class="gallery-thumb-wrap">
+        ${
+          s.cover_url
+            ? `<img class="gallery-thumb" src="${attr(s.cover_url)}" alt="Capa do ensaio ${attr(s.titulo)}" loading="lazy"><span class="gallery-cover-label">CAPA</span>`
+            : `<div class="gallery-thumb empty">SEM CAPA</div>`
+        }
+      </div>
 
       <div class="gallery-card-content">
         <div class="gallery-card-title">${esc(s.titulo)}</div>
@@ -3383,11 +3393,22 @@ function renderSessionDetail() {
   $('prova-count').textContent = provas.length;
   $('final-count').textContent = finais.length;
 
+  const coverPhotoId = currentSessionPhotos
+    .slice()
+    .sort((a, b) => Number(a.ordem ?? 999999) - Number(b.ordem ?? 999999))[0]?.id || null;
+
   $('prova-grid').innerHTML = provas.length
     ? provas.map((f, i) => `
-        <div class="session-photo ${f.selecionada ? 'selecionada' : ''}" data-session-photo-id="${attr(f.id)}">
+        <div class="session-photo ${f.selecionada ? 'selecionada' : ''} ${f.id === coverPhotoId ? 'session-photo-cover' : ''}" data-session-photo-id="${attr(f.id)}">
           <img src="${attr(f.url)}" alt="" loading="lazy">
+          ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
           <span class="photo-order">${numero(i)}</span>
+          <button
+            class="small-btn session-cover-btn"
+            data-set-session-cover="${attr(f.id)}"
+            title="Definir esta foto como capa do ensaio"
+            type="button"
+          >${f.id === coverPhotoId ? '✓ CAPA' : 'CAPA'}</button>
           <button
             class="photo-delete session-photo-delete"
             data-delete-session-photo="${attr(f.id)}"
@@ -3396,6 +3417,13 @@ function renderSessionDetail() {
           >×</button>
         </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma prova enviada ainda.</p>';
+
+  $('prova-grid').querySelectorAll('[data-set-session-cover]').forEach(button => {
+    button.addEventListener('click', e => {
+      e.stopPropagation();
+      definirCapaEnsaio(button.dataset.setSessionCover);
+    });
+  });
 
   $('prova-grid').querySelectorAll('[data-delete-session-photo]').forEach(button => {
     button.addEventListener('click', e => {
@@ -3410,8 +3438,25 @@ function renderSessionDetail() {
     : '';
 
   $('final-grid').innerHTML = finais.length
-    ? finais.map(f => `<div class="session-photo"><img src="${attr(f.url)}" alt="" loading="lazy"></div>`).join('')
+    ? finais.map(f => `
+        <div class="session-photo ${f.id === coverPhotoId ? 'session-photo-cover' : ''}">
+          <img src="${attr(f.url)}" alt="" loading="lazy">
+          ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
+          <button
+            class="small-btn session-cover-btn"
+            data-set-session-cover="${attr(f.id)}"
+            title="Definir esta foto como capa do ensaio"
+            type="button"
+          >${f.id === coverPhotoId ? '✓ CAPA' : 'CAPA'}</button>
+        </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
+
+  $('final-grid').querySelectorAll('[data-set-session-cover]').forEach(button => {
+    button.addEventListener('click', e => {
+      e.stopPropagation();
+      definirCapaEnsaio(button.dataset.setSessionCover);
+    });
+  });
 
   const linkWhatsSelecao = s.cliente_telefone
     ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
@@ -3442,6 +3487,44 @@ function renderSessionDetail() {
   }
 
   msg($('session-msg'), '');
+}
+
+async function definirCapaEnsaio(id) {
+  if (!currentSession) return;
+
+  const foto = currentSessionPhotos.find(f => f.id === id);
+  if (!foto) {
+    flash('Fotografia não encontrada.', 'erro');
+    return;
+  }
+
+  const ordenadas = currentSessionPhotos
+    .slice()
+    .sort((a, b) => {
+      const ao = Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 999999;
+      const bo = Number.isFinite(Number(b.ordem)) ? Number(b.ordem) : 999999;
+      return ao - bo;
+    });
+
+  const resto = ordenadas.filter(f => f.id !== id);
+  const updates = [
+    supabase.from('fotos').update({ ordem: -1 }).eq('id', id),
+    ...resto.map((f, index) =>
+      supabase.from('fotos').update({ ordem: index }).eq('id', f.id)
+    )
+  ];
+
+  const results = await Promise.all(updates);
+  const failed = results.find(r => r.error);
+
+  if (failed) {
+    flash(`Erro ao definir capa: ${failed.error.message}`, 'erro');
+    return;
+  }
+
+  flash('Capa do ensaio atualizada.', 'sucesso');
+  await loadSessionPhotos();
+  await loadSessions();
 }
 
 async function excluirFotoEnsaio(id) {
