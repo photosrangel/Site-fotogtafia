@@ -880,7 +880,10 @@ async function carregarGaleriasCMS() {
               photo.alt_text || '',
 
             ordem:
-              photo.sort_order || 0
+              photo.sort_order || 0,
+
+            publicada:
+              photo.published === true
 
           });
 
