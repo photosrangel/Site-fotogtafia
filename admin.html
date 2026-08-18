@@ -218,9 +218,11 @@ document.getElementById('form-novo-ensaio').addEventListener('submit', async (e)
   const codigo_acesso = document.getElementById('novo-codigo').value;
   const slug = limparLogin(document.getElementById('novo-login').value);
 
-  const { error } = await supabase.from('ensaios').insert({
-    titulo, cliente_nome, cliente_telefone, categoria, codigo_acesso, slug
-  });
+  // ADICIONADO O .select() para o Supabase retornar os dados do ensaio criado
+  const { data, error } = await supabase
+    .from('ensaios')
+    .insert({ titulo, cliente_nome, cliente_telefone, categoria, codigo_acesso, slug })
+    .select(); 
 
   if (error) {
     if (error.message.includes('duplicate') || error.message.includes('unique')) {
@@ -230,12 +232,32 @@ document.getElementById('form-novo-ensaio').addEventListener('submit', async (e)
     }
     msg.className = 'msg erro';
   } else {
-    msg.textContent = 'Ensaio criado!';
+    msg.textContent = 'Ensaio criado com sucesso! Carregando área de fotos...';
     msg.className = 'msg sucesso';
-    e.target.reset();
+    
+    // Atualiza a lista de ensaios em segundo plano se necessário
     carregarEnsaios();
+
+    // Pegamos o ID do ensaio que acabou de ser gerado no banco de dados
+    const novoEnsaioId = data[0].id;
+
+    // Chame a função para preparar a tela para o próximo passo
+    irParaPassoFotos(novoEnsaioId);
   }
 });
+
+// FUNÇÃO PARA GERENCIAR A TRANSIÇÃO NA MESMA PÁGINA
+function irParaPassoFotos(ensaioId) {
+  // 1. Armazene o ID do ensaio em um campo oculto (hidden input) do formulário de fotos
+  // para que o upload saiba a qual ensaio pertence
+  document.getElementById('id-ensaio-atual').value = ensaioId;
+
+  // 2. Alterne a exibição das seções (Esconde criação, mostra upload de fotos)
+  document.getElementById('secao-criar-ensaio').style.display = 'none';
+  document.getElementById('secao-upload-fotos').style.display = 'block';
+  
+  // Opcional: Atualizar alguma label na tela informando o ID ou título do ensaio ativo
+}
 
 // -------- Carregar lista de ensaios --------
 async function carregarEnsaios() {
