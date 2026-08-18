@@ -10,7 +10,7 @@ import { getPageContent, getSettings, initSite, esc } from './cms-config.js';
 const DEFAULTS = {
   eyebrow: 'Sobre mim',
   paragraphs: [
-    'Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.',
+    'Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. Meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.',
     'Ajudar mulheres a reconstruir a autoestima é o que me motiva a cada sessão. Muitas chegam inseguras diante da câmera, e minha função é criar o ambiente certo para que isso se dissolva — com luz, tempo, e escuta.',
     'Cada projeto é entregue com cuidado: você recebe um link privado para escolher suas fotos favoritas, e eu trato as imagens escolhidas uma a uma antes da entrega final.'
   ],

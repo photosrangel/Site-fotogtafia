@@ -9,6 +9,8 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
+console.log('[admin-v2] Build v3 — correções de login, contato e sobre');
+
 const $ = id => document.getElementById(id);
 
 let currentGallery = null;
