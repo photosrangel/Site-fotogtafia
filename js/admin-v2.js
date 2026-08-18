@@ -28,6 +28,12 @@ const slugify = v =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
+
+function emailValido(value) {
+  const email = String(value || '').trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
 function msg(el, t, c = '') {
   el.textContent = t || '';
   el.className = c ? `msg ${c}` : 'msg';
@@ -3350,11 +3356,21 @@ function closeSessionForm() {
 async function saveSession(e) {
   e.preventDefault();
   const msgEl = $('session-form-msg');
+
+  const clienteEmail = $('session-email').value.trim().toLowerCase();
+
+  if (!emailValido(clienteEmail)) {
+    msgEl.textContent = 'Informe um e-mail válido para a cliente.';
+    msgEl.className = 'msg erro';
+    $('session-email').focus();
+    return;
+  }
+
   const p = {
     titulo: $('session-titulo').value.trim(),
     cliente_nome: $('session-cliente').value.trim(),
     cliente_telefone: $('session-telefone').value.replace(/\D/g, ''),
-    cliente_email: $('session-email').value.trim().toLowerCase(),
+    cliente_email: clienteEmail,
     categoria: $('session-categoria').value,
     codigo_acesso: $('session-codigo').value,
     slug: slugify($('session-login').value)
@@ -3474,7 +3490,7 @@ async function salvarEmailClienteEnsaio() {
   if (!currentSession) return;
   const input = $('session-client-email');
   const email = input.value.trim().toLowerCase();
-  if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) {
+  if (!emailValido(email)) {
     flash('Informe um e-mail válido para a cliente.', 'erro');
     input.focus();
     return;
