@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .cliente-wrap { width: 100%; max-width: none; margin: 0; padding: clamp(124px, 11vw, 176px) clamp(18px, 4vw, 76px) clamp(70px, 8vw, 110px); }
-  .acesso-box { width: min(100%, 460px); margin: clamp(36px, 8vh, 90px) auto; text-align: center; }
+  .cliente-wrap { max-width: 1100px; margin: 0 auto; padding: 160px 24px 100px; }
+  .acesso-box { max-width: 400px; margin: 10vh auto; text-align: center; }
   .msg { font-family: var(--font-mono); font-size: 0.8rem; margin-top: 16px; }
   .msg.erro { color: #e0574a; }
   .msg.sucesso { color: var(--accent); }
@@ -60,69 +60,13 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0; border-bottom: 1px solid var(--hairline);
   }
-
-  @media (min-width: 1600px) {
-    .cliente-wrap { padding-inline: clamp(64px, 5vw, 120px); }
-  }
-  @media (max-width: 760px) {
-    .cliente-wrap { padding-inline: 18px; }
-    .barra-selecao { padding: 14px 18px; }
-  }
-  @media (max-width: 520px) {
-    .cliente-wrap { padding-inline: 16px; }
-    .barra-selecao { align-items: stretch; flex-direction: column; }
-  }
-
-  .confirmacao-selecao {
-    position: fixed; inset: 0; z-index: 2200;
-    display: grid; place-items: center;
-    padding: 18px;
-  }
-  .confirmacao-selecao[hidden] { display: none !important; }
-  .confirmacao-selecao-backdrop {
-    position: absolute; inset: 0;
-    background: rgba(5,5,5,.82);
-    backdrop-filter: blur(8px);
-  }
-  .confirmacao-selecao-card {
-    position: relative;
-    width: min(100%, 520px);
-    padding: clamp(24px, 5vw, 38px);
-    border: 1px solid var(--hairline);
-    background: #11110f;
-    box-shadow: 0 28px 90px rgba(0,0,0,.5);
-  }
-  .confirmacao-selecao-card h3 {
-    margin: 8px 0 12px;
-    font-family: var(--font-display);
-    font-size: clamp(1.7rem, 5vw, 2.25rem);
-    font-weight: 400;
-  }
-  .confirmacao-selecao-card p { color: var(--text-muted); line-height: 1.7; }
-  .confirmacao-selecao-count {
-    margin: 20px 0;
-    padding: 16px;
-    border: 1px solid var(--hairline);
-    text-align: center;
-    font-family: var(--font-mono);
-    color: var(--accent);
-  }
-  .confirmacao-selecao-actions {
-    display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
-    margin-top: 24px;
-  }
-  @media (max-width: 520px) {
-    .confirmacao-selecao-actions { flex-direction: column-reverse; }
-    .confirmacao-selecao-actions .btn { width: 100%; }
-  }
-
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em></a>
+    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
@@ -186,28 +130,12 @@
   </div>
 </div>
 
-
-<div class="confirmacao-selecao" id="confirmacao-selecao" hidden>
-  <div class="confirmacao-selecao-backdrop" id="confirmacao-selecao-backdrop"></div>
-  <div class="confirmacao-selecao-card" role="dialog" aria-modal="true" aria-labelledby="confirmacao-selecao-titulo">
-    <p class="section-eyebrow">Confirmar seleção</p>
-    <h3 id="confirmacao-selecao-titulo">Finalizar sua seleção?</h3>
-    <p>Confira a quantidade abaixo. Depois de confirmar, sua seleção será enviada para edição e não poderá ser alterada por esta página.</p>
-    <div class="confirmacao-selecao-count" id="confirmacao-selecao-count"></div>
-    <div class="confirmacao-selecao-actions">
-      <button class="btn" id="btn-voltar-revisar" type="button">Voltar e revisar</button>
-      <button class="btn btn-accent" id="btn-confirmar-selecao" type="button">Confirmar seleção</button>
-    </div>
-    <p class="msg" id="confirmacao-selecao-msg"></p>
-  </div>
-</div>
-
 <footer class="footer">
   <div class="container">
-    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
+    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
-      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a>
+      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
     </div>
   </div>
 </footer>
@@ -216,11 +144,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
-import { initSite } from './js/cms-config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-initSite();
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
 // foto marcada como protegida (prova/seleção) — sem afetar o resto da página.
@@ -237,6 +162,12 @@ const acessoMsg = document.getElementById('acesso-msg');
 
 let ensaioAtual = null;
 let selecaoAtual = new Set();
+
+function statusEnsaioNormalizado(status) {
+  if (status === 'selecionado') return 'selecao_finalizada';
+  if (status === 'entregue') return 'fotos_disponiveis';
+  return status || 'preparando';
+}
 
 document.getElementById('btn-toggle-senha').addEventListener('click', () => {
   const input = document.getElementById('input-codigo');
@@ -277,20 +208,20 @@ function mostrarGaleria() {
 
   document.getElementById('cliente-titulo').textContent = ensaioAtual.titulo;
 
+  const statusAtual = statusEnsaioNormalizado(ensaioAtual.status);
+
   const statusTextos = {
     preparando: 'Suas fotos estão sendo preparadas',
     aguardando_selecao: 'Escolha suas fotos favoritas',
-    selecionado: 'Seleção enviada — aguardando edição',
-    selecao_finalizada: 'Seleção recebida — aguardando edição',
+    selecao_finalizada: 'Seleção enviada — aguardando edição',
     em_edicao: 'Suas fotografias estão em edição',
-    entregue: 'Suas fotos estão prontas!',
     fotos_disponiveis: 'Suas fotos estão prontas!'
   };
-  document.getElementById('cliente-status').textContent = statusTextos[ensaioAtual.status] || '';
+  document.getElementById('cliente-status').textContent = statusTextos[statusAtual] || '';
 
   const conteudo = document.getElementById('conteudo-galeria');
 
-  if (ensaioAtual.status === 'preparando') {
+  if (statusAtual === 'preparando') {
     conteudo.innerHTML = `
       <div style="text-align:center; padding: 60px 0;">
         <p style="font-family:var(--font-display); font-style:italic; font-size:1.6rem; color:var(--text); margin-bottom:14px;">
@@ -305,7 +236,7 @@ function mostrarGaleria() {
     return;
   }
 
-  if (ensaioAtual.status === 'entregue' || ensaioAtual.status === 'fotos_disponiveis') {
+  if (statusAtual === 'fotos_disponiveis') {
     conteudo.innerHTML = `
       <div class="section-head" style="align-items:flex-start; border-bottom:none;">
         <div>
@@ -335,7 +266,7 @@ function mostrarGaleria() {
     return;
   }
 
-  if (['selecionado', 'selecao_finalizada', 'em_edicao'].includes(ensaioAtual.status)) {
+  if (['selecao_finalizada', 'em_edicao'].includes(statusAtual)) {
     const selecionadas = ensaioAtual.fotos.filter(f => f.selecionada);
     conteudo.innerHTML = `
       <div style="text-align:center; padding: 40px 0 20px;">
@@ -344,8 +275,8 @@ function mostrarGaleria() {
         </p>
         <p style="color:var(--text-muted); max-width:50ch; margin:0 auto;">
           Recebemos sua seleção de ${selecionadas.length} foto${selecionadas.length === 1 ? '' : 's'}.
-          Sua escolha já foi registrada e as fotografias seguem para a etapa de edição.
-          Assim que o resultado final estiver disponível, você receberá um novo e-mail e poderá acessá-lo por este mesmo link.
+          Agora é com o Rangel — assim que as fotos estiverem prontas e tratadas,
+          elas vão aparecer aqui mesmo, nesse link, para você baixar.
         </p>
       </div>
       <div class="grid" style="margin-top:32px; opacity:0.6;">
@@ -373,7 +304,7 @@ function mostrarGaleria() {
     </div>
     <div class="barra-selecao" id="barra-selecao">
       <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
-      <button class="btn btn-accent" id="btn-salvar-selecao">Finalizar seleção</button>
+      <button class="btn btn-accent" id="btn-salvar-selecao">Enviar seleção</button>
     </div>
     <p class="msg" id="selecao-msg"></p>
   `;
@@ -390,7 +321,7 @@ function mostrarGaleria() {
     });
   });
 
-  document.getElementById('btn-salvar-selecao').addEventListener('click', abrirConfirmacaoSelecao);
+  document.getElementById('btn-salvar-selecao').addEventListener('click', salvarSelecao);
   ativarOcultarBarraAoRolar();
 }
 
@@ -550,73 +481,88 @@ lightboxSelToggle.addEventListener('click', () => {
   atualizarBotaoLightbox(foto);
 });
 
-function abrirConfirmacaoSelecao() {
-  const msgEl = document.getElementById('selecao-msg');
-  if (selecaoAtual.size === 0) {
-    msgEl.textContent = 'Selecione pelo menos uma fotografia antes de finalizar.';
-    msgEl.className = 'msg erro';
-    return;
-  }
-
-  document.getElementById('confirmacao-selecao-count').textContent =
-    `${selecaoAtual.size} fotografia${selecaoAtual.size === 1 ? '' : 's'} selecionada${selecaoAtual.size === 1 ? '' : 's'}`;
-  document.getElementById('confirmacao-selecao-msg').textContent = '';
-  document.getElementById('confirmacao-selecao').hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-
-function fecharConfirmacaoSelecao() {
-  document.getElementById('confirmacao-selecao').hidden = true;
-  document.body.style.overflow = '';
-}
-
-document.getElementById('btn-voltar-revisar').addEventListener('click', fecharConfirmacaoSelecao);
-document.getElementById('confirmacao-selecao-backdrop').addEventListener('click', fecharConfirmacaoSelecao);
-document.getElementById('btn-confirmar-selecao').addEventListener('click', salvarSelecao);
-
-async function salvarSelecao() {
-  const msgEl = document.getElementById('confirmacao-selecao-msg');
-  const btn = document.getElementById('btn-confirmar-selecao');
-  const codigo = document.getElementById('input-codigo').value;
-
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-  msgEl.textContent = 'Registrando sua seleção...';
-  msgEl.className = 'msg';
-
-  const { data, error } = await supabase.rpc('salvar_selecao', {
-    p_ensaio_id: ensaioAtual.id,
-    p_codigo: codigo,
-    p_foto_ids: Array.from(selecaoAtual)
+async function notificarSelecaoFinalizada(codigo) {
+  const { data, error } = await supabase.functions.invoke('ensaio-notifications', {
+    body: {
+      action: 'selection_finalized',
+      ensaio_id: ensaioAtual.id,
+      codigo
+    }
   });
 
-  if (error || (data && data.erro)) {
-    msgEl.textContent = (data && data.erro) || 'Não foi possível salvar. Tente novamente.';
+  if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+
+  return data || {};
+}
+
+async function salvarSelecao() {
+  const msgEl = document.getElementById('selecao-msg');
+  const btnSalvar = document.getElementById('btn-salvar-selecao');
+
+  if (!selecaoAtual.size) {
+    msgEl.textContent = 'Selecione pelo menos uma fotografia.';
     msgEl.className = 'msg erro';
-    btn.disabled = false;
-    btn.textContent = 'Confirmar seleção';
     return;
   }
 
-  // O registro da seleção é a operação principal. O e-mail é uma segunda
-  // etapa: se o provedor estiver temporariamente indisponível, a escolha
-  // da cliente continua salva e o Admin poderá tentar os avisos novamente.
-  try {
-    await supabase.functions.invoke('ensaio-notifications', {
-      body: {
-        action: 'selection_finalized',
-        ensaio_id: ensaioAtual.id,
-        codigo
-      }
-    });
-  } catch (emailError) {
-    console.warn('Seleção salva, mas a notificação por e-mail não foi concluída:', emailError);
-  }
+  const codigo = document.getElementById('input-codigo').value.trim();
+  const idsSelecionados = Array.from(selecaoAtual);
 
-  ensaioAtual.fotos.forEach(f => { f.selecionada = selecaoAtual.has(f.id); });
-  ensaioAtual.status = 'selecao_finalizada';
-  fecharConfirmacaoSelecao();
-  mostrarGaleria();
+  if (btnSalvar) btnSalvar.disabled = true;
+  msgEl.textContent = 'Enviando sua seleção...';
+  msgEl.className = 'msg';
+
+  try {
+    const { data, error } = await supabase.rpc('salvar_selecao', {
+      p_ensaio_id: ensaioAtual.id,
+      p_codigo: codigo,
+      p_foto_ids: idsSelecionados
+    });
+
+    if (error || data?.erro) {
+      const detalhe = data?.erro || error?.message || 'Erro desconhecido.';
+      console.error('[area-cliente] Falha ao salvar seleção:', detalhe);
+      msgEl.textContent = detalhe;
+      msgEl.className = 'msg erro';
+      if (btnSalvar) btnSalvar.disabled = false;
+      return;
+    }
+
+    // A seleção é considerada concluída assim que o banco confirma o salvamento.
+    // O envio de e-mail é uma etapa posterior e não pode desfazer a seleção.
+    ensaioAtual.fotos.forEach(f => {
+      f.selecionada = selecaoAtual.has(f.id);
+    });
+
+    ensaioAtual.status = data?.status || 'selecao_finalizada';
+    mostrarGaleria();
+
+    // Dispara as notificações depois que a seleção já foi salva.
+    // Se o Resend estiver temporariamente indisponível, a seleção permanece válida.
+    try {
+      const notificacao = await notificarSelecaoFinalizada(codigo);
+
+      if (notificacao?.email_sent === false) {
+        console.warn(
+          '[area-cliente] Seleção salva, mas uma ou mais notificações ficaram pendentes:',
+          notificacao
+        );
+      } else {
+        console.log('[area-cliente] Notificações da seleção processadas com sucesso.');
+      }
+    } catch (notificationError) {
+      console.warn(
+        '[area-cliente] Seleção salva, mas não foi possível processar as notificações:',
+        notificationError
+      );
+    }
+  } catch (erro) {
+    console.error('[area-cliente] Erro inesperado ao finalizar seleção:', erro);
+    msgEl.textContent = 'Não foi possível concluir a seleção. Tente novamente.';
+    msgEl.className = 'msg erro';
+    if (btnSalvar) btnSalvar.disabled = false;
+  }
 }
 </script>
 <script src="js/main.js"></script>
