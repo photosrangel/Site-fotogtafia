@@ -23,16 +23,29 @@ const DEFAULTS = {
 
 function formatarWhatsApp(numero) {
   const digits = String(numero || '').replace(/\D/g, '');
-  const m = digits.match(/^(\d{1,3})(\d{3})(\d{3})(\d{4})$/);
-  return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]}` : digits;
+
+  if (/^351\d{9}$/.test(digits)) {
+    return `+${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9, 12)}`;
+  }
+
+  return numero || '+351 931 159 748';
 }
 
 function handleInstagram(url) {
-  const partes = String(url || '')
-    .replace(/\/+$/, '')
-    .split('/');
-  const ultima = partes[partes.length - 1] || '';
-  return ultima ? `@${ultima}` : '';
+  const value = String(url || '').trim();
+
+  if (!value || value === 'https://instagram.com' || value === 'https://www.instagram.com') {
+    return '@photosrangel';
+  }
+
+  if (value.startsWith('@')) return value;
+
+  try {
+    const pathname = new URL(value).pathname.replace(/^\/+|\/+$/g, '');
+    return pathname ? `@${pathname.split('/')[0]}` : '@photosrangel';
+  } catch {
+    return '@photosrangel';
+  }
 }
 
 function preencherInfoContato(settings, content) {
@@ -40,19 +53,32 @@ function preencherInfoContato(settings, content) {
   if (!dl) return;
 
   const email = settings.email || 'rangelsantos1812@gmail.com';
-  const whatsapp = settings.whatsapp || '351931159748';
-  const instagram = settings.instagram_url || 'https://instagram.com';
+
+  // Estes dois dados são fixos nesta página para não serem sobrescritos
+  // por valores antigos ainda salvos em site_settings no Supabase.
+  const whatsapp = '351931159748';
+  const instagram = 'https://instagram.com/photosrangel';
 
   dl.innerHTML = `
     <dt>E-mail</dt>
     <dd><a href="mailto:${esc(email)}" target="_blank" rel="noopener">${esc(email)}</a></dd>
     <dt>WhatsApp</dt>
-    <dd><a href="https://wa.me/${esc(whatsapp.replace(/\D/g, ''))}" target="_blank" rel="noopener">${esc(formatarWhatsApp(whatsapp))}</a></dd>
+    <dd><a href="https://wa.me/${whatsapp}" target="_blank" rel="noopener">+351 931 159 748</a></dd>
     <dt>Instagram</dt>
-    <dd><a href="${esc(instagram)}" target="_blank" rel="noopener">${esc(handleInstagram(instagram))}</a></dd>
+    <dd><a href="${instagram}" target="_blank" rel="noopener">@photosrangel</a></dd>
     <dt>Atendimento</dt>
     <dd>${esc(content.atendimento || DEFAULTS.atendimento)}</dd>
   `;
+
+  // Corrige também os links do rodapé desta página após initSite(),
+  // impedindo que site_settings antigo volte a colocar os links anteriores.
+  document
+    .querySelectorAll('a[data-contact-fixed="whatsapp"]')
+    .forEach(a => a.href = `https://wa.me/${whatsapp}`);
+
+  document
+    .querySelectorAll('a[data-contact-fixed="instagram"]')
+    .forEach(a => a.href = instagram);
 }
 
 function preencherFormulario(content) {
