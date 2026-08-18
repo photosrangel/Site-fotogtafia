@@ -3433,14 +3433,7 @@ function renderSessionDetail() {
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
           <span class="photo-order">${numero(i)}</span>
-          ${f.id !== coverPhotoId ? `
-            <button
-              class="small-btn session-cover-btn"
-              data-set-session-cover="${attr(f.id)}"
-              title="Usar esta fotografia como capa do ensaio"
-              type="button"
-            >Definir capa</button>
-          ` : ''}
+          
           <button
             class="photo-delete session-photo-delete"
             data-delete-session-photo="${attr(f.id)}"
@@ -3449,13 +3442,6 @@ function renderSessionDetail() {
           >×</button>
         </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma prova enviada ainda.</p>';
-
-  $('prova-grid').querySelectorAll('[data-set-session-cover]').forEach(button => {
-    button.addEventListener('click', e => {
-      e.stopPropagation();
-      definirCapaEnsaio(button.dataset.setSessionCover);
-    });
-  });
 
   $('prova-grid').querySelectorAll('[data-delete-session-photo]').forEach(button => {
     button.addEventListener('click', e => {
@@ -3482,23 +3468,9 @@ function renderSessionDetail() {
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
           <span class="photo-order">${numero(i)}</span>
-          ${f.id !== coverPhotoId ? `
-            <button
-              class="small-btn session-cover-btn"
-              data-set-session-cover="${attr(f.id)}"
-              title="Usar esta fotografia como capa do ensaio"
-              type="button"
-            >Definir capa</button>
-          ` : ''}
+          
         </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
-
-  $('final-grid').querySelectorAll('[data-set-session-cover]').forEach(button => {
-    button.addEventListener('click', e => {
-      e.stopPropagation();
-      definirCapaEnsaio(button.dataset.setSessionCover);
-    });
-  });
 
   configurarOrdenacaoFotosEnsaio($('final-grid'));
 
