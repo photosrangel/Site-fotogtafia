@@ -2307,17 +2307,6 @@
   outline-offset: -2px;
 }
 
-.session-photo .session-cover-btn {
-  z-index: 4;
-  position: absolute;
-  left: 7px;
-  bottom: 7px;
-  min-height: 27px;
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.72);
-  backdrop-filter: blur(8px);
-}
 
 /* A palavra CAPA aparece somente na fotografia realmente escolhida. */
 .session-photo-cover .session-cover-label {
