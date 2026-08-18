@@ -97,15 +97,31 @@ export function applySettings(settings) {
   if (footerText && s.footer_text) footerText.textContent = s.footer_text;
 
   const siteName = document.querySelector('[data-setting="site_name"]');
-  if (siteName && s.site_name) {
-    const em = siteName.querySelector('em');
-    if (em) {
-      const partes = String(s.site_name).split(/[-–—]/);
-      em.textContent = (partes.pop() || s.site_name).trim();
-      siteName.childNodes[0].textContent = partes.length ? partes.join('-').trim() + ' ' : '';
-    } else {
-      siteName.textContent = s.site_name;
-    }
+  if (siteName) {
+    /*
+      A marca visual do site tem estrutura própria:
+      Rangel <em>Santos</em> <span>Fotografia</span>
+
+      O CMS pode guardar valores como:
+      "Rangel Santos Fotografia"
+      "Rangel Santos — Fotografia"
+      "Rangel Santos"
+
+      Antes, o script alterava apenas parte do HTML e deixava o
+      <span>Fotografia</span> existente, causando "Fotografia Fotografia"
+      depois que as configurações terminavam de carregar.
+    */
+    const valorCMS = String(s.site_name || 'Rangel Santos')
+      .replace(/\s*[-–—]?\s*Fotografia\s*$/i, '')
+      .trim() || 'Rangel Santos';
+
+    const palavras = valorCMS.split(/\s+/);
+    const primeiroNome = palavras.shift() || 'Rangel';
+    const restanteNome = palavras.join(' ') || 'Santos';
+
+    siteName.innerHTML =
+      `${esc(primeiroNome)} <em>${esc(restanteNome)}</em> ` +
+      '<span class="nav-logo-photo">Fotografia</span>';
   }
 
   const insta = document.querySelector('[data-setting="instagram_url"]');
