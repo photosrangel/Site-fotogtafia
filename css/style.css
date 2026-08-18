@@ -948,3 +948,11 @@ html, body {
   border-color: #e9e9e9 !important;
   color: #000 !important;
 }
+
+
+/* HERO — FOTO ESTÁTICA + SLIDESHOW COM FADE */
+.hero-slideshow { position:absolute; inset:0; z-index:0; opacity:0; pointer-events:none; transition:opacity .35s ease; }
+.hero-slideshow.is-active.is-ready { opacity:1; }
+.hero-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity var(--hero-slide-transition, 1200ms) ease-in-out; will-change:opacity; }
+.hero-slide.is-visible { opacity:1; }
+@media (prefers-reduced-motion: reduce) { .hero-slide { transition:none !important; } }
