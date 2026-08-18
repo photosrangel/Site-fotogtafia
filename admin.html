@@ -308,12 +308,12 @@ async function toggleDetail(ens) {
   const numero = (i) => String(i + 1).padStart(4, '0');
 
   const numerosSelecionados = selecionadas
-    .map((f) => numero(provas.indexOf(f)))
+    .map((f) => numero.cr3(provas.indexOf(f)))
     .join(', ');
 
   const linkWhatsSelecao = ens.cliente_telefone
     ? `https://wa.me/${ens.cliente_telefone}?text=${encodeURIComponent(
-        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas 📸\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
+        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas!\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
       )}`
     : null;
 
