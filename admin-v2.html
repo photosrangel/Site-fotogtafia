@@ -134,30 +134,71 @@
 <div class="modal-backdrop" data-close-session-modal></div>
 <div class="modal-dialog">
 <div class="modal-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="modal-session-title">Ensaio</h2></div><button class="icon-btn" data-close-session-modal type="button">×</button></div>
-<div class="panel" style="margin-bottom:16px;">
-<p class="panel-copy">Envie esses dados para a cliente (ela digita na Área do Cliente):</p>
-<p class="footer-mono" style="margin-bottom:4px;">Link da Área do Cliente</p>
-<div class="link-box" id="session-link"></div>
-<p class="footer-mono" style="margin-bottom:4px;">Login</p>
-<div class="link-box" id="session-login-box"></div>
-<p class="footer-mono" style="margin-bottom:4px;">Senha</p>
-<div class="link-box" id="session-senha"></div>
-<button class="small-btn" id="btn-copy-session">Copiar tudo</button>
+
+<div class="panel session-access-panel">
+  <div class="session-access-head">
+    <div>
+      <p class="section-eyebrow">Acesso da cliente</p>
+      <p class="panel-copy">Dados privados usados para entrar na Área do Cliente.</p>
+    </div>
+    <button class="small-btn" id="btn-copy-session">Copiar tudo</button>
+  </div>
+  <div class="session-credentials">
+    <div class="session-credential">
+      <p class="footer-mono">Link da Área do Cliente</p>
+      <div class="link-box" id="session-link"></div>
+    </div>
+    <div class="session-credential">
+      <p class="footer-mono">Login</p>
+      <div class="link-box" id="session-login-box"></div>
+    </div>
+    <div class="session-credential">
+      <p class="footer-mono">Senha</p>
+      <div class="link-box" id="session-senha"></div>
+    </div>
+  </div>
 </div>
-<p class="footer-mono">Fotos para o cliente escolher (provas) — <span id="prova-count">0</span> enviadas:</p>
-<div class="upload-drop" style="margin:12px 0;"><input id="upload-prova" type="file" multiple accept="image/*"><label for="upload-prova"><strong>Adicionar provas</strong><span>Selecione uma ou várias fotos</span></label></div>
-<div id="prova-grid" class="session-grid"></div>
-<div id="selecionadas-box"></div>
-<div class="session-actions" id="selecao-actions"></div>
-<p class="footer-mono" style="margin-top:24px;">Fotos finais (tratadas, para entrega) — <span id="final-count">0</span> enviadas:</p>
-<div class="upload-drop" style="margin:12px 0;"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>O cliente só vê depois de "Marcar como entregue"</span></label></div>
-<div id="final-grid" class="session-grid"></div>
-<div class="session-actions">
-<button class="btn btn-accent" id="btn-entregar">Marcar como entregue</button>
-<a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
-<button class="btn" id="btn-excluir-session" style="border-color:#8c877e;">Excluir permanentemente</button>
+
+<div class="session-workflow">
+  <section class="session-stage-card">
+    <div class="session-stage-head">
+      <div>
+        <p class="section-eyebrow">Seleção</p>
+        <h3>Provas para a cliente</h3>
+      </div>
+      <span class="session-stage-count"><span id="prova-count">0</span> enviadas</span>
+    </div>
+    <div class="session-stage-body">
+      <div class="upload-drop"><input id="upload-prova" type="file" multiple accept="image/*"><label for="upload-prova"><strong>Adicionar provas</strong><span>Selecione uma ou várias fotos</span></label></div>
+      <div id="prova-grid" class="session-grid"></div>
+      <div id="selecionadas-box"></div>
+      <div class="session-actions" id="selecao-actions"></div>
+    </div>
+  </section>
+
+  <section class="session-stage-card is-final">
+    <div class="session-stage-head">
+      <div>
+        <p class="section-eyebrow">Entrega</p>
+        <h3>Fotos finais tratadas</h3>
+      </div>
+      <span class="session-stage-count"><span id="final-count">0</span> enviadas</span>
+    </div>
+    <div class="session-stage-body">
+      <div class="upload-drop"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>O cliente só vê depois de “Marcar como entregue”</span></label></div>
+      <div id="final-grid" class="session-grid"></div>
+      <div class="session-actions">
+        <button class="btn btn-accent" id="btn-entregar">Marcar como entregue</button>
+        <a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
+      </div>
+    </div>
+  </section>
 </div>
-<p class="msg" id="session-msg"></p>
+
+<div class="session-footer-actions">
+  <p class="msg" id="session-msg"></p>
+  <button class="btn" id="btn-excluir-session" style="border-color:#8c877e;">Excluir permanentemente</button>
+</div>
 </div>
 </div>
 <script type="module" src="js/admin-v2.js"></script>

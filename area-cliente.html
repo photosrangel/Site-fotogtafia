@@ -7,8 +7,8 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="css/style.css">
 <style>
-  .cliente-wrap { max-width: 1100px; margin: 0 auto; padding: 160px 24px 100px; }
-  .acesso-box { max-width: 400px; margin: 10vh auto; text-align: center; }
+  .cliente-wrap { width: 100%; max-width: none; margin: 0; padding: clamp(124px, 11vw, 176px) clamp(18px, 4vw, 76px) clamp(70px, 8vw, 110px); }
+  .acesso-box { width: min(100%, 460px); margin: clamp(36px, 8vh, 90px) auto; text-align: center; }
   .msg { font-family: var(--font-mono); font-size: 0.8rem; margin-top: 16px; }
   .msg.erro { color: #e0574a; }
   .msg.sucesso { color: var(--accent); }
@@ -59,6 +59,18 @@
   .download-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0; border-bottom: 1px solid var(--hairline);
+  }
+
+  @media (min-width: 1600px) {
+    .cliente-wrap { padding-inline: clamp(64px, 5vw, 120px); }
+  }
+  @media (max-width: 760px) {
+    .cliente-wrap { padding-inline: 18px; }
+    .barra-selecao { padding: 14px 18px; }
+  }
+  @media (max-width: 520px) {
+    .cliente-wrap { padding-inline: 16px; }
+    .barra-selecao { align-items: stretch; flex-direction: column; }
   }
 </style>
 </head>
@@ -134,7 +146,7 @@
   <div class="container">
     <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
+      <a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
       <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a>
     </div>
   </div>
