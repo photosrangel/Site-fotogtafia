@@ -149,16 +149,50 @@ $('login-form').addEventListener(
       ]);
 
       if (resultado.error) {
+        const msgErro = String(
+          resultado.error.message || resultado.error.code || ''
+        );
+
+        if (/confirm|verified|verification|mail/i.test(msgErro)) {
+          msg(
+            $('login-msg'),
+            'Seu e-mail ainda não foi confirmado. Clique no link que enviei para o seu e-mail (ou confirme no painel do Supabase).',
+            'erro'
+          );
+        } else {
+          msg(
+            $('login-msg'),
+            'E-mail ou senha incorretos.',
+            'erro'
+          );
+        }
+
+        return;
+      }
+
+      if (!resultado.data?.session) {
         msg(
           $('login-msg'),
-          'E-mail ou senha incorretos.',
+          'Seu e-mail ainda não foi confirmado. Clique no link que enviei para o seu e-mail (ou confirme no painel do Supabase).',
           'erro'
         );
 
         return;
       }
 
-      await requireAdmin();
+      const entrou = await requireAdmin();
+
+      if (!entrou) {
+        const el = $('login-msg');
+
+        if (el.textContent === 'Entrando...') {
+          msg(
+            el,
+            'Sessão não estabelecida. Verifique se seu e-mail foi confirmado.',
+            'erro'
+          );
+        }
+      }
     } catch (err) {
       if (err && err.message === 'timeout') {
         msg(
