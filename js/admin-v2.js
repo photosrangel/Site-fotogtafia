@@ -19,6 +19,8 @@ let galleriesCache = [];
 let sessionsCache = [];
 let currentSession = null;
 let currentSessionPhotos = [];
+let heroSlidesDraft = [];
+
 
 const slugify = v =>
   String(v)
@@ -2884,6 +2886,26 @@ async function loadContent() {
   $('hero-desktop-image').value = h.desktop_image || '';
   $('hero-mobile-image').value = h.mobile_image || '';
   $('hero-image-alt').value = h.image_alt || '';
+  const heroMode = h.mode === 'slideshow' ? 'slideshow' : 'static';
+  $('hero-mode-static').checked = heroMode === 'static';
+  $('hero-mode-slideshow').checked = heroMode === 'slideshow';
+  $('hero-static-focus-x').value = Number(h.static_focus_x ?? 50);
+  $('hero-static-focus-y').value = Number(h.static_focus_y ?? 50);
+  $('hero-slide-interval').value = Number(h.slide_interval ?? 5);
+  $('hero-slide-transition').value = Number(h.slide_transition ?? 1.2);
+  heroSlidesDraft = Array.isArray(h.slides)
+    ? h.slides.map((s, i) => ({
+        id: s.id || `slide-${Date.now()}-${i}`,
+        url: s.url || '',
+        alt: s.alt || '',
+        focus_x: Number(s.focus_x ?? 50),
+        focus_y: Number(s.focus_y ?? 50),
+        published: s.published !== false
+      })).filter(s => s.url)
+    : [];
+  updateHeroModeUI();
+  updateStaticFocalPreview();
+  renderHeroSlidesAdmin();
   $('hero-primary-text').value = h.primary_button?.text || '';
   $('hero-primary-url').value = h.primary_button?.url || '';
   $('hero-secondary-text').value = h.secondary_button?.text || '';
@@ -2976,6 +2998,181 @@ async function upsertContent(slug, sectionKey, payload, msgId) {
   contentCache = null;
 }
 
+
+function updateHeroModeUI() {
+  const mode = document.querySelector('input[name="hero-mode"]:checked')?.value || 'static';
+  $('hero-static-editor').classList.toggle('is-primary-mode', mode === 'static');
+  $('hero-slideshow-editor').classList.toggle('is-primary-mode', mode === 'slideshow');
+}
+
+function focalStyle(x, y) {
+  return `${Number(x ?? 50)}% ${Number(y ?? 50)}%`;
+}
+
+function updateStaticFocalPreview() {
+  const preview = $('hero-static-preview');
+  const url = $('hero-desktop-image').value.trim();
+  const x = Number($('hero-static-focus-x').value) || 50;
+  const y = Number($('hero-static-focus-y').value) || 50;
+  preview.style.backgroundImage = url ? `url("${url.replace(/"/g, '%22')}")` : '';
+  preview.style.backgroundPosition = focalStyle(x, y);
+  preview.classList.toggle('empty', !url);
+  const marker = preview.querySelector('.focal-marker');
+  marker.style.left = x + '%';
+  marker.style.top = y + '%';
+  $('hero-static-focus-x-out').textContent = x + '%';
+  $('hero-static-focus-y-out').textContent = y + '%';
+}
+
+function setFocalFromClick(preview, event, onChange) {
+  const r = preview.getBoundingClientRect();
+  const x = Math.max(0, Math.min(100, ((event.clientX - r.left) / r.width) * 100));
+  const y = Math.max(0, Math.min(100, ((event.clientY - r.top) / r.height) * 100));
+  onChange(Math.round(x), Math.round(y));
+}
+
+async function uploadHeroFiles(files) {
+  const uploaded = [];
+  for (const file of files) {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `home-hero/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    if (data?.publicUrl) uploaded.push(data.publicUrl);
+  }
+  return uploaded;
+}
+
+function renderHeroSlidesAdmin() {
+  const c = $('hero-slides-list');
+  if (!c) return;
+
+  if (!heroSlidesDraft.length) {
+    c.innerHTML = '<div class="hero-slides-empty">Nenhuma foto adicionada ao slideshow.</div>';
+    return;
+  }
+
+  c.innerHTML = heroSlidesDraft.map((s, i) => `
+    <article class="hero-slide-card" data-slide-index="${i}">
+      <div class="hero-slide-preview focal-preview" style="background-image:url('${esc(s.url)}');background-position:${focalStyle(s.focus_x,s.focus_y)}">
+        <span class="focal-marker" style="left:${Number(s.focus_x ?? 50)}%;top:${Number(s.focus_y ?? 50)}%"></span>
+        <span class="hero-slide-number">${String(i + 1).padStart(2, '0')}</span>
+        <span class="status-pill ${s.published !== false ? 'online' : ''}">${s.published !== false ? 'PUBLICADA' : 'OCULTA'}</span>
+      </div>
+      <div class="hero-slide-fields">
+        <div class="field"><label>Texto alternativo</label><input data-slide-alt value="${esc(s.alt || '')}" placeholder="Descrição da fotografia"></div>
+        <div class="hero-slide-actions">
+          <button type="button" class="small-btn" data-slide-up ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" class="small-btn" data-slide-down ${i === heroSlidesDraft.length - 1 ? 'disabled' : ''}>↓</button>
+          <button type="button" class="small-btn" data-slide-publish>${s.published !== false ? 'Ocultar' : 'Publicar'}</button>
+          <button type="button" class="small-btn danger" data-slide-remove>Remover</button>
+        </div>
+        <p class="field-help">Ponto focal: ${Math.round(s.focus_x ?? 50)}% × ${Math.round(s.focus_y ?? 50)}% — clique na foto para alterar.</p>
+      </div>
+    </article>
+  `).join('');
+
+  c.querySelectorAll('.hero-slide-card').forEach(card => {
+    const i = Number(card.dataset.slideIndex);
+    const preview = card.querySelector('.hero-slide-preview');
+
+    preview.addEventListener('click', e => {
+      setFocalFromClick(preview, e, (x, y) => {
+        heroSlidesDraft[i].focus_x = x;
+        heroSlidesDraft[i].focus_y = y;
+        renderHeroSlidesAdmin();
+      });
+    });
+
+    card.querySelector('[data-slide-alt]').addEventListener('input', e => {
+      heroSlidesDraft[i].alt = e.target.value;
+    });
+
+    card.querySelector('[data-slide-up]').addEventListener('click', () => {
+      if (i < 1) return;
+      [heroSlidesDraft[i - 1], heroSlidesDraft[i]] = [heroSlidesDraft[i], heroSlidesDraft[i - 1]];
+      renderHeroSlidesAdmin();
+    });
+
+    card.querySelector('[data-slide-down]').addEventListener('click', () => {
+      if (i >= heroSlidesDraft.length - 1) return;
+      [heroSlidesDraft[i + 1], heroSlidesDraft[i]] = [heroSlidesDraft[i], heroSlidesDraft[i + 1]];
+      renderHeroSlidesAdmin();
+    });
+
+    card.querySelector('[data-slide-publish]').addEventListener('click', () => {
+      heroSlidesDraft[i].published = heroSlidesDraft[i].published === false;
+      renderHeroSlidesAdmin();
+    });
+
+    card.querySelector('[data-slide-remove]').addEventListener('click', () => {
+      heroSlidesDraft.splice(i, 1);
+      renderHeroSlidesAdmin();
+    });
+  });
+}
+
+document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
+  r.addEventListener('change', updateHeroModeUI)
+);
+
+['hero-static-focus-x', 'hero-static-focus-y'].forEach(id =>
+  $(id).addEventListener('input', updateStaticFocalPreview)
+);
+
+$('hero-desktop-image').addEventListener('input', updateStaticFocalPreview);
+
+$('hero-static-preview').addEventListener('click', e => {
+  setFocalFromClick($('hero-static-preview'), e, (x, y) => {
+    $('hero-static-focus-x').value = x;
+    $('hero-static-focus-y').value = y;
+    updateStaticFocalPreview();
+  });
+});
+
+$('hero-static-upload').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  try {
+    msg($('hero-msg'), 'Enviando foto...');
+    const urls = await uploadHeroFiles(files.slice(0, 1));
+    if (urls[0]) {
+      $('hero-desktop-image').value = urls[0];
+      updateStaticFocalPreview();
+      msg($('hero-msg'), 'Foto enviada. Clique em “Salvar herói” para aplicar.', 'sucesso');
+    }
+  } catch (error) {
+    msg($('hero-msg'), 'Erro no upload: ' + error.message, 'erro');
+  }
+  e.target.value = '';
+});
+
+$('hero-slides-upload').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  try {
+    msg($('hero-msg'), `Enviando ${files.length} foto(s)...`);
+    const urls = await uploadHeroFiles(files);
+    urls.forEach((url, i) => heroSlidesDraft.push({
+      id: `slide-${Date.now()}-${i}`,
+      url,
+      alt: '',
+      focus_x: 50,
+      focus_y: 50,
+      published: true
+    }));
+    renderHeroSlidesAdmin();
+    msg($('hero-msg'), 'Fotos adicionadas. Clique em “Salvar herói” para aplicar.', 'sucesso');
+  } catch (error) {
+    msg($('hero-msg'), 'Erro no upload: ' + error.message, 'erro');
+  }
+  e.target.value = '';
+});
+
 $('form-hero').addEventListener('submit', async e => {
   e.preventDefault();
 
@@ -2996,6 +3193,20 @@ $('form-hero').addEventListener('submit', async e => {
     desktop_image: $('hero-desktop-image').value.trim(),
     mobile_image: $('hero-mobile-image').value.trim(),
     image_alt: $('hero-image-alt').value.trim(),
+    mode: document.querySelector('input[name="hero-mode"]:checked')?.value || 'static',
+    static_focus_x: Number($('hero-static-focus-x').value) || 50,
+    static_focus_y: Number($('hero-static-focus-y').value) || 50,
+    slide_interval: Math.max(2, Number($('hero-slide-interval').value) || 5),
+    slide_transition: Math.max(.3, Number($('hero-slide-transition').value) || 1.2),
+    slides: heroSlidesDraft.map((s, index) => ({
+      id: s.id,
+      url: s.url,
+      alt: s.alt || '',
+      focus_x: Number(s.focus_x ?? 50),
+      focus_y: Number(s.focus_y ?? 50),
+      published: s.published !== false,
+      sort_order: index
+    })),
     primary_button: {
       text: $('hero-primary-text').value.trim(),
       url: $('hero-primary-url').value.trim()

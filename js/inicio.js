@@ -260,47 +260,116 @@ function carregarHero(hero) {
 
 
   // ============================================
-  // IMAGEM DESKTOP
+  // IMAGEM ESTÁTICA + SLIDESHOW
   // ============================================
 
   const desktopImage =
-    document.getElementById(
-      'hero-desktop-image'
-    );
+    document.getElementById('hero-desktop-image');
 
-  if (desktopImage) {
+  const mobileImage =
+    document.getElementById('hero-mobile-image');
 
-    if (hero.desktop_image) {
+  const slideshow =
+    document.getElementById('hero-slideshow');
 
-      desktopImage.src =
-        hero.desktop_image;
+  const fallbackImage =
+    hero.desktop_image || '';
 
-    }
+  const fallbackMobile =
+    hero.mobile_image || '';
 
+  const staticX =
+    Number(hero.static_focus_x ?? 50);
+
+  const staticY =
+    Number(hero.static_focus_y ?? 50);
+
+  if (desktopImage && fallbackImage) {
+    desktopImage.src = fallbackImage;
     desktopImage.alt =
       hero.image_alt ||
       'Rangel Santos, fotógrafo';
-
+    desktopImage.style.objectPosition =
+      `${staticX}% ${staticY}%`;
   }
 
+  if (mobileImage) {
+    mobileImage.srcset =
+      fallbackMobile || fallbackImage || '';
+  }
 
-  // ============================================
-  // IMAGEM MOBILE
-  // ============================================
+  // A foto estática permanece por baixo do slideshow.
+  // Se o slide estiver vazio, falhar ou demorar, o hero não fica sem imagem.
+  const slides =
+    Array.isArray(hero.slides)
+      ? hero.slides
+          .filter(s => s && s.url && s.published !== false)
+          .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
+      : [];
 
-  const mobileImage =
-    document.getElementById(
-      'hero-mobile-image'
+  const useSlideshow =
+    hero.mode === 'slideshow' &&
+    slides.length > 0 &&
+    slideshow;
+
+  if (slideshow) {
+    slideshow.innerHTML = '';
+    slideshow.classList.toggle(
+      'is-active',
+      Boolean(useSlideshow)
+    );
+  }
+
+  if (useSlideshow) {
+    const interval =
+      Math.max(2000, (Number(hero.slide_interval) || 5) * 1000);
+
+    const transition =
+      Math.max(300, (Number(hero.slide_transition) || 1.2) * 1000);
+
+    slideshow.style.setProperty(
+      '--hero-slide-transition',
+      `${transition}ms`
     );
 
-  if (
-    mobileImage &&
-    hero.mobile_image
-  ) {
+    const nodes = slides.map((slide, index) => {
+      const img = document.createElement('img');
+      img.className =
+        'hero-slide' + (index === 0 ? ' is-visible' : '');
+      img.src = slide.url;
+      img.alt = slide.alt || hero.image_alt || '';
+      img.decoding = 'async';
+      img.loading = index < 2 ? 'eager' : 'lazy';
+      img.style.objectPosition =
+        `${Number(slide.focus_x ?? 50)}% ${Number(slide.focus_y ?? 50)}%`;
+      slideshow.appendChild(img);
+      return img;
+    });
 
-    mobileImage.srcset =
-      hero.mobile_image;
+    const first = nodes[0];
+    const markReady = () => {
+      slideshow.classList.add('is-ready');
+    };
 
+    if (first.complete && first.naturalWidth) {
+      markReady();
+    } else {
+      first.addEventListener('load', markReady, { once: true });
+      first.addEventListener('error', () => {
+        slideshow.classList.remove('is-ready');
+      }, { once: true });
+    }
+
+    if (nodes.length > 1) {
+      let current = 0;
+      window.clearInterval(window.__heroSlideTimer);
+      window.__heroSlideTimer = window.setInterval(() => {
+        const next = (current + 1) % nodes.length;
+        nodes[next].classList.add('is-visible');
+        nodes[current].classList.remove('is-visible');
+        current = next;
+      }, interval);
+    }
   }
 
 
