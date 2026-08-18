@@ -2229,3 +2229,116 @@
     font-size: .43rem;
   }
 }
+
+
+/* =========================================================
+   AJUSTES FINAIS — GALERIAS E ENSAIOS
+   ========================================================= */
+
+/* O cartão da galeria inteiro é clicável para abrir as fotografias. */
+.gallery-admin-card[data-gallery-id] {
+  cursor: pointer;
+}
+
+.gallery-admin-card[data-gallery-id] .gallery-drag-handle {
+  cursor: grab;
+}
+
+.gallery-admin-card[data-gallery-id] .gallery-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Estado individual das fotografias da galeria fica sempre legível. */
+.admin-photo .photo-status {
+  z-index: 4;
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  min-height: 27px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(8px);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .49rem;
+  letter-spacing: .07em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.admin-photo .photo-status.published {
+  border-color: rgba(255,255,255,.35);
+  color: var(--accent);
+}
+
+.admin-photo .photo-status.hidden {
+  border-color: rgba(209,139,133,.35);
+  color: #d18b85;
+}
+
+.admin-photo .photo-cover-label,
+.session-cover-label {
+  z-index: 5;
+}
+
+/* Ensaios agora podem ser reorganizados por drag-and-drop como as galerias. */
+.session-photo[draggable="true"] {
+  cursor: grab;
+  transition:
+    transform .18s ease,
+    opacity .18s ease,
+    outline-color .18s ease;
+}
+
+.session-photo[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.session-photo.is-dragging {
+  opacity: .45;
+  transform: scale(.96);
+}
+
+.session-photo.drag-over {
+  outline: 2px solid rgba(255,255,255,.5);
+  outline-offset: -2px;
+}
+
+.session-photo .session-cover-btn {
+  z-index: 4;
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  min-height: 27px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(8px);
+}
+
+/* A palavra CAPA aparece somente na fotografia realmente escolhida. */
+.session-photo-cover .session-cover-label {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  border: 1px solid rgba(255,255,255,.34);
+  border-radius: 999px;
+  background: rgba(0,0,0,.72);
+  color: var(--accent);
+  padding: 5px 8px;
+  font-family: var(--font-mono);
+  font-size: .49rem;
+  letter-spacing: .09em;
+  line-height: 1;
+}
+
+@media (max-width: 680px) {
+  .admin-photo .photo-status,
+  .session-photo .session-cover-btn {
+    font-size: .44rem;
+    padding: 5px 7px;
+  }
+}
