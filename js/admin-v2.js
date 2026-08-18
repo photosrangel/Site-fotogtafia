@@ -1,7 +1,20 @@
 // ============================================================
 // ADMIN V2 — RANGEL SANTOS FOTOGRAFIA
 // CMS + ÁREA DE CLIENTES
-// VERSÃO COMPATÍVEL COM admin-v2.html
+// ============================================================
+// Compatível com:
+// - admin-v2.html
+// - Supabase V2
+// - categories
+// - galleries
+// - gallery_photos
+// - ensaios
+// - fotos
+//
+// IMPORTANTE:
+// - Galerias CMS usam o bucket: site-gallery
+// - Fotos de clientes continuam usando o bucket: fotos
+// - Não altera admin.html
 // ============================================================
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
@@ -22,6 +35,14 @@ const supabase = createClient(
 );
 
 console.log('ADMIN V2: Supabase inicializado');
+
+
+// ============================================================
+// CONFIGURAÇÕES
+// ============================================================
+
+const STORAGE_BUCKET_GALLERY = 'site-gallery';
+const STORAGE_BUCKET_CLIENT = 'fotos';
 
 
 // ============================================================
@@ -76,7 +97,9 @@ function flash(texto, tipo = 'sucesso') {
 
   elemento.hidden = false;
 
-  setTimeout(() => {
+  clearTimeout(elemento._timer);
+
+  elemento._timer = setTimeout(() => {
 
     elemento.hidden = true;
 
@@ -126,6 +149,85 @@ function nomeArquivoSeguro(nome) {
 }
 
 
+function obterExtensao(nome) {
+
+  const partes =
+    String(nome || '')
+      .split('.');
+
+  if (partes.length < 2) {
+    return 'jpg';
+  }
+
+  return partes
+    .pop()
+    .toLowerCase();
+}
+
+
+function obterCaminhoStorage(url, bucket) {
+
+  if (!url) return null;
+
+  try {
+
+    const texto = String(url);
+
+    const marcador =
+      `/storage/v1/object/public/${bucket}/`;
+
+    const index =
+      texto.indexOf(marcador);
+
+    if (index === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(
+      texto.substring(
+        index + marcador.length
+      )
+    );
+
+  } catch (error) {
+
+    console.error(
+      'Erro ao obter caminho Storage:',
+      error
+    );
+
+    return null;
+  }
+}
+
+
+function obterUrlPublica(bucket, caminho) {
+
+  const {
+    data
+  } = supabase
+    .storage
+    .from(bucket)
+    .getPublicUrl(caminho);
+
+  return data?.publicUrl || '';
+}
+
+
+function normalizarErro(error) {
+
+  if (!error) {
+    return 'Erro desconhecido.';
+  }
+
+  return (
+    error.message ||
+    error.error_description ||
+    'Erro desconhecido.'
+  );
+}
+
+
 // ============================================================
 // LOGIN
 // ============================================================
@@ -158,10 +260,15 @@ async function fazerLogin(event) {
     'Entrando...'
   );
 
-  const { error } =
+  const {
+    error
+  } =
     await supabase.auth.signInWithPassword({
+
       email,
+
       password: senha
+
     });
 
   if (error) {
@@ -189,7 +296,8 @@ async function verificarSessao() {
   const {
     data,
     error
-  } = await supabase.auth.getSession();
+  } =
+    await supabase.auth.getSession();
 
   if (error) {
 
@@ -197,6 +305,8 @@ async function verificarSessao() {
       'ADMIN V2: erro sessão:',
       error
     );
+
+    mostrarLogin();
 
     return;
   }
@@ -226,6 +336,7 @@ function mostrarLogin() {
   if (app) {
 
     app.hidden = true;
+    app.style.display = 'none';
   }
 }
 
@@ -249,9 +360,13 @@ async function mostrarPainel() {
 
   const {
     data
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
-  if (data?.user && $('user-email')) {
+  if (
+    data?.user &&
+    $('user-email')
+  ) {
 
     $('user-email').textContent =
       data.user.email || '';
@@ -260,7 +375,14 @@ async function mostrarPainel() {
   await carregarDashboard();
   await carregarCategorias();
   await carregarGalerias();
-  await carregarClientes();
+
+  if (
+    typeof carregarClientes ===
+    'function'
+  ) {
+
+    await carregarClientes();
+  }
 
   mostrarView('dashboard');
 }
@@ -306,7 +428,9 @@ function mostrarView(view) {
 
 
   document
-    .querySelectorAll('.sidebar-link[data-view]')
+    .querySelectorAll(
+      '.sidebar-link[data-view]'
+    )
     .forEach(botao => {
 
       botao.classList.toggle(
@@ -383,7 +507,6 @@ async function carregarDashboard() {
           count: 'exact',
           head: true
         })
-        .eq('published', true)
 
     ]);
 
@@ -445,29 +568,26 @@ async function carregarCategorias() {
   const selectGallery =
     $('gallery-category');
 
-  const selectClient =
-    $('client-category');
-
-
   const {
     data,
     error
-  } = await supabase
-    .from('categories')
-    .select(`
-      id,
-      name,
-      slug,
-      description,
-      published,
-      sort_order
-    `)
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    );
+  } =
+    await supabase
+      .from('categories')
+      .select(`
+        id,
+        name,
+        slug,
+        description,
+        published,
+        sort_order
+      `)
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      );
 
 
   if (error) {
@@ -498,88 +618,97 @@ async function carregarCategorias() {
       </option>
     `;
 
-    (data || []).forEach(categoria => {
+    (data || []).forEach(
+      categoria => {
 
-      const option =
-        document.createElement('option');
+        const option =
+          document.createElement(
+            'option'
+          );
 
-      option.value =
-        categoria.id;
+        option.value =
+          categoria.id;
 
-      option.textContent =
-        categoria.name;
+        option.textContent =
+          categoria.name;
 
-      selectGallery.appendChild(
-        option
-      );
-    });
+        selectGallery.appendChild(
+          option
+        );
+      }
+    );
   }
 
 
-  if (lista) {
+  if (!lista) return;
 
-    if (!data?.length) {
 
-      lista.innerHTML = `
-        <div class="empty-state">
-          <p>Nenhuma categoria cadastrada.</p>
-        </div>
-      `;
+  if (!data?.length) {
 
-    } else {
+    lista.innerHTML = `
+      <div class="empty-state">
+        <p>Nenhuma categoria cadastrada.</p>
+      </div>
+    `;
 
-      lista.innerHTML =
-        data.map(categoria => `
+    return;
+  }
 
-          <div class="client-card">
 
-            <div class="client-card-head">
+  lista.innerHTML =
+    data.map(categoria => `
 
-              <div class="client-card-info">
+      <div class="client-card">
 
-                <strong>
-                  ${escaparHTML(
-                    categoria.name
-                  )}
-                </strong>
+        <div class="client-card-head">
 
-                <p class="footer-mono">
-                  ${escaparHTML(
-                    categoria.slug
-                  )}
-                </p>
+          <div class="client-card-info">
 
-              </div>
+            <strong>
+              ${escaparHTML(
+                categoria.name
+              )}
+            </strong>
 
-              <div>
-
-                <button
-                  class="small-btn"
-                  data-edit-category="${categoria.id}"
-                >
-                  Editar
-                </button>
-
-                <button
-                  class="small-btn danger-btn"
-                  data-delete-category="${categoria.id}"
-                >
-                  Excluir
-                </button>
-
-              </div>
-
-            </div>
+            <p class="footer-mono">
+              ${escaparHTML(
+                categoria.slug
+              )}
+            </p>
 
           </div>
 
-        `).join('');
-    }
-  }
+          <div>
+
+            <button
+              type="button"
+              class="small-btn"
+              data-edit-category="${categoria.id}"
+            >
+              Editar
+            </button>
+
+            <button
+              type="button"
+              class="small-btn danger-btn"
+              data-delete-category="${categoria.id}"
+            >
+              Excluir
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    `).join('');
 
 
   document
-    .querySelectorAll('[data-edit-category]')
+    .querySelectorAll(
+      '[data-edit-category]'
+    )
     .forEach(btn => {
 
       btn.addEventListener(
@@ -610,17 +739,22 @@ async function carregarCategorias() {
           $('category-order').value =
             categoria.sort_order ?? 0;
 
-          $('cancel-category').hidden =
-            false;
+          if ($('cancel-category')) {
 
-          $('category-name').focus();
+            $('cancel-category').hidden =
+              false;
+          }
+
+          $('category-name')?.focus();
         }
       );
     });
 
 
   document
-    .querySelectorAll('[data-delete-category]')
+    .querySelectorAll(
+      '[data-delete-category]'
+    )
     .forEach(btn => {
 
       btn.addEventListener(
@@ -719,7 +853,7 @@ async function salvarCategoria(event) {
 
     mostrarMensagem(
       $('category-msg'),
-      result.error.message,
+      normalizarErro(result.error),
       'erro'
     );
 
@@ -739,6 +873,8 @@ async function salvarCategoria(event) {
   await carregarCategorias();
 
   await carregarGalerias();
+
+  await carregarDashboard();
 }
 
 
@@ -769,10 +905,11 @@ async function excluirCategoria(id) {
 
   const {
     error
-  } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', id);
+  } =
+    await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
 
 
   if (error) {
@@ -796,11 +933,13 @@ async function excluirCategoria(id) {
   );
 
   await carregarCategorias();
+
+  await carregarGalerias();
 }
 
 
 // ============================================================
-// GALERIAS
+// GALERIAS — CARREGAR
 // ============================================================
 
 async function carregarGalerias() {
@@ -819,45 +958,48 @@ async function carregarGalerias() {
 
 
   const {
-    data,
-    error
-  } = await supabase
-    .from('galleries')
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      category_id,
-      cover_url,
-      published,
-      sort_order,
-      created_at
-    `)
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    )
-    .order(
-      'created_at',
-      {
-        ascending: false
-      }
-    );
+    data: galerias,
+    error: galeriasError
+  } =
+    await supabase
+      .from('galleries')
+      .select(`
+        id,
+        title,
+        slug,
+        description,
+        category_id,
+        cover_url,
+        published,
+        sort_order,
+        created_at
+      `)
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      )
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      );
 
 
-  if (error) {
+  if (galeriasError) {
 
     console.error(
       'ADMIN V2: erro galerias:',
-      error
+      galeriasError
     );
 
     lista.innerHTML = `
       <p class="msg erro">
-        ${escaparHTML(error.message)}
+        ${escaparHTML(
+          galeriasError.message
+        )}
       </p>
     `;
 
@@ -865,7 +1007,7 @@ async function carregarGalerias() {
   }
 
 
-  if (!data?.length) {
+  if (!galerias?.length) {
 
     lista.innerHTML = `
       <div class="empty-state">
@@ -877,77 +1019,286 @@ async function carregarGalerias() {
   }
 
 
+  const ids =
+    galerias.map(
+      galeria =>
+        galeria.id
+    );
+
+
+  const {
+    data: fotos,
+    error: fotosError
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(`
+        id,
+        gallery_id,
+        image_url,
+        sort_order,
+        published,
+        created_at
+      `)
+      .in(
+        'gallery_id',
+        ids
+      )
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      );
+
+
+  if (fotosError) {
+
+    console.error(
+      'ADMIN V2: erro fotos galerias:',
+      fotosError
+    );
+  }
+
+
+  const fotosPorGaleria = {};
+
+
+  (fotos || []).forEach(foto => {
+
+    if (
+      !fotosPorGaleria[
+        foto.gallery_id
+      ]
+    ) {
+
+      fotosPorGaleria[
+        foto.gallery_id
+      ] = [];
+    }
+
+    fotosPorGaleria[
+      foto.gallery_id
+    ].push(foto);
+  });
+
+
   lista.innerHTML =
-    data.map(galeria => `
+    galerias.map(
+      (galeria, index) => {
 
-      <div class="client-card">
+        const fotosGaleria =
+          fotosPorGaleria[
+            galeria.id
+          ] || [];
 
-        <div class="client-card-head">
+        const miniatura =
+          galeria.cover_url ||
+          fotosGaleria[0]?.image_url ||
+          '';
 
-          <div class="client-card-info">
+        const totalFotos =
+          fotosGaleria.length;
 
-            <strong>
-              ${escaparHTML(
-                galeria.title
-              )}
-            </strong>
+        const primeira =
+          index === 0;
 
-            <p class="footer-mono">
-              ${escaparHTML(
-                galeria.slug
-              )}
-            </p>
+        const ultima =
+          index ===
+          galerias.length - 1;
+
+        return `
+
+          <div
+            class="client-card gallery-card"
+            data-gallery-card="${galeria.id}"
+          >
+
+            <div
+              class="client-card-head"
+              style="
+                align-items:center;
+              "
+            >
+
+              <div
+                class="gallery-thumbnail"
+                style="
+                  width:90px;
+                  height:70px;
+                  min-width:90px;
+                  border-radius:8px;
+                  overflow:hidden;
+                  background:#151515;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  margin-right:16px;
+                "
+              >
+
+                ${
+                  miniatura
+                    ? `
+                      <img
+                        src="${escaparHTML(miniatura)}"
+                        alt="${escaparHTML(galeria.title)}"
+                        style="
+                          width:100%;
+                          height:100%;
+                          object-fit:cover;
+                          display:block;
+                        "
+                        loading="lazy"
+                      >
+                    `
+                    : `
+                      <span
+                        style="
+                          font-size:11px;
+                          opacity:.5;
+                          text-align:center;
+                          padding:5px;
+                        "
+                      >
+                        Sem foto
+                      </span>
+                    `
+                }
+
+              </div>
+
+
+              <div class="client-card-info">
+
+                <strong>
+                  ${escaparHTML(
+                    galeria.title
+                  )}
+                </strong>
+
+                <p>
+                  ${totalFotos}
+                  ${
+                    totalFotos === 1
+                      ? 'fotografia'
+                      : 'fotografias'
+                  }
+                </p>
+
+                <p class="footer-mono">
+                  ${escaparHTML(
+                    galeria.slug
+                  )}
+                </p>
+
+              </div>
+
+
+              <div
+                style="
+                  margin-left:auto;
+                  display:flex;
+                  align-items:center;
+                  gap:6px;
+                  flex-wrap:wrap;
+                  justify-content:flex-end;
+                "
+              >
+
+                <span
+                  class="client-status ${
+                    galeria.published
+                      ? 'entregue'
+                      : ''
+                  }"
+                >
+                  ${
+                    galeria.published
+                      ? 'Publicada'
+                      : 'Rascunho'
+                  }
+                </span>
+
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  data-toggle-gallery="${galeria.id}"
+                >
+                  ${
+                    galeria.published
+                      ? 'Despublicar'
+                      : 'Publicar'
+                  }
+                </button>
+
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  data-move-gallery-up="${galeria.id}"
+                  ${primeira ? 'disabled' : ''}
+                >
+                  ↑
+                </button>
+
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  data-move-gallery-down="${galeria.id}"
+                  ${ultima ? 'disabled' : ''}
+                >
+                  ↓
+                </button>
+
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  data-edit-gallery="${galeria.id}"
+                >
+                  Editar
+                </button>
+
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  data-gallery-photos="${galeria.id}"
+                >
+                  Fotos (${totalFotos})
+                </button>
+
+
+                <button
+                  type="button"
+                  class="small-btn danger-btn"
+                  data-delete-gallery="${galeria.id}"
+                >
+                  Excluir
+                </button>
+
+              </div>
+
+            </div>
 
           </div>
 
-          <div>
+        `;
+      }
+    ).join('');
 
-            <span class="client-status ${
-              galeria.published
-                ? 'entregue'
-                : ''
-            }">
 
-              ${
-                galeria.published
-                  ? 'Publicada'
-                  : 'Rascunho'
-              }
-
-            </span>
-
-            <button
-              class="small-btn"
-              data-edit-gallery="${galeria.id}"
-            >
-              Editar
-            </button>
-
-            <button
-              class="small-btn"
-              data-gallery-photos="${galeria.id}"
-            >
-              Fotos
-            </button>
-
-            <button
-              class="small-btn danger-btn"
-              data-delete-gallery="${galeria.id}"
-            >
-              Excluir
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    `).join('');
-
+  // ----------------------------------------------------------
+  // EDITAR
+  // ----------------------------------------------------------
 
   document
-    .querySelectorAll('[data-edit-gallery]')
+    .querySelectorAll(
+      '[data-edit-gallery]'
+    )
     .forEach(btn => {
 
       btn.addEventListener(
@@ -955,47 +1306,119 @@ async function carregarGalerias() {
         () => {
 
           const galeria =
-            data.find(
+            galerias.find(
               item =>
                 item.id ===
                 btn.dataset.editGallery
             );
 
-          if (galeria)
-            abrirFormularioGaleria(
-              galeria
-            );
+          if (!galeria) return;
+
+          abrirFormularioGaleria(
+            galeria
+          );
         }
       );
     });
 
 
+  // ----------------------------------------------------------
+  // FOTOS
+  // ----------------------------------------------------------
+
   document
-    .querySelectorAll('[data-gallery-photos]')
+    .querySelectorAll(
+      '[data-gallery-photos]'
+    )
     .forEach(btn => {
 
       btn.addEventListener(
         'click',
-        () => {
+        async () => {
 
           const galeria =
-            data.find(
+            galerias.find(
               item =>
                 item.id ===
                 btn.dataset.galleryPhotos
             );
 
-          if (galeria)
-            abrirEditorFotos(
-              galeria
-            );
+          if (!galeria) return;
+
+          await abrirEditorFotos(
+            galeria
+          );
         }
       );
     });
 
 
+  // ----------------------------------------------------------
+  // PUBLICAR / DESPUBLICAR
+  // ----------------------------------------------------------
+
   document
-    .querySelectorAll('[data-delete-gallery]')
+    .querySelectorAll(
+      '[data-toggle-gallery]'
+    )
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () =>
+          alternarPublicacaoGaleria(
+            btn.dataset.toggleGallery
+          )
+      );
+    });
+
+
+  // ----------------------------------------------------------
+  // MOVER
+  // ----------------------------------------------------------
+
+  document
+    .querySelectorAll(
+      '[data-move-gallery-up]'
+    )
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () =>
+          moverGaleria(
+            btn.dataset.moveGalleryUp,
+            'up'
+          )
+      );
+    });
+
+
+  document
+    .querySelectorAll(
+      '[data-move-gallery-down]'
+    )
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () =>
+          moverGaleria(
+            btn.dataset.moveGalleryDown,
+            'down'
+          )
+      );
+    });
+
+
+  // ----------------------------------------------------------
+  // EXCLUIR
+  // ----------------------------------------------------------
+
+  document
+    .querySelectorAll(
+      '[data-delete-gallery]'
+    )
     .forEach(btn => {
 
       btn.addEventListener(
@@ -1009,76 +1432,171 @@ async function carregarGalerias() {
 }
 
 
-function abrirFormularioGaleria(galeria = null) {
+// ============================================================
+// GALERIAS — FORMULÁRIO
+// ============================================================
 
-  $('gallery-form-wrap').hidden = false;
+function abrirFormularioGaleria(
+  galeria = null
+) {
 
-  $('gallery-form-title').textContent =
-    galeria
-      ? 'Editar galeria'
-      : 'Nova galeria';
+  currentGallery =
+    galeria;
+
+  currentGalleryId =
+    galeria?.id || null;
 
 
-  $('gallery-id').value =
-    galeria?.id || '';
+  const form =
+    $('gallery-form');
 
-  $('gallery-title').value =
-    galeria?.title || '';
+  if (!form) {
 
-  $('gallery-slug').value =
-    galeria?.slug || '';
+    console.warn(
+      'ADMIN V2: gallery-form não encontrado.'
+    );
 
-  $('gallery-description').value =
-    galeria?.description || '';
+    return;
+  }
 
-  $('gallery-category').value =
-    galeria?.category_id || '';
 
-  $('gallery-cover').value =
-    galeria?.cover_url || '';
+  if (galeria) {
 
-  $('gallery-order').value =
-    galeria?.sort_order ?? 0;
+    if ($('gallery-id'))
+      $('gallery-id').value =
+        galeria.id;
+
+    if ($('gallery-title'))
+      $('gallery-title').value =
+        galeria.title || '';
+
+    if ($('gallery-slug'))
+      $('gallery-slug').value =
+        galeria.slug || '';
+
+    if ($('gallery-description'))
+      $('gallery-description').value =
+        galeria.description || '';
+
+    if ($('gallery-category'))
+      $('gallery-category').value =
+        galeria.category_id || '';
+
+    if ($('gallery-order'))
+      $('gallery-order').value =
+        galeria.sort_order ?? 0;
+
+    if ($('gallery-cover'))
+      $('gallery-cover').value =
+        galeria.cover_url || '';
+
+  } else {
+
+    form.reset();
+
+    if ($('gallery-id'))
+      $('gallery-id').value = '';
+
+    if ($('gallery-order'))
+      $('gallery-order').value = 0;
+  }
+
+
+  const modal =
+    $('gallery-form-modal') ||
+    $('gallery-modal') ||
+    $('gallery-form-container');
+
+
+  if (modal) {
+
+    modal.hidden = false;
+
+    modal.style.display = '';
+  }
+
+
+  mostrarView('galleries');
+
+
+  $('gallery-title')?.focus();
 }
 
 
 function fecharFormularioGaleria() {
 
-  if ($('gallery-form-wrap'))
-    $('gallery-form-wrap').hidden = true;
+  currentGallery =
+    null;
+
+  currentGalleryId =
+    null;
+
 
   if ($('gallery-form'))
     $('gallery-form').reset();
 
   if ($('gallery-id'))
     $('gallery-id').value = '';
+
+  if ($('gallery-order'))
+    $('gallery-order').value = 0;
+
+
+  const modal =
+    $('gallery-form-modal') ||
+    $('gallery-modal') ||
+    $('gallery-form-container');
+
+
+  if (modal) {
+
+    modal.hidden = true;
+
+    modal.style.display = 'none';
+  }
 }
 
+
+// ============================================================
+// GALERIAS — SALVAR
+// ============================================================
 
 async function salvarGaleria(event) {
 
   event.preventDefault();
 
 
+  const mensagem =
+    $('gallery-msg');
+
+
   const id =
-    $('gallery-id')?.value;
+    $('gallery-id')?.value.trim();
+
 
   const titulo =
     $('gallery-title')?.value.trim();
 
+
+  const slugInformado =
+    $('gallery-slug')?.value.trim();
+
+
   const slug =
     slugify(
-      $('gallery-slug')?.value
+      slugInformado ||
+      titulo
     );
+
 
   const descricao =
     $('gallery-description')?.value.trim();
 
-  const categoria =
-    $('gallery-category')?.value || null;
 
-  const capa =
-    $('gallery-cover')?.value.trim() || null;
+  const categoryId =
+    $('gallery-category')?.value ||
+    null;
+
 
   const ordem =
     Number(
@@ -1086,27 +1604,44 @@ async function salvarGaleria(event) {
     );
 
 
-  if (!titulo || !slug) {
+  if (!titulo) {
 
     mostrarMensagem(
-      $('gallery-form-msg'),
-      'Preencha título e slug.',
+      mensagem,
+      'Informe o título da galeria.',
       'erro'
     );
+
+    $('gallery-title')?.focus();
+
+    return;
+  }
+
+
+  if (!slug) {
+
+    mostrarMensagem(
+      mensagem,
+      'Informe um slug válido.',
+      'erro'
+    );
+
+    $('gallery-slug')?.focus();
 
     return;
   }
 
 
   mostrarMensagem(
-    $('gallery-form-msg'),
-    'Salvando...'
+    mensagem,
+    'Salvando galeria...'
   );
 
 
   const payload = {
 
-    title: titulo,
+    title:
+      titulo,
 
     slug,
 
@@ -1114,10 +1649,7 @@ async function salvarGaleria(event) {
       descricao || null,
 
     category_id:
-      categoria,
-
-    cover_url:
-      capa,
+      categoryId,
 
     sort_order:
       ordem
@@ -1140,7 +1672,12 @@ async function salvarGaleria(event) {
     result =
       await supabase
         .from('galleries')
-        .insert(payload);
+        .insert({
+          ...payload,
+          published: false
+        })
+        .select()
+        .single();
   }
 
 
@@ -1152,86 +1689,73 @@ async function salvarGaleria(event) {
     );
 
     mostrarMensagem(
-      $('gallery-form-msg'),
-      result.error.message,
+      mensagem,
+      normalizarErro(result.error),
       'erro'
     );
 
     return;
+  }
+
+
+  if (!id && result.data?.id) {
+
+    currentGalleryId =
+      result.data.id;
   }
 
 
   mostrarMensagem(
-    $('gallery-form-msg'),
-    'Galeria salva.',
+    mensagem,
+    'Galeria salva com sucesso.',
     'sucesso'
   );
 
 
-  fecharFormularioGaleria();
+  flash(
+    'Galeria salva com sucesso.'
+  );
+
 
   await carregarGalerias();
 
   await carregarDashboard();
+
+
+  setTimeout(() => {
+
+    fecharFormularioGaleria();
+
+  }, 500);
 }
 
 
-async function excluirGaleria(id) {
+// ============================================================
+// GALERIAS — PUBLICAR
+// ============================================================
 
-  if (
-    !window.confirm(
-      'Excluir esta galeria e todas as fotografias dela?'
-    )
-  ) return;
-
+async function alternarPublicacaoGaleria(id) {
 
   const {
-    data: fotos
-  } = await supabase
-    .from('gallery_photos')
-    .select('id, image_url')
-    .eq('gallery_id', id);
+    data: galeria,
+    error: buscaError
+  } =
+    await supabase
+      .from('galleries')
+      .select(
+        'id,published,title'
+      )
+      .eq(
+        'id',
+        id
+      )
+      .single();
 
 
-  if (fotos?.length) {
-
-    for (const foto of fotos) {
-
-      const caminho =
-        obterCaminhoStorage(
-          foto.image_url,
-          'site-gallery'
-        );
-
-      if (caminho) {
-
-        await supabase
-          .storage
-          .from('site-gallery')
-          .remove([
-            caminho
-          ]);
-      }
-    }
-  }
-
-
-  const {
-    error: fotosError
-  } = await supabase
-    .from('gallery_photos')
-    .delete()
-    .eq('gallery_id', id);
-
-
-  if (fotosError) {
-
-    console.error(
-      fotosError
-    );
+  if (buscaError) {
 
     flash(
-      'Erro ao excluir fotografias.',
+      normalizarErro(buscaError),
       'erro'
     );
 
@@ -1239,23 +1763,34 @@ async function excluirGaleria(id) {
   }
 
 
+  const novoEstado =
+    !galeria.published;
+
+
   const {
     error
-  } = await supabase
-    .from('galleries')
-    .delete()
-    .eq('id', id);
+  } =
+    await supabase
+      .from('galleries')
+      .update({
+        published:
+          novoEstado
+      })
+      .eq(
+        'id',
+        id
+      );
 
 
   if (error) {
 
     console.error(
-      'ADMIN V2: erro excluir galeria:',
+      'Erro publicar galeria:',
       error
     );
 
     flash(
-      'Erro ao excluir galeria.',
+      normalizarErro(error),
       'erro'
     );
 
@@ -1264,8 +1799,400 @@ async function excluirGaleria(id) {
 
 
   flash(
-    'Galeria excluída.'
+    novoEstado
+      ? 'Galeria publicada.'
+      : 'Galeria despublicada.'
   );
+
+
+  await carregarGalerias();
+
+  await carregarDashboard();
+}
+
+
+// ============================================================
+// GALERIAS — ORDENAR
+// ============================================================
+
+async function moverGaleria(
+  id,
+  direcao
+) {
+
+  const {
+    data: galerias,
+    error
+  } =
+    await supabase
+      .from('galleries')
+      .select(
+        'id,sort_order'
+      )
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      )
+      .order(
+        'created_at',
+        {
+          ascending: true
+        }
+      );
+
+
+  if (error) {
+
+    flash(
+      normalizarErro(error),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  const index =
+    galerias.findIndex(
+      item =>
+        item.id === id
+    );
+
+
+  if (index === -1) return;
+
+
+  const novoIndex =
+    direcao === 'up'
+      ? index - 1
+      : index + 1;
+
+
+  if (
+    novoIndex < 0 ||
+    novoIndex >= galerias.length
+  ) {
+
+    return;
+  }
+
+
+  const atual =
+    galerias[index];
+
+  const vizinha =
+    galerias[novoIndex];
+
+
+  // ----------------------------------------------------------
+  // Troca temporariamente os valores
+  // ----------------------------------------------------------
+
+  const valorTemporario =
+    -999999 -
+    Math.floor(
+      Math.random() * 100000
+    );
+
+
+  let result =
+    await supabase
+      .from('galleries')
+      .update({
+        sort_order:
+          valorTemporario
+      })
+      .eq(
+        'id',
+        atual.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(result.error),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  result =
+    await supabase
+      .from('galleries')
+      .update({
+        sort_order:
+          vizinha.sort_order
+      })
+      .eq(
+        'id',
+        vizinha.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(result.error),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  result =
+    await supabase
+      .from('galleries')
+      .update({
+        sort_order:
+          atual.sort_order
+      })
+      .eq(
+        'id',
+        atual.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(result.error),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  await carregarGalerias();
+}
+
+
+// ============================================================
+// GALERIAS — EXCLUIR
+// ============================================================
+
+async function excluirGaleria(id) {
+
+  const {
+    data: galeria,
+    error: buscaError
+  } =
+    await supabase
+      .from('galleries')
+      .select(
+        'id,title,cover_url'
+      )
+      .eq(
+        'id',
+        id
+      )
+      .single();
+
+
+  if (buscaError) {
+
+    flash(
+      normalizarErro(buscaError),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  if (
+    !window.confirm(
+      `Excluir a galeria "${galeria.title}"?\n\n` +
+      `Todas as fotografias desta galeria também serão removidas.`
+    )
+  ) {
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Buscar fotos
+  // ----------------------------------------------------------
+
+  const {
+    data: fotos,
+    error: fotosError
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(
+        'id,image_url'
+      )
+      .eq(
+        'gallery_id',
+        id
+      );
+
+
+  if (fotosError) {
+
+    console.error(
+      'Erro buscar fotos para exclusão:',
+      fotosError
+    );
+
+    flash(
+      normalizarErro(fotosError),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Remover arquivos do Storage
+  // ----------------------------------------------------------
+
+  const caminhos =
+    (fotos || [])
+      .map(
+        foto =>
+          obterCaminhoStorage(
+            foto.image_url,
+            STORAGE_BUCKET_GALLERY
+          )
+      )
+      .filter(Boolean);
+
+
+  if (
+    galeria.cover_url
+  ) {
+
+    const caminhoCapa =
+      obterCaminhoStorage(
+        galeria.cover_url,
+        STORAGE_BUCKET_GALLERY
+      );
+
+    if (
+      caminhoCapa &&
+      !caminhos.includes(caminhoCapa)
+    ) {
+
+      caminhos.push(
+        caminhoCapa
+      );
+    }
+  }
+
+
+  if (caminhos.length) {
+
+    const {
+      error: storageError
+    } =
+      await supabase
+        .storage
+        .from(
+          STORAGE_BUCKET_GALLERY
+        )
+        .remove(
+          caminhos
+        );
+
+
+    if (storageError) {
+
+      console.warn(
+        'ADMIN V2: erro ao remover arquivos:',
+        storageError
+      );
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // Excluir registros das fotos
+  // ----------------------------------------------------------
+
+  const {
+    error: deleteFotosError
+  } =
+    await supabase
+      .from('gallery_photos')
+      .delete()
+      .eq(
+        'gallery_id',
+        id
+      );
+
+
+  if (deleteFotosError) {
+
+    console.error(
+      'Erro excluir gallery_photos:',
+      deleteFotosError
+    );
+
+    flash(
+      normalizarErro(
+        deleteFotosError
+      ),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Excluir galeria
+  // ----------------------------------------------------------
+
+  const {
+    error: deleteGaleriaError
+  } =
+    await supabase
+      .from('galleries')
+      .delete()
+      .eq(
+        'id',
+        id
+      );
+
+
+  if (deleteGaleriaError) {
+
+    console.error(
+      'Erro excluir galeria:',
+      deleteGaleriaError
+    );
+
+    flash(
+      normalizarErro(
+        deleteGaleriaError
+      ),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  flash(
+    'Galeria excluída com sucesso.'
+  );
+
+
+  currentGalleryId =
+    null;
+
+  currentGallery =
+    null;
 
 
   await carregarGalerias();
@@ -1278,50 +2205,73 @@ async function excluirGaleria(id) {
 // EDITOR DE FOTOS DA GALERIA
 // ============================================================
 
-async function abrirEditorFotos(galeria) {
-
-  currentGalleryId =
-    galeria.id;
+async function abrirEditorFotos(
+  galeria
+) {
 
   currentGallery =
     galeria;
 
-
-  $('modal-gallery-title').textContent =
-    galeria.title;
-
-
-  $('gallery-editor-modal').hidden =
-    false;
+  currentGalleryId =
+    galeria.id;
 
 
-  await carregarFotosGaleria();
+  const modal =
+    $('gallery-photos-modal') ||
+    $('photos-modal') ||
+    $('gallery-modal');
+
+
+  const titulo =
+    $('gallery-photos-title') ||
+    $('photos-modal-title');
+
+
+  if (titulo) {
+
+    titulo.textContent =
+      `Fotos — ${galeria.title}`;
+  }
+
+
+  if (modal) {
+
+    modal.hidden = false;
+
+    modal.style.display = '';
+  }
+
+
+  await carregarFotosGaleria(
+    galeria.id
+  );
 }
 
 
-function fecharModalGaleria() {
+// ============================================================
+// CARREGAR FOTOS
+// ============================================================
 
-  $('gallery-editor-modal').hidden =
-    true;
+async function carregarFotosGaleria(
+  galleryId
+) {
 
-  currentGalleryId = null;
-
-  currentGallery = null;
-
-  if ($('photo-upload'))
-    $('photo-upload').value = '';
-}
-
-
-async function carregarFotosGaleria() {
-
-  const grid =
-    $('photo-grid');
-
-  if (!grid) return;
+  const lista =
+    $('gallery-photos-list') ||
+    $('photos-list');
 
 
-  grid.innerHTML = `
+  if (!lista) {
+
+    console.warn(
+      'ADMIN V2: lista de fotos da galeria não encontrada.'
+    );
+
+    return;
+  }
+
+
+  lista.innerHTML = `
     <p class="msg">
       Carregando fotografias...
     </p>
@@ -1329,40 +2279,49 @@ async function carregarFotosGaleria() {
 
 
   const {
-    data,
+    data: fotos,
     error
-  } = await supabase
-    .from('gallery_photos')
-    .select(`
-      id,
-      gallery_id,
-      image_url,
-      alt_text,
-      sort_order,
-      published
-    `)
-    .eq(
-      'gallery_id',
-      currentGalleryId
-    )
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    );
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(`
+        id,
+        gallery_id,
+        image_url,
+        sort_order,
+        published,
+        created_at
+      `)
+      .eq(
+        'gallery_id',
+        galleryId
+      )
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      )
+      .order(
+        'created_at',
+        {
+          ascending: true
+        }
+      );
 
 
   if (error) {
 
     console.error(
-      'ADMIN V2: erro fotos galeria:',
+      'Erro carregar fotos:',
       error
     );
 
-    grid.innerHTML = `
+    lista.innerHTML = `
       <p class="msg erro">
-        ${escaparHTML(error.message)}
+        ${escaparHTML(
+          error.message
+        )}
       </p>
     `;
 
@@ -1370,18 +2329,11 @@ async function carregarFotosGaleria() {
   }
 
 
-  if ($('photo-count')) {
+  if (!fotos?.length) {
 
-    $('photo-count').textContent =
-      `${data?.length || 0} fotografias`;
-  }
-
-
-  if (!data?.length) {
-
-    grid.innerHTML = `
+    lista.innerHTML = `
       <div class="empty-state">
-        <p>Nenhuma fotografia adicionada.</p>
+        <p>Nenhuma fotografia nesta galeria.</p>
       </div>
     `;
 
@@ -1389,73 +2341,112 @@ async function carregarFotosGaleria() {
   }
 
 
-  grid.innerHTML =
-    data.map(foto => `
+  lista.innerHTML =
+    fotos.map(
+      (foto, index) => `
 
-      <div
-        class="admin-photo ${
-          currentGallery.cover_url ===
-          foto.image_url
-            ? 'cover'
-            : ''
-        }"
-        data-photo-id="${foto.id}"
-      >
-
-        <img
-          src="${escaparHTML(
-            foto.image_url
-          )}"
-          alt="${escaparHTML(
-            foto.alt_text || ''
-          )}"
-          loading="lazy"
+        <div
+          class="gallery-photo-item"
+          data-photo-id="${foto.id}"
+          style="
+            position:relative;
+            border:1px solid rgba(255,255,255,.08);
+            border-radius:10px;
+            overflow:hidden;
+            background:#111;
+          "
         >
 
-        ${
-          currentGallery.cover_url ===
-          foto.image_url
-            ? `
-              <span class="admin-photo-cover">
-                Capa
-              </span>
-            `
-            : ''
-        }
+          <div
+            style="
+              aspect-ratio:1/1;
+              overflow:hidden;
+              background:#171717;
+            "
+          >
 
-        <button
-          type="button"
-          class="admin-photo-delete"
-          data-delete-photo="${foto.id}"
-        >
-          ×
-        </button>
+            <img
+              src="${escaparHTML(foto.image_url)}"
+              alt="Fotografia ${index + 1}"
+              loading="lazy"
+              style="
+                width:100%;
+                height:100%;
+                object-fit:cover;
+                display:block;
+              "
+            >
 
-      </div>
+          </div>
 
-    `).join('');
+
+          <div
+            style="
+              padding:8px;
+              display:flex;
+              gap:5px;
+              flex-wrap:wrap;
+            "
+          >
+
+            <button
+              type="button"
+              class="small-btn"
+              data-set-cover="${foto.id}"
+            >
+              Capa
+            </button>
+
+            <button
+              type="button"
+              class="small-btn"
+              data-move-photo-up="${foto.id}"
+              ${index === 0 ? 'disabled' : ''}
+            >
+              ↑
+            </button>
+
+            <button
+              type="button"
+              class="small-btn"
+              data-move-photo-down="${foto.id}"
+              ${
+                index === fotos.length - 1
+                  ? 'disabled'
+                  : ''
+              }
+            >
+              ↓
+            </button>
+
+            <button
+              type="button"
+              class="small-btn danger-btn"
+              data-delete-photo="${foto.id}"
+            >
+              Excluir
+            </button>
+
+          </div>
+
+        </div>
+
+      `
+    ).join('');
 
 
   document
     .querySelectorAll(
-      '#photo-grid .admin-photo'
+      '[data-set-cover]'
     )
-    .forEach(element => {
+    .forEach(btn => {
 
-      element.addEventListener(
+      btn.addEventListener(
         'click',
-        event => {
-
-          if (
-            event.target.closest(
-              '.admin-photo-delete'
-            )
-          ) return;
-
-          definirCapa(
-            element.dataset.photoId
-          );
-        }
+        () =>
+          definirFotoComoCapa(
+            btn.dataset.setCover
+          )
       );
     });
 
@@ -1468,20 +2459,56 @@ async function carregarFotosGaleria() {
 
       btn.addEventListener(
         'click',
-        event => {
-
-          event.stopPropagation();
-
+        () =>
           excluirFotoGaleria(
             btn.dataset.deletePhoto
-          );
-        }
+          )
+      );
+    });
+
+
+  document
+    .querySelectorAll(
+      '[data-move-photo-up]'
+    )
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () =>
+          moverFotoGaleria(
+            btn.dataset.movePhotoUp,
+            'up'
+          )
+      );
+    });
+
+
+  document
+    .querySelectorAll(
+      '[data-move-photo-down]'
+    )
+    .forEach(btn => {
+
+      btn.addEventListener(
+        'click',
+        () =>
+          moverFotoGaleria(
+            btn.dataset.movePhotoDown,
+            'down'
+          )
       );
     });
 }
 
 
-async function uploadFotosGaleria(event) {
+// ============================================================
+// UPLOAD DE FOTOS DA GALERIA
+// ============================================================
+
+async function uploadFotosGaleria(
+  event
+) {
 
   const arquivos =
     Array.from(
@@ -1490,17 +2517,105 @@ async function uploadFotosGaleria(event) {
 
 
   if (
-    !arquivos.length ||
-    !currentGalleryId
-  ) return;
+    !arquivos.length
+  ) {
+
+    return;
+  }
 
 
-  const msg =
-    $('upload-msg');
+  const galleryId =
+    currentGalleryId ||
+    $('gallery-id')?.value;
+
+
+  if (!galleryId) {
+
+    flash(
+      'Salve a galeria antes de adicionar fotografias.',
+      'erro'
+    );
+
+    event.target.value = '';
+
+    return;
+  }
+
+
+  const mensagem =
+    $('gallery-upload-msg') ||
+    $('gallery-msg');
 
 
   let enviadas = 0;
+  let erros = 0;
 
+
+  mostrarMensagem(
+    mensagem,
+    `Enviando ${arquivos.length} fotografia(s)...`
+  );
+
+
+  // ----------------------------------------------------------
+  // Confirmar sessão
+  // ----------------------------------------------------------
+
+  const {
+    data: sessionData
+  } =
+    await supabase.auth.getSession();
+
+
+  if (!sessionData?.session) {
+
+    mostrarMensagem(
+      mensagem,
+      'Sua sessão expirou. Faça login novamente.',
+      'erro'
+    );
+
+    event.target.value = '';
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Buscar última ordem
+  // ----------------------------------------------------------
+
+  const {
+    data: ultimaFoto
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(
+        'sort_order'
+      )
+      .eq(
+        'gallery_id',
+        galleryId
+      )
+      .order(
+        'sort_order',
+        {
+          ascending: false
+        }
+      )
+      .limit(1)
+      .maybeSingle();
+
+
+  let ordem =
+    Number(
+      ultimaFoto?.sort_order ?? -1
+    ) + 1;
+
+
+  // ----------------------------------------------------------
+  // Upload individual
+  // ----------------------------------------------------------
 
   for (
     let i = 0;
@@ -1511,13 +2626,22 @@ async function uploadFotosGaleria(event) {
     const arquivo =
       arquivos[i];
 
+    let caminho =
+      null;
+
 
     try {
 
-      mostrarMensagem(
-        msg,
-        `Enviando ${i + 1} de ${arquivos.length}...`
-      );
+      if (
+        !arquivo.type.startsWith(
+          'image/'
+        )
+      ) {
+
+        throw new Error(
+          'O arquivo não é uma imagem válida.'
+        );
+      }
 
 
       const nomeSeguro =
@@ -1526,87 +2650,120 @@ async function uploadFotosGaleria(event) {
         );
 
 
-      const caminho =
-        `${currentGalleryId}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
+      const identificador =
+        `${Date.now()}-${crypto.randomUUID()}`;
 
+
+      caminho =
+        `${galleryId}/${identificador}-${nomeSeguro}`;
+
+
+      mostrarMensagem(
+        mensagem,
+        `Enviando foto ${i + 1} de ${arquivos.length}...`
+      );
+
+
+      // ------------------------------------------------------
+      // STORAGE
+      // ------------------------------------------------------
 
       const {
         error: uploadError
-      } = await supabase
-        .storage
-        .from('site-gallery')
-        .upload(
-          caminho,
-          arquivo,
-          {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: arquivo.type
-          }
+      } =
+        await supabase
+          .storage
+          .from(
+            STORAGE_BUCKET_GALLERY
+          )
+          .upload(
+            caminho,
+            arquivo,
+            {
+              cacheControl: '31536000',
+              upsert: false,
+              contentType:
+                arquivo.type ||
+                'image/jpeg'
+            }
+          );
+
+
+      if (uploadError) {
+
+        throw new Error(
+          `Storage: ${uploadError.message}`
         );
+      }
 
 
-      if (uploadError)
-        throw uploadError;
-
-
-      const {
-        data: urlData
-      } = supabase
-        .storage
-        .from('site-gallery')
-        .getPublicUrl(
+      const publicUrl =
+        obterUrlPublica(
+          STORAGE_BUCKET_GALLERY,
           caminho
         );
 
 
-      if (!urlData?.publicUrl)
-        throw new Error(
-          'URL pública não foi gerada.'
-        );
+      if (!publicUrl) {
 
+        throw new Error(
+          'Não foi possível obter a URL pública.'
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // BANCO
+      // ------------------------------------------------------
 
       const {
-        error: dbError
-      } = await supabase
-        .from('gallery_photos')
-        .insert({
+        error: insertError
+      } =
+        await supabase
+          .from('gallery_photos')
+          .insert({
+            gallery_id:
+              galleryId,
 
-          gallery_id:
-            currentGalleryId,
+            image_url:
+              publicUrl,
 
-          image_url:
-            urlData.publicUrl,
+            sort_order:
+              ordem,
 
-          alt_text:
-            currentGallery?.title || '',
-
-          sort_order:
-            Date.now(),
-
-          published:
-            true
-
-        });
+            published:
+              true
+          });
 
 
-      if (dbError) {
+      if (insertError) {
+
+        // Rollback Storage
 
         await supabase
           .storage
-          .from('site-gallery')
+          .from(
+            STORAGE_BUCKET_GALLERY
+          )
           .remove([
             caminho
           ]);
 
-        throw dbError;
+
+        throw new Error(
+          `Banco: ${insertError.message}`
+        );
       }
 
+
+      ordem++;
 
       enviadas++;
 
 
     } catch (error) {
+
+      erros++;
 
       console.error(
         'ADMIN V2: erro upload galeria:',
@@ -1614,8 +2771,8 @@ async function uploadFotosGaleria(event) {
       );
 
       mostrarMensagem(
-        msg,
-        `Erro em "${arquivo.name}": ${error.message}`,
+        mensagem,
+        `Erro em "${arquivo.name}": ${normalizarErro(error)}`,
         'erro'
       );
     }
@@ -1625,18 +2782,36 @@ async function uploadFotosGaleria(event) {
   event.target.value = '';
 
 
-  if (enviadas) {
+  if (erros === 0) {
 
     mostrarMensagem(
-      msg,
-      `${enviadas} fotografia(s) enviada(s).`,
+      mensagem,
+      `${enviadas} fotografia(s) enviada(s) com sucesso.`,
       'sucesso'
     );
 
+  } else if (enviadas > 0) {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} enviada(s) e ${erros} com erro.`,
+      'erro'
+    );
+
+  } else {
+
+    mostrarMensagem(
+      mensagem,
+      'Nenhuma fotografia foi enviada.',
+      'erro'
+    );
   }
 
 
-  await carregarFotosGaleria();
+  await carregarFotosGaleria(
+    galleryId
+  );
+
 
   await carregarGalerias();
 
@@ -1644,22 +2819,34 @@ async function uploadFotosGaleria(event) {
 }
 
 
-async function definirCapa(photoId) {
+// ============================================================
+// DEFINIR FOTO COMO CAPA
+// ============================================================
+
+async function definirFotoComoCapa(
+  fotoId
+) {
 
   const {
     data: foto,
     error
-  } = await supabase
-    .from('gallery_photos')
-    .select('image_url')
-    .eq('id', photoId)
-    .single();
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(
+        'id,gallery_id,image_url'
+      )
+      .eq(
+        'id',
+        fotoId
+      )
+      .single();
 
 
-  if (error || !foto) {
+  if (error) {
 
     flash(
-      'Não foi possível localizar a fotografia.',
+      normalizarErro(error),
       'erro'
     );
 
@@ -1669,26 +2856,23 @@ async function definirCapa(photoId) {
 
   const {
     error: updateError
-  } = await supabase
-    .from('galleries')
-    .update({
-      cover_url:
-        foto.image_url
-    })
-    .eq(
-      'id',
-      currentGalleryId
-    );
+  } =
+    await supabase
+      .from('galleries')
+      .update({
+        cover_url:
+          foto.image_url
+      })
+      .eq(
+        'id',
+        foto.gallery_id
+      );
 
 
   if (updateError) {
 
-    console.error(
-      updateError
-    );
-
     flash(
-      'Não foi possível definir a capa.',
+      normalizarErro(updateError),
       'erro'
     );
 
@@ -1696,108 +2880,201 @@ async function definirCapa(photoId) {
   }
 
 
-  currentGallery.cover_url =
-    foto.image_url;
+  flash(
+    'Foto definida como capa.'
+  );
 
-
-  await carregarFotosGaleria();
 
   await carregarGalerias();
+
+  await carregarFotosGaleria(
+    foto.gallery_id
+  );
 }
 
 
-async function excluirFotoGaleria(id) {
+// ============================================================
+// EXCLUIR FOTO DA GALERIA
+// ============================================================
 
-  if (
-    !window.confirm(
-      'Excluir esta fotografia?'
-    )
-  ) return;
-
+async function excluirFotoGaleria(
+  fotoId
+) {
 
   const {
     data: foto,
-    error: fotoError
-  } = await supabase
-    .from('gallery_photos')
-    .select('image_url')
-    .eq('id', id)
-    .single();
+    error: buscaError
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(`
+        id,
+        gallery_id,
+        image_url
+      `)
+      .eq(
+        'id',
+        fotoId
+      )
+      .single();
 
 
-  if (fotoError) {
+  if (buscaError) {
 
     flash(
-      'Erro ao localizar fotografia.',
+      normalizarErro(buscaError),
       'erro'
     );
 
     return;
   }
 
+
+  if (
+    !window.confirm(
+      'Excluir esta fotografia da galeria?'
+    )
+  ) {
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Verificar se é capa
+  // ----------------------------------------------------------
 
   const {
-    error
-  } = await supabase
-    .from('gallery_photos')
-    .delete()
-    .eq('id', id);
+    data: galeria
+  } =
+    await supabase
+      .from('galleries')
+      .select(
+        'id,cover_url'
+      )
+      .eq(
+        'id',
+        foto.gallery_id
+      )
+      .single();
 
 
-  if (error) {
-
-    console.error(
-      error
-    );
-
-    flash(
-      'Erro ao excluir fotografia.',
-      'erro'
-    );
-
-    return;
-  }
-
+  // ----------------------------------------------------------
+  // Storage
+  // ----------------------------------------------------------
 
   const caminho =
     obterCaminhoStorage(
       foto.image_url,
-      'site-gallery'
+      STORAGE_BUCKET_GALLERY
     );
 
 
   if (caminho) {
 
-    await supabase
-      .storage
-      .from('site-gallery')
-      .remove([
-        caminho
-      ]);
+    const {
+      error: storageError
+    } =
+      await supabase
+        .storage
+        .from(
+          STORAGE_BUCKET_GALLERY
+        )
+        .remove([
+          caminho
+        ]);
+
+
+    if (storageError) {
+
+      console.warn(
+        'Erro remover arquivo Storage:',
+        storageError
+      );
+    }
   }
 
 
+  // ----------------------------------------------------------
+  // Banco
+  // ----------------------------------------------------------
+
+  const {
+    error: deleteError
+  } =
+    await supabase
+      .from('gallery_photos')
+      .delete()
+      .eq(
+        'id',
+        fotoId
+      );
+
+
+  if (deleteError) {
+
+    flash(
+      normalizarErro(deleteError),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  // ----------------------------------------------------------
+  // Se era capa, escolher outra
+  // ----------------------------------------------------------
+
   if (
-    currentGallery.cover_url ===
+    galeria?.cover_url ===
     foto.image_url
   ) {
+
+    const {
+      data: novaCapa
+    } =
+      await supabase
+        .from('gallery_photos')
+        .select(
+          'image_url'
+        )
+        .eq(
+          'gallery_id',
+          foto.gallery_id
+        )
+        .order(
+          'sort_order',
+          {
+            ascending: true
+          }
+        )
+        .limit(1)
+        .maybeSingle();
+
 
     await supabase
       .from('galleries')
       .update({
-        cover_url: null
+        cover_url:
+          novaCapa?.image_url ||
+          null
       })
       .eq(
         'id',
-        currentGalleryId
+        foto.gallery_id
       );
-
-    currentGallery.cover_url =
-      null;
   }
 
 
-  await carregarFotosGaleria();
+  flash(
+    'Fotografia excluída.'
+  );
+
+
+  await carregarFotosGaleria(
+    foto.gallery_id
+  );
 
   await carregarGalerias();
 
@@ -1805,31 +3082,196 @@ async function excluirFotoGaleria(id) {
 }
 
 
-function obterCaminhoStorage(
-  url,
-  bucket
+// ============================================================
+// MOVER FOTO
+// ============================================================
+
+async function moverFotoGaleria(
+  fotoId,
+  direcao
 ) {
 
-  if (!url) return null;
+  const {
+    data: fotos,
+    error
+  } =
+    await supabase
+      .from('gallery_photos')
+      .select(
+        'id,gallery_id,sort_order'
+      )
+      .eq(
+        'gallery_id',
+        currentGalleryId
+      )
+      .order(
+        'sort_order',
+        {
+          ascending: true
+        }
+      );
 
 
-  const marcador =
-    `/storage/v1/object/public/${bucket}/`;
+  if (error) {
+
+    flash(
+      normalizarErro(error),
+      'erro'
+    );
+
+    return;
+  }
 
 
   const index =
-    url.indexOf(marcador);
+    fotos.findIndex(
+      foto =>
+        foto.id ===
+        fotoId
+    );
 
 
-  if (index === -1)
-    return null;
+  if (index === -1) return;
 
 
-  return decodeURIComponent(
-    url.substring(
-      index + marcador.length
-    )
+  const novoIndex =
+    direcao === 'up'
+      ? index - 1
+      : index + 1;
+
+
+  if (
+    novoIndex < 0 ||
+    novoIndex >= fotos.length
+  ) {
+
+    return;
+  }
+
+
+  const atual =
+    fotos[index];
+
+  const vizinha =
+    fotos[novoIndex];
+
+
+  const temporario =
+    -999999 -
+    Math.floor(
+      Math.random() * 100000
+    );
+
+
+  let result =
+    await supabase
+      .from('gallery_photos')
+      .update({
+        sort_order:
+          temporario
+      })
+      .eq(
+        'id',
+        atual.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(
+        result.error
+      ),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  result =
+    await supabase
+      .from('gallery_photos')
+      .update({
+        sort_order:
+          vizinha.sort_order
+      })
+      .eq(
+        'id',
+        vizinha.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(
+        result.error
+      ),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  result =
+    await supabase
+      .from('gallery_photos')
+      .update({
+        sort_order:
+          atual.sort_order
+      })
+      .eq(
+        'id',
+        atual.id
+      );
+
+
+  if (result.error) {
+
+    flash(
+      normalizarErro(
+        result.error
+      ),
+      'erro'
+    );
+
+    return;
+  }
+
+
+  await carregarFotosGaleria(
+    currentGalleryId
   );
+
+  await carregarGalerias();
+}
+
+
+// ============================================================
+// FECHAR MODAIS
+// ============================================================
+
+function fecharModalGaleria() {
+
+  const modais = [
+    'gallery-photos-modal',
+    'photos-modal',
+    'gallery-modal'
+  ];
+
+
+  modais.forEach(id => {
+
+    const modal = $(id);
+
+    if (!modal) return;
+
+    modal.hidden = true;
+
+    modal.style.display = 'none';
+  });
 }
 
 
@@ -1847,7 +3289,7 @@ async function carregarClientes() {
 
   lista.innerHTML = `
     <p class="msg">
-      Carregando ensaios...
+      Carregando clientes...
     </p>
   `;
 
@@ -1855,24 +3297,16 @@ async function carregarClientes() {
   const {
     data: ensaios,
     error
-  } = await supabase
-    .from('ensaios')
-    .select(`
-      id,
-      slug,
-      titulo,
-      cliente_nome,
-      codigo_acesso,
-      categoria,
-      status,
-      created_at
-    `)
-    .order(
-      'created_at',
-      {
-        ascending: false
-      }
-    );
+  } =
+    await supabase
+      .from('ensaios')
+      .select('*')
+      .order(
+        'created_at',
+        {
+          ascending: false
+        }
+      );
 
 
   if (error) {
@@ -1884,7 +3318,9 @@ async function carregarClientes() {
 
     lista.innerHTML = `
       <p class="msg erro">
-        ${escaparHTML(error.message)}
+        ${escaparHTML(
+          error.message
+        )}
       </p>
     `;
 
@@ -1896,612 +3332,268 @@ async function carregarClientes() {
 
     lista.innerHTML = `
       <div class="empty-state">
-
-        <p>
-          Nenhum ensaio cadastrado ainda.
-        </p>
-
-        <button
-          class="btn btn-accent"
-          id="empty-new-client"
-          type="button"
-        >
-          Criar primeiro ensaio
-        </button>
-
+        <p>Nenhum cliente/ensaio cadastrado.</p>
       </div>
     `;
-
-
-    $('empty-new-client')
-      ?.addEventListener(
-        'click',
-        abrirFormularioCliente
-      );
-
 
     return;
   }
 
 
   lista.innerHTML =
-    ensaios
-      .map(
-        clienteCardHTML
-      )
-      .join('');
+    ensaios.map(
+      ensaio => {
+
+        const titulo =
+          ensaio.titulo ||
+          ensaio.title ||
+          'Ensaio sem título';
 
 
-  ensaios.forEach(
-    ensaio => {
+        const status =
+          ensaio.status ||
+          'ativo';
 
-      const head =
-        document.getElementById(
-          `client-head-${ensaio.id}`
-        );
 
-      if (head) {
+        return `
 
-        head.addEventListener(
-          'click',
-          () =>
-            toggleCliente(
-              ensaio
-            )
-        );
+          <div
+            class="client-card"
+            data-client-card="${ensaio.id}"
+          >
+
+            <div class="client-card-head">
+
+              <div class="client-card-info">
+
+                <strong>
+                  ${escaparHTML(
+                    titulo
+                  )}
+                </strong>
+
+                ${
+                  ensaio.cliente
+                    ? `
+                      <p>
+                        ${escaparHTML(
+                          ensaio.cliente
+                        )}
+                      </p>
+                    `
+                    : ''
+                }
+
+                <p class="footer-mono">
+                  ${escaparHTML(
+                    ensaio.id
+                  )}
+                </p>
+
+              </div>
+
+
+              <div
+                style="
+                  margin-left:auto;
+                  display:flex;
+                  gap:6px;
+                  flex-wrap:wrap;
+                  justify-content:flex-end;
+                "
+              >
+
+                <span class="client-status ${
+                  status === 'entregue'
+                    ? 'entregue'
+                    : ''
+                }">
+                  ${escaparHTML(
+                    status
+                  )}
+                </span>
+
+
+                ${
+                  status !== 'entregue'
+                    ? `
+                      <button
+                        type="button"
+                        class="small-btn"
+                        data-entregar-ensaio="${ensaio.id}"
+                      >
+                        Marcar entregue
+                      </button>
+                    `
+                    : ''
+                }
+
+
+                <button
+                  type="button"
+                  class="small-btn danger-btn"
+                  data-delete-ensaio="${ensaio.id}"
+                >
+                  Excluir
+                </button>
+
+              </div>
+
+            </div>
+
+            <div
+              id="client-msg-${ensaio.id}"
+              class="msg"
+            ></div>
+
+          </div>
+
+        `;
       }
-    }
-  );
-}
-
-
-function clienteCardHTML(ensaio) {
-
-  return `
-
-    <div class="client-card">
-
-      <div
-        class="client-card-head"
-        id="client-head-${ensaio.id}"
-      >
-
-        <div class="client-card-info">
-
-          <strong>
-            ${escaparHTML(
-              ensaio.titulo
-            )}
-          </strong>
-
-          <p>
-            ${escaparHTML(
-              ensaio.cliente_nome || ''
-            )}
-          </p>
-
-          <p class="footer-mono">
-            Login: ${escaparHTML(
-              ensaio.slug
-            )}
-          </p>
-
-        </div>
-
-
-        <span
-          class="client-status ${
-            escaparHTML(
-              ensaio.status || ''
-            )
-          }"
-        >
-          ${statusLabel(
-            ensaio.status
-          )}
-        </span>
-
-      </div>
-
-
-      <div
-        id="client-detail-${ensaio.id}"
-        class="client-detail"
-      ></div>
-
-    </div>
-
-  `;
-}
-
-
-function statusLabel(status) {
-
-  if (status === 'entregue')
-    return 'Entregue';
-
-  if (
-    status === 'selecionado' ||
-    status === 'aguardando_final'
-  )
-    return 'Cliente escolheu';
-
-  return 'Aguardando seleção';
-}
-
-
-async function toggleCliente(ensaio) {
-
-  const detalhe =
-    $(`client-detail-${ensaio.id}`);
-
-  if (!detalhe) return;
-
-
-  const aberto =
-    detalhe.classList.contains(
-      'is-open'
-    );
+    ).join('');
 
 
   document
-    .querySelectorAll('.client-detail.is-open')
-    .forEach(item => {
+    .querySelectorAll(
+      '[data-entregar-ensaio]'
+    )
+    .forEach(btn => {
 
-      item.classList.remove(
-        'is-open'
+      const ensaio =
+        ensaios.find(
+          item =>
+            item.id ===
+            btn.dataset.entregarEnsaio
+        );
+
+      btn.addEventListener(
+        'click',
+        () => {
+
+          if (ensaio) {
+
+            marcarEntregue(
+              ensaio
+            );
+          }
+        }
       );
     });
 
 
-  if (aberto) return;
+  document
+    .querySelectorAll(
+      '[data-delete-ensaio]'
+    )
+    .forEach(btn => {
 
+      const ensaio =
+        ensaios.find(
+          item =>
+            item.id ===
+            btn.dataset.deleteEnsaio
+        );
 
-  detalhe.classList.add(
-    'is-open'
-  );
+      btn.addEventListener(
+        'click',
+        () => {
 
+          if (ensaio) {
 
-  await carregarDetalheCliente(
-    ensaio
-  );
+            excluirEnsaio(
+              ensaio
+            );
+          }
+        }
+      );
+    });
 }
 
 
-async function carregarDetalheCliente(
-  ensaio
-) {
+// ============================================================
+// FORMULÁRIO CLIENTE
+// ============================================================
 
-  const detalhe =
-    $(`client-detail-${ensaio.id}`);
+function abrirFormularioCliente() {
 
-
-  if (!detalhe) return;
-
-
-  detalhe.innerHTML = `
-    <p class="msg">
-      Carregando...
-    </p>
-  `;
+  const modal =
+    $('client-form-modal') ||
+    $('client-modal');
 
 
-  const {
-    data: fotos,
-    error
-  } = await supabase
-    .from('fotos')
-    .select(`
-      id,
-      ensaio_id,
-      url,
-      tipo,
-      selecionada,
-      ordem,
-      created_at
-    `)
-    .eq(
-      'ensaio_id',
-      ensaio.id
-    )
-    .order(
-      'ordem',
-      {
-        ascending: true
-      }
-    );
+  if (modal) {
 
+    modal.hidden = false;
 
-  if (error) {
-
-    detalhe.innerHTML = `
-      <p class="msg erro">
-        ${escaparHTML(error.message)}
-      </p>
-    `;
-
-    return;
+    modal.style.display = '';
   }
 
 
-  const todas =
-    fotos || [];
-
-
-  const provas =
-    todas.filter(
-      foto =>
-        foto.tipo === 'prova'
-    );
-
-
-  const finais =
-    todas.filter(
-      foto =>
-        foto.tipo === 'final'
-    );
-
-
-  const selecionadas =
-    provas.filter(
-      foto =>
-        foto.selecionada
-    );
-
-
-  detalhe.innerHTML = `
-
-    <div class="client-access-grid">
-
-      <div class="client-access-item">
-
-        <label>
-          Área do cliente
-        </label>
-
-        <div class="client-access-value">
-          ${escaparHTML(
-            `${location.origin}/area-cliente`
-          )}
-        </div>
-
-      </div>
-
-
-      <div class="client-access-item">
-
-        <label>
-          Login
-        </label>
-
-        <div class="client-access-value">
-          ${escaparHTML(
-            ensaio.slug
-          )}
-        </div>
-
-      </div>
-
-
-      <div class="client-access-item">
-
-        <label>
-          Senha
-        </label>
-
-        <div class="client-access-value">
-          ${escaparHTML(
-            ensaio.codigo_acesso
-          )}
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <button
-      class="small-btn"
-      id="copy-client-${ensaio.id}"
-      type="button"
-    >
-      Copiar dados de acesso
-    </button>
-
-
-    <div class="client-photo-section">
-
-      <p class="footer-mono">
-
-        FOTOS PARA CLIENTE ESCOLHER
-
-        —
-        ${provas.length}
-        enviadas
-
-        /
-        ${selecionadas.length}
-        selecionadas
-
-      </p>
-
-
-      <div class="client-upload">
-
-        <input
-          id="client-upload-prova-${ensaio.id}"
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-        >
-
-        <p class="footer-mono">
-          Selecione as fotos de prova.
-        </p>
-
-      </div>
-
-
-      <div class="client-photo-grid">
-
-        ${
-          provas.length
-            ? provas.map(
-                foto =>
-                  fotoHTML(
-                    foto,
-                    'prova'
-                  )
-              ).join('')
-            : `
-              <p class="msg">
-                Nenhuma prova enviada.
-              </p>
-            `
-        }
-
-      </div>
-
-    </div>
-
-
-    <div class="client-photo-section">
-
-      <p class="footer-mono">
-
-        FOTOS FINAIS
-
-        —
-        ${finais.length}
-        enviadas
-
-      </p>
-
-
-      <div class="client-upload">
-
-        <input
-          id="client-upload-final-${ensaio.id}"
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-        >
-
-        <p class="footer-mono">
-          Fotos finais para entrega.
-        </p>
-
-      </div>
-
-
-      <div class="client-photo-grid">
-
-        ${
-          finais.length
-            ? finais.map(
-                foto =>
-                  fotoHTML(
-                    foto,
-                    'final'
-                  )
-              ).join('')
-            : `
-              <p class="msg">
-                Nenhuma foto final enviada.
-              </p>
-            `
-        }
-
-      </div>
-
-    </div>
-
-
-    <div class="client-actions">
-
-      <button
-        class="btn btn-accent"
-        id="deliver-client-${ensaio.id}"
-        type="button"
-      >
-        ${
-          ensaio.status === 'entregue'
-            ? 'Já entregue ✓'
-            : 'Marcar como entregue'
-        }
-      </button>
-
-
-      <button
-        class="btn danger-btn"
-        id="delete-client-${ensaio.id}"
-        type="button"
-      >
-        Excluir ensaio
-      </button>
-
-    </div>
-
-
-    <p
-      id="client-msg-${ensaio.id}"
-      class="msg"
-    ></p>
-
-  `;
-
-
-  $(`client-upload-prova-${ensaio.id}`)
-    ?.addEventListener(
-      'change',
-      event =>
-        uploadFotosCliente(
-          event,
-          ensaio,
-          'prova'
-        )
-    );
-
-
-  $(`client-upload-final-${ensaio.id}`)
-    ?.addEventListener(
-      'change',
-      event =>
-        uploadFotosCliente(
-          event,
-          ensaio,
-          'final'
-        )
-    );
-
-
-  $(`copy-client-${ensaio.id}`)
-    ?.addEventListener(
-      'click',
-      event =>
-        copiarAcessoCliente(
-          ensaio,
-          event.currentTarget
-        )
-    );
-
-
-  $(`deliver-client-${ensaio.id}`)
-    ?.addEventListener(
-      'click',
-      () =>
-        marcarEntregue(
-          ensaio
-        )
-    );
-
-
-  $(`delete-client-${ensaio.id}`)
-    ?.addEventListener(
-      'click',
-      () =>
-        excluirEnsaio(
-          ensaio
-        )
-    );
+  $('client-name')?.focus();
 }
 
 
-function fotoHTML(
-  foto,
-  tipo
+function fecharFormularioCliente() {
+
+  const modal =
+    $('client-form-modal') ||
+    $('client-modal');
+
+
+  if (modal) {
+
+    modal.hidden = true;
+
+    modal.style.display = 'none';
+  }
+
+
+  if ($('client-form'))
+    $('client-form').reset();
+
+  if ($('client-id'))
+    $('client-id').value = '';
+}
+
+
+// ============================================================
+// CRIAR CLIENTE
+// ============================================================
+
+async function criarCliente(
+  event
 ) {
-
-  return `
-
-    <div class="client-photo ${
-      foto.selecionada
-        ? 'selected'
-        : ''
-    }">
-
-      <img
-        src="${escaparHTML(
-          foto.url
-        )}"
-        alt="Fotografia"
-        loading="lazy"
-      >
-
-      <span class="client-photo-type">
-        ${tipo}
-      </span>
-
-    </div>
-
-  `;
-}
-
-
-// ============================================================
-// CRIAR ENSAIO
-// ============================================================
-
-async function criarCliente(event) {
 
   event.preventDefault();
 
 
-  const msg =
+  const mensagem =
+    $('client-msg') ||
     $('client-form-msg');
 
 
   const titulo =
-    $('client-title')?.value.trim();
+    $('client-title')?.value.trim() ||
+    $('client-name')?.value.trim();
 
 
   const nome =
     $('client-name')?.value.trim();
 
 
-  const categoria =
-    $('client-category')?.value || null;
-
-
   const login =
-    slugify(
-      $('client-login')?.value
-    );
+    $('client-login')?.value.trim();
 
 
   const senha =
-    $('client-password')?.value.trim();
+    $('client-password')?.value;
 
 
-  if (!titulo) {
-
-    mostrarMensagem(
-      msg,
-      'Digite o título do ensaio.',
-      'erro'
-    );
-
-    return;
-  }
-
-
-  if (!login) {
+  if (!titulo && !nome) {
 
     mostrarMensagem(
-      msg,
-      'Digite um login.',
-      'erro'
-    );
-
-    return;
-  }
-
-
-  if (!senha) {
-
-    mostrarMensagem(
-      msg,
-      'Digite uma senha.',
+      mensagem,
+      'Informe o nome do cliente/ensaio.',
       'erro'
     );
 
@@ -2510,47 +3602,58 @@ async function criarCliente(event) {
 
 
   mostrarMensagem(
-    msg,
-    'Criando ensaio...'
+    mensagem,
+    'Criando cliente...'
   );
+
+
+  const payload = {};
+
+
+  if ($('client-title'))
+    payload.titulo =
+      titulo || nome;
+
+
+  if ($('client-name'))
+    payload.cliente =
+      nome || titulo;
+
+
+  if ($('client-login'))
+    payload.login =
+      login || null;
+
+
+  if ($('client-password'))
+    payload.senha =
+      senha || null;
+
+
+  if ($('client-status'))
+    payload.status =
+      $('client-status').value ||
+      'ativo';
 
 
   const {
     error
-  } = await supabase
-    .from('ensaios')
-    .insert({
-
-      titulo,
-
-      cliente_nome:
-        nome || null,
-
-      categoria,
-
-      codigo_acesso:
-        senha,
-
-      slug:
-        login,
-
-      status:
-        'aguardando_selecao'
-
-    });
+  } =
+    await supabase
+      .from('ensaios')
+      .insert(payload);
 
 
   if (error) {
 
     console.error(
-      'ADMIN V2: erro criar ensaio:',
+      'ADMIN V2: erro criar cliente:',
       error
     );
 
-
     mostrarMensagem(
-      msg,
-      error.message,
+      mensagem,
+      normalizarErro(error),
       'erro'
     );
 
@@ -2559,451 +3662,22 @@ async function criarCliente(event) {
 
 
   mostrarMensagem(
-    msg,
-    'Ensaio criado com sucesso!',
+    mensagem,
+    'Cliente criado com sucesso.',
     'sucesso'
   );
 
 
-  $('client-form')?.reset();
+  flash(
+    'Cliente criado.'
+  );
 
+
+  fecharFormularioCliente();
 
   await carregarClientes();
 
   await carregarDashboard();
-}
-
-
-function abrirFormularioCliente() {
-
-  if ($('client-form-wrap'))
-    $('client-form-wrap').hidden = false;
-}
-
-
-function fecharFormularioCliente() {
-
-  if ($('client-form-wrap'))
-    $('client-form-wrap').hidden = true;
-
-  if ($('client-form'))
-    $('client-form').reset();
-}
-
-
-// ============================================================
-// UPLOAD DE FOTOS DO ENSAIO — VERSÃO CORRIGIDA
-// ============================================================
-
-async function uploadFotosCliente(event, ensaio, tipo = 'prova') {
-
-  const arquivos = Array.from(
-    event.target.files || []
-  );
-
-  if (!arquivos.length) {
-    return;
-  }
-
-  const mensagem =
-    document.getElementById(
-      `msg-${ensaio.id}`
-    );
-
-  let enviadas = 0;
-  let erros = 0;
-
-  mostrarMensagem(
-    mensagem,
-    `Preparando ${arquivos.length} foto(s)...`
-  );
-
-  // ----------------------------------------------------------
-  // CONFIRMAR SESSÃO
-  // ----------------------------------------------------------
-
-  const {
-    data: sessionData,
-    error: sessionError
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-
-    console.error(
-      'ADMIN V2: erro de sessão:',
-      sessionError
-    );
-
-    mostrarMensagem(
-      mensagem,
-      'Erro ao verificar sua sessão.',
-      'erro'
-    );
-
-    event.target.value = '';
-    return;
-  }
-
-  if (!sessionData?.session) {
-
-    mostrarMensagem(
-      mensagem,
-      'Sua sessão expirou. Faça login novamente.',
-      'erro'
-    );
-
-    event.target.value = '';
-    return;
-  }
-
-  // ----------------------------------------------------------
-  // UPLOAD FOTO POR FOTO
-  // ----------------------------------------------------------
-
-  for (let i = 0; i < arquivos.length; i++) {
-
-    const arquivo = arquivos[i];
-
-    let caminho = null;
-
-    try {
-
-      console.log(
-        '========================================'
-      );
-
-      console.log(
-        'ADMIN V2 — UPLOAD FOTO'
-      );
-
-      console.log(
-        'Ensaio:',
-        ensaio.id
-      );
-
-      console.log(
-        'Tipo:',
-        tipo
-      );
-
-      console.log(
-        'Arquivo:',
-        arquivo.name
-      );
-
-      console.log(
-        'Tamanho:',
-        arquivo.size
-      );
-
-      console.log(
-        'MIME:',
-        arquivo.type
-      );
-
-
-      // ------------------------------------------------------
-      // NOME SEGURO
-      // ------------------------------------------------------
-
-      const nomeSeguro =
-        nomeArquivoSeguro(
-          arquivo.name
-        );
-
-      const identificador =
-        `${Date.now()}-${crypto.randomUUID()}`;
-
-      caminho =
-        `${ensaio.id}/${tipo}/${identificador}-${nomeSeguro}`;
-
-
-      // ------------------------------------------------------
-      // STORAGE
-      // ------------------------------------------------------
-
-      mostrarMensagem(
-        mensagem,
-        `Enviando foto ${i + 1} de ${arquivos.length}...`
-      );
-
-      const {
-        data: uploadData,
-        error: uploadError
-      } = await supabase
-        .storage
-        .from('fotos')
-        .upload(
-          caminho,
-          arquivo,
-          {
-            cacheControl: '3600',
-            upsert: false,
-            contentType:
-              arquivo.type
-          }
-        );
-
-      console.log(
-        'Storage:',
-        uploadData
-      );
-
-      if (uploadError) {
-
-        console.error(
-          'ADMIN V2: erro Storage:',
-          uploadError
-        );
-
-        throw new Error(
-          `Erro no Storage: ${uploadError.message}`
-        );
-      }
-
-
-      // ------------------------------------------------------
-      // URL PÚBLICA
-      // ------------------------------------------------------
-
-      const {
-        data: publicUrlData
-      } = supabase
-        .storage
-        .from('fotos')
-        .getPublicUrl(
-          caminho
-        );
-
-      const publicUrl =
-        publicUrlData?.publicUrl;
-
-      console.log(
-        'URL pública:',
-        publicUrl
-      );
-
-      if (!publicUrl) {
-
-        throw new Error(
-          'Não foi possível obter a URL pública da foto.'
-        );
-      }
-
-
-      // ------------------------------------------------------
-      // BANCO — TABELA FOTOS
-      //
-      // IMPORTANTE:
-      // Usamos SOMENTE as colunas existentes.
-      // ------------------------------------------------------
-
-      const registroFoto = {
-
-        ensaio_id:
-          ensaio.id,
-
-        url:
-          publicUrl,
-
-        tipo:
-          tipo,
-
-        selecionada:
-          false,
-
-        ordem:
-          i
-
-      };
-
-      console.log(
-        'Inserindo em fotos:',
-        registroFoto
-      );
-
-
-      const {
-        data: fotoInserida,
-        error: fotoError
-      } = await supabase
-        .from('fotos')
-        .insert(
-          registroFoto
-        )
-        .select(
-          'id, ensaio_id, url, tipo, selecionada, ordem, created_at'
-        )
-        .single();
-
-
-      // ------------------------------------------------------
-      // ERRO NO BANCO
-      // ------------------------------------------------------
-
-      if (fotoError) {
-
-        console.error(
-          '========================================'
-        );
-
-        console.error(
-          'ADMIN V2 — ERRO INSERT FOTOS'
-        );
-
-        console.error(
-          'Código:',
-          fotoError.code
-        );
-
-        console.error(
-          'Mensagem:',
-          fotoError.message
-        );
-
-        console.error(
-          'Detalhes:',
-          fotoError.details
-        );
-
-        console.error(
-          'Hint:',
-          fotoError.hint
-        );
-
-        console.error(
-          'Registro enviado:',
-          registroFoto
-        );
-
-        console.error(
-          '========================================'
-        );
-
-
-        // ----------------------------------------------------
-        // ROLLBACK STORAGE
-        // ----------------------------------------------------
-
-        if (caminho) {
-
-          const {
-            error: removeError
-          } = await supabase
-            .storage
-            .from('fotos')
-            .remove([
-              caminho
-            ]);
-
-          if (removeError) {
-
-            console.error(
-              'Erro ao remover arquivo após falha:',
-              removeError
-            );
-          }
-        }
-
-        throw new Error(
-          `Banco de fotos: ${fotoError.message}`
-        );
-      }
-
-
-      // ------------------------------------------------------
-      // SUCESSO
-      // ------------------------------------------------------
-
-      console.log(
-        'Foto registrada com sucesso:',
-        fotoInserida
-      );
-
-      enviadas++;
-
-    } catch (error) {
-
-      erros++;
-
-      console.error(
-        'ADMIN V2: erro upload cliente:',
-        error
-      );
-
-      mostrarMensagem(
-        mensagem,
-        `Erro na foto "${arquivo.name}": ${error.message}`,
-        'erro'
-      );
-    }
-  }
-
-
-  // ----------------------------------------------------------
-  // LIMPAR INPUT
-  // ----------------------------------------------------------
-
-  event.target.value = '';
-
-
-  // ----------------------------------------------------------
-  // RESULTADO
-  // ----------------------------------------------------------
-
-  if (erros === 0) {
-
-    mostrarMensagem(
-      mensagem,
-      `${enviadas} foto(s) enviada(s) com sucesso!`,
-      'sucesso'
-    );
-
-  } else if (enviadas > 0) {
-
-    mostrarMensagem(
-      mensagem,
-      `${enviadas} foto(s) enviada(s) e ${erros} com erro.`,
-      'erro'
-    );
-
-  } else {
-
-    mostrarMensagem(
-      mensagem,
-      'Nenhuma foto foi registrada. Veja o Console para o erro.',
-      'erro'
-    );
-  }
-
-
-  // ----------------------------------------------------------
-  // RECARREGAR O DETALHE DO ENSAIO
-  // ----------------------------------------------------------
-
-  if (
-    typeof atualizarDetalheEnsaio ===
-    'function'
-  ) {
-
-    await atualizarDetalheEnsaio(
-      ensaio
-    );
-
-  } else if (
-    typeof carregarClientes ===
-    'function'
-  ) {
-
-    await carregarClientes();
-
-  } else if (
-    typeof carregarEnsaios ===
-    'function'
-  ) {
-
-    await carregarEnsaios();
-  }
 }
 
 
@@ -3018,16 +3692,20 @@ async function marcarEntregue(
   if (
     ensaio.status ===
     'entregue'
-  )
+  ) {
+
     return;
+  }
 
 
   if (
     !window.confirm(
-      `Marcar "${ensaio.titulo}" como entregue?`
+      `Marcar "${ensaio.titulo || ensaio.title}" como entregue?`
     )
-  )
+  ) {
+
     return;
+  }
 
 
   const mensagem =
@@ -3059,7 +3737,7 @@ async function marcarEntregue(
 
     mostrarMensagem(
       mensagem,
-      error.message,
+      normalizarErro(error),
       'erro'
     );
 
@@ -3075,6 +3753,8 @@ async function marcarEntregue(
 
 
   await carregarClientes();
+
+  await carregarDashboard();
 }
 
 
@@ -3086,13 +3766,21 @@ async function excluirEnsaio(
   ensaio
 ) {
 
+  const titulo =
+    ensaio.titulo ||
+    ensaio.title ||
+    'este ensaio';
+
+
   if (
     !window.confirm(
-      `Excluir "${ensaio.titulo}"?\n\n` +
+      `Excluir "${titulo}"?\n\n` +
       `Isso apagará o ensaio e todas as fotos associadas.`
     )
-  )
+  ) {
+
     return;
+  }
 
 
   const mensagem =
@@ -3106,7 +3794,8 @@ async function excluirEnsaio(
 
 
   const {
-    data: fotos
+    data: fotos,
+    error: buscaError
   } =
     await supabase
       .from('fotos')
@@ -3119,6 +3808,18 @@ async function excluirEnsaio(
       );
 
 
+  if (buscaError) {
+
+    mostrarMensagem(
+      mensagem,
+      normalizarErro(buscaError),
+      'erro'
+    );
+
+    return;
+  }
+
+
   if (fotos?.length) {
 
     const caminhos =
@@ -3127,7 +3828,7 @@ async function excluirEnsaio(
           foto =>
             obterCaminhoStorage(
               foto.url,
-              'fotos'
+              STORAGE_BUCKET_CLIENT
             )
         )
         .filter(Boolean);
@@ -3137,7 +3838,9 @@ async function excluirEnsaio(
 
       await supabase
         .storage
-        .from('fotos')
+        .from(
+          STORAGE_BUCKET_CLIENT
+        )
         .remove(
           caminhos
         );
@@ -3161,7 +3864,9 @@ async function excluirEnsaio(
 
     mostrarMensagem(
       mensagem,
-      fotosError.message,
+      normalizarErro(
+        fotosError
+      ),
       'erro'
     );
 
@@ -3185,7 +3890,7 @@ async function excluirEnsaio(
 
     mostrarMensagem(
       mensagem,
-      error.message,
+      normalizarErro(error),
       'erro'
     );
 
@@ -3205,13 +3910,214 @@ async function excluirEnsaio(
 
 
 // ============================================================
+// UPLOAD DE FOTOS DO ENSAIO
+// ============================================================
+
+async function uploadFotosCliente(
+  event,
+  ensaio,
+  tipo = 'prova'
+) {
+
+  const arquivos =
+    Array.from(
+      event.target.files || []
+    );
+
+
+  if (!arquivos.length)
+    return;
+
+
+  const mensagem =
+    document.getElementById(
+      `msg-${ensaio.id}`
+    );
+
+
+  let enviadas = 0;
+  let erros = 0;
+
+
+  const {
+    data: sessionData
+  } =
+    await supabase.auth.getSession();
+
+
+  if (!sessionData?.session) {
+
+    mostrarMensagem(
+      mensagem,
+      'Sua sessão expirou.',
+      'erro'
+    );
+
+    event.target.value = '';
+
+    return;
+  }
+
+
+  for (
+    let i = 0;
+    i < arquivos.length;
+    i++
+  ) {
+
+    const arquivo =
+      arquivos[i];
+
+    let caminho =
+      null;
+
+
+    try {
+
+      const nomeSeguro =
+        nomeArquivoSeguro(
+          arquivo.name
+        );
+
+
+      caminho =
+        `${ensaio.id}/${tipo}/${Date.now()}-${crypto.randomUUID()}-${nomeSeguro}`;
+
+
+      mostrarMensagem(
+        mensagem,
+        `Enviando foto ${i + 1} de ${arquivos.length}...`
+      );
+
+
+      const {
+        error: uploadError
+      } =
+      await supabase
+        .storage
+        .from(
+          STORAGE_BUCKET_CLIENT
+        )
+        .upload(
+          caminho,
+          arquivo,
+          {
+            cacheControl: '3600',
+            upsert: false,
+            contentType:
+              arquivo.type
+          }
+        );
+
+
+      if (uploadError)
+        throw uploadError;
+
+
+      const publicUrl =
+        obterUrlPublica(
+          STORAGE_BUCKET_CLIENT,
+          caminho
+        );
+
+
+      const registroFoto = {
+
+        ensaio_id:
+          ensaio.id,
+
+        url:
+          publicUrl,
+
+        tipo:
+          tipo,
+
+        selecionada:
+          false,
+
+        ordem:
+          i
+
+      };
+
+
+      const {
+        error: fotoError
+      } =
+        await supabase
+          .from('fotos')
+          .insert(
+            registroFoto
+          );
+
+
+      if (fotoError) {
+
+        await supabase
+          .storage
+          .from(
+            STORAGE_BUCKET_CLIENT
+          )
+          .remove([
+            caminho
+          ]);
+
+        throw fotoError;
+      }
+
+
+      enviadas++;
+
+
+    } catch (error) {
+
+      erros++;
+
+      console.error(
+        'Erro upload cliente:',
+        error
+      );
+    }
+  }
+
+
+  event.target.value = '';
+
+
+  if (erros === 0) {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} foto(s) enviada(s) com sucesso.`,
+      'sucesso'
+    );
+
+  } else {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} enviada(s) e ${erros} com erro.`,
+      'erro'
+    );
+  }
+
+
+  await carregarClientes();
+
+  await carregarDashboard();
+}
+
+
+// ============================================================
 // EVENTOS
 // ============================================================
 
 function configurarEventos() {
 
 
+  // ----------------------------------------------------------
   // LOGIN
+  // ----------------------------------------------------------
 
   $('login-form')
     ?.addEventListener(
@@ -3220,7 +4126,9 @@ function configurarEventos() {
     );
 
 
+  // ----------------------------------------------------------
   // LOGOUT
+  // ----------------------------------------------------------
 
   $('logout-btn')
     ?.addEventListener(
@@ -3229,7 +4137,9 @@ function configurarEventos() {
     );
 
 
+  // ----------------------------------------------------------
   // NAVEGAÇÃO
+  // ----------------------------------------------------------
 
   document
     .querySelectorAll(
@@ -3251,7 +4161,9 @@ function configurarEventos() {
     });
 
 
-  // NOVO CLIENTE
+  // ----------------------------------------------------------
+  // CLIENTE
+  // ----------------------------------------------------------
 
   $('new-client-btn')
     ?.addEventListener(
@@ -3281,35 +4193,37 @@ function configurarEventos() {
     );
 
 
-  // GERAR LOGIN
-
   $('generate-client-login')
     ?.addEventListener(
       'click',
       () => {
 
-        $('client-login').value =
-          gerarLogin();
+        if ($('client-login')) {
 
+          $('client-login').value =
+            gerarLogin();
+        }
       }
     );
 
-
-  // GERAR SENHA
 
   $('generate-client-password')
     ?.addEventListener(
       'click',
       () => {
 
-        $('client-password').value =
-          gerarSenha();
+        if ($('client-password')) {
 
+          $('client-password').value =
+            gerarSenha();
+        }
       }
     );
 
 
+  // ----------------------------------------------------------
   // GALERIA
+  // ----------------------------------------------------------
 
   $('new-gallery-btn')
     ?.addEventListener(
@@ -3340,8 +4254,6 @@ function configurarEventos() {
     );
 
 
-  // UPLOAD GALERIA
-
   $('photo-upload')
     ?.addEventListener(
       'change',
@@ -3349,7 +4261,9 @@ function configurarEventos() {
     );
 
 
-  // MODAL
+  // ----------------------------------------------------------
+  // MODAIS
+  // ----------------------------------------------------------
 
   document
     .querySelectorAll(
@@ -3364,7 +4278,9 @@ function configurarEventos() {
     });
 
 
+  // ----------------------------------------------------------
   // CATEGORIAS
+  // ----------------------------------------------------------
 
   $('category-form')
     ?.addEventListener(
@@ -3378,6 +4294,80 @@ function configurarEventos() {
       'click',
       limparFormularioCategoria
     );
+
+
+  // ----------------------------------------------------------
+  // AUTO SLUG
+  // ----------------------------------------------------------
+
+  $('category-name')
+    ?.addEventListener(
+      'input',
+      () => {
+
+        const slug =
+          $('category-slug');
+
+        if (!slug) return;
+
+        if (
+          !slug.dataset.manuallyEdited ||
+          !slug.value
+        ) {
+
+          slug.value =
+            slugify(
+              $('category-name').value
+            );
+        }
+      }
+    );
+
+
+  $('category-slug')
+    ?.addEventListener(
+      'input',
+      event => {
+
+        event.target.dataset.manuallyEdited =
+          'true';
+      }
+    );
+
+
+  $('gallery-title')
+    ?.addEventListener(
+      'input',
+      () => {
+
+        const slug =
+          $('gallery-slug');
+
+        if (!slug) return;
+
+        if (
+          !slug.dataset.manuallyEdited ||
+          !slug.value
+        ) {
+
+          slug.value =
+            slugify(
+              $('gallery-title').value
+            );
+        }
+      }
+    );
+
+
+  $('gallery-slug')
+    ?.addEventListener(
+      'input',
+      event => {
+
+        event.target.dataset.manuallyEdited =
+          'true';
+      }
+    );
 }
 
 
@@ -3388,7 +4378,7 @@ function configurarEventos() {
 async function iniciarAdmin() {
 
   console.log(
-    '================================'
+    '========================================'
   );
 
   console.log(
@@ -3396,7 +4386,7 @@ async function iniciarAdmin() {
   );
 
   console.log(
-    '================================'
+    '========================================'
   );
 
 
