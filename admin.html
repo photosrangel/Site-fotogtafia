@@ -305,7 +305,7 @@ async function toggleDetail(ens) {
   const selecionadas = provas.filter(f => f.selecionada);
 
   const linkCliente = `${location.origin}/area-cliente`;
-  const numero.cr3 = (i) => String(i + 1).padStart(4, '0');
+  const numero = (i) => String(i + 1).padStart(4, '0');
 
   const numerosSelecionados = selecionadas
     .map((f) => numero.cr3(provas.indexOf(f)))
