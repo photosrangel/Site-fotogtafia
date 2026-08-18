@@ -115,10 +115,12 @@
   color: var(--text-muted);
 }
 
+.admin-v2-login[hidden],
+.admin-v2-app[hidden],
 .admin-view[hidden],
 .content-panel[hidden],
 .modal[hidden] {
-  display: none;
+  display: none !important;
 }
 
 /* ---------- FLASH ---------- */
