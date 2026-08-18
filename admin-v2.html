@@ -4,6 +4,16 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin V2 — Rangel Santos Fotografia</title><meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/admin-v2.css">
+<style>
+.link-box{font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted);background:var(--bg);padding:9px 12px;word-break:break-all;margin:8px 0;border:1px solid var(--hairline)}
+.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px;margin-top:10px}
+.session-photo{position:relative;aspect-ratio:1;overflow:hidden;background:#0e0d0c}
+.session-photo img{width:100%;height:100%;object-fit:cover}
+.session-photo.selecionada::after{content:'★';position:absolute;top:4px;right:4px;color:var(--accent);font-size:1rem;text-shadow:0 0 4px #000}
+.session-photo .photo-order{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);color:var(--text);font-family:var(--font-mono);font-size:.6rem;padding:2px 5px}
+.session-select-box{margin-top:14px;padding:12px 14px;border:1px solid var(--hairline);background:var(--bg)}
+.session-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+</style>
 </head>
 <body>
 <div id="login-screen" class="admin-v2-login"><div class="login-box-v2">
@@ -12,7 +22,7 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor">Ver site</a><button id="logout-btn" class="sidebar-link">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
 <section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article></div>
@@ -22,7 +32,55 @@
 <form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required placeholder="retratos-ana"></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" placeholder="Será preenchida ao escolher uma foto"></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
 <section id="view-categories" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Organização</p><h2>Categorias</h2></div></div><form id="category-form" class="inline-form"><input type="hidden" id="category-id"><input id="category-name" placeholder="Nome da categoria" required><input id="category-slug" placeholder="slug" required><input id="category-order" type="number" min="0" value="0"><button class="btn btn-accent" type="submit">Salvar</button><button class="btn" id="cancel-category" type="button" hidden>Cancelar</button></form><p id="category-msg" class="msg"></p><div id="categories-list" class="category-list"></div></div></section>
 <section id="view-settings" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Site</p><h2>Configurações gerais</h2></div></div><form id="settings-form"><div class="form-grid"><div class="field"><label for="settings-site-name">Nome do site</label><input id="settings-site-name"></div><div class="field"><label for="settings-email">E-mail</label><input id="settings-email" type="email"></div><div class="field"><label for="settings-whatsapp">WhatsApp</label><input id="settings-whatsapp"></div><div class="field"><label for="settings-instagram">Instagram</label><input id="settings-instagram"></div><div class="field"><label for="settings-location">Localização</label><input id="settings-location"></div><div class="field"><label for="settings-specialty">Especialidade</label><input id="settings-specialty"></div><div class="field"><label for="settings-availability">Disponibilidade</label><input id="settings-availability"></div><div class="field field-full"><label for="settings-footer">Texto do rodapé</label><textarea id="settings-footer" rows="3"></textarea></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar configurações</button><span id="settings-msg" class="msg"></span></div></form></div></section>
+<section id="view-sessions" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Gerencie as sessões de clientes. As provas aparecem na Área do Cliente para a cliente escolher; as fotos finais só aparecem após a entrega.</p><button id="new-session-btn" class="btn btn-accent">Novo ensaio</button></div>
+<div id="session-form-wrap" class="panel" hidden>
+<div class="panel-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="session-form-title">Novo ensaio</h2></div><button class="icon-btn" id="close-session-form" type="button">×</button></div>
+<form id="session-form">
+<div class="form-grid">
+<div class="field"><label for="session-titulo">Título (ex: Sessão Autoestima — Maria)</label><input id="session-titulo" required></div>
+<div class="field"><label for="session-cliente">Nome do cliente</label><input id="session-cliente"></div>
+<div class="field"><label for="session-telefone">WhatsApp do cliente (com código do país — ex: 351912345678)</label><input id="session-telefone"></div>
+<div class="field"><label for="session-categoria">Categoria</label><select id="session-categoria"><option value="autoestima">Autoestima</option><option value="estudio">Estúdio</option><option value="externo">Externo</option></select></div>
+<div class="field"><label for="session-login">Login do cliente</label><input id="session-login" required><button type="button" class="small-btn" id="btn-gerar-login">Gerar login aleatório</button></div>
+<div class="field"><label for="session-codigo">Senha do cliente</label><input id="session-codigo" required><button type="button" class="small-btn" id="btn-gerar-codigo">Gerar senha aleatória</button></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Criar ensaio</button><button class="btn" type="button" id="cancel-session-form">Cancelar</button><span id="session-form-msg" class="msg"></span></div>
+</form>
+</div>
+<div id="sessions-list"></div>
+</section>
 </main></div>
 <div id="gallery-editor-modal" class="modal" hidden><div class="modal-backdrop" data-close-modal></div><div class="modal-dialog"><div class="modal-head"><div><p class="section-eyebrow">Fotografias</p><h2 id="modal-gallery-title">Galeria</h2></div><button class="icon-btn" data-close-modal type="button">×</button></div><div class="upload-drop"><input id="photo-upload" type="file" multiple accept="image/jpeg,image/png,image/webp"><label for="photo-upload"><strong>Adicionar fotografias</strong><span>JPG, PNG ou WebP</span></label></div><p id="upload-msg" class="msg"></p><div class="photo-toolbar"><span id="photo-count">0 fotografias</span><span class="footer-mono">Clique em uma foto para defini-la como capa</span></div><div id="photo-grid" class="admin-photo-grid"></div></div></div>
+<div id="session-editor-modal" class="modal" hidden>
+<div class="modal-backdrop" data-close-session-modal></div>
+<div class="modal-dialog">
+<div class="modal-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="modal-session-title">Ensaio</h2></div><button class="icon-btn" data-close-session-modal type="button">×</button></div>
+<div class="panel" style="margin-bottom:16px;">
+<p class="panel-copy">Envie esses dados para a cliente (ela digita na Área do Cliente):</p>
+<p class="footer-mono" style="margin-bottom:4px;">Link da Área do Cliente</p>
+<div class="link-box" id="session-link"></div>
+<p class="footer-mono" style="margin-bottom:4px;">Login</p>
+<div class="link-box" id="session-login"></div>
+<p class="footer-mono" style="margin-bottom:4px;">Senha</p>
+<div class="link-box" id="session-senha"></div>
+<button class="small-btn" id="btn-copy-session">Copiar tudo</button>
+</div>
+<p class="footer-mono">Fotos para o cliente escolher (provas) — <span id="prova-count">0</span> enviadas:</p>
+<div class="upload-drop" style="margin:12px 0;"><input id="upload-prova" type="file" multiple accept="image/*"><label for="upload-prova"><strong>Adicionar provas</strong><span>Selecione uma ou várias fotos</span></label></div>
+<div id="prova-grid" class="session-grid"></div>
+<div id="selecionadas-box"></div>
+<div class="session-actions" id="selecao-actions"></div>
+<p class="footer-mono" style="margin-top:24px;">Fotos finais (tratadas, para entrega) — <span id="final-count">0</span> enviadas:</p>
+<div class="upload-drop" style="margin:12px 0;"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>O cliente só vê depois de "Marcar como entregue"</span></label></div>
+<div id="final-grid" class="session-grid"></div>
+<div class="session-actions">
+<button class="btn btn-accent" id="btn-entregar">Marcar como entregue</button>
+<a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
+<button class="btn" id="btn-excluir-session" style="border-color:#8c877e;">Excluir permanentemente</button>
+</div>
+<p class="msg" id="session-msg"></p>
+</div>
+</div>
 <script type="module" src="js/admin-v2.js"></script>
 </body></html>
