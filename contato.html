@@ -10,7 +10,7 @@
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
@@ -26,14 +26,13 @@
   <div class="container">
     <div class="section-head">
       <div>
-        <p class="section-eyebrow">Renove sua autoestima</p>
-        <h2 class="section-title">Contato</h2>
+        <p class="section-eyebrow" id="contato-eyebrow">Renove sua autoestima</p>
+        <h2 class="section-title" id="contato-title">Contato</h2>
       </div>
     </div>
 
     <div class="contact-grid">
-      <!-- TROQUE "SEU_ID_AQUI" pelo endpoint do Formspree (veja instruções que a Claude te enviou) -->
-      <form action="https://formspree.io/f/SEU_ID_AQUI" method="POST">
+      <form id="contato-form" novalidate>
         <div class="field">
           <label for="nome">Nome</label>
           <input type="text" id="nome" name="nome" required>
@@ -44,30 +43,25 @@
         </div>
         <div class="field">
           <label for="tipo">Tipo de sessão</label>
-          <select id="tipo" name="tipo">
-            <option>Sessão de Autoestima</option>
-            <option>Retrato em Estúdio</option>
-            <option>Retrato Externo</option>
-            <option>Sessão Sensual</option>
-            <option>Outro</option>
-          </select>
+          <select id="tipo" name="tipo"></select>
         </div>
         <div class="field">
           <label for="mensagem">Mensagem</label>
           <textarea id="mensagem" name="mensagem" rows="5" required></textarea>
         </div>
-        <button type="submit" class="btn btn-accent">Enviar mensagem</button>
+        <button type="submit" class="btn btn-accent" id="contato-submit">Enviar mensagem</button>
+        <p class="msg" id="contato-msg"></p>
       </form>
 
-      <dl class="contact-info">
+      <dl class="contact-info" id="contato-info">
         <dt>E-mail</dt>
-        <dd><a href="mailto:rangelsantos1812@gmail.com" target="_blank" rel="noopener">rangelsantos1812@gmail.com</a></dd>
+        <dd><a href="mailto:rangelsantos1812@gmail.com" target="_blank" rel="noopener" data-setting="email">rangelsantos1812@gmail.com</a></dd>
         <dt>WhatsApp</dt>
-        <dd><a href="https://wa.me/351931159748" target="_blank" rel="noopener">+351 931 159 748</a></dd>
+        <dd><a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-contact-fixed="whatsapp">+351 931 159 748</a></dd>
         <dt>Instagram</dt>
-        <dd><a href="https://instagram.com" target="_blank" rel="noopener">@photosrangel</a></dd>
+        <dd><a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-contact-fixed="instagram">@photosrangel</a></dd>
         <dt>Atendimento</dt>
-        <dd>Vale de Cambra e arredores — sessões sob agendamento</dd>
+        <dd id="contato-atendimento">Vale de Cambra e arredores — sessões sob agendamento</dd>
       </dl>
     </div>
   </div>
@@ -75,15 +69,16 @@
 
 <footer class="footer">
   <div class="container">
-    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
+    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-       <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-contact-fixed="instagram">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-contact-fixed="whatsapp">WhatsApp</a>
       <a href="/area-cliente">Área do Cliente</a>
     </div>
   </div>
 </footer>
 
 <script src="js/main.js"></script>
+<script type="module" src="js/contato.js"></script>
 </body>
 </html>

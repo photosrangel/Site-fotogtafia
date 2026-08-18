@@ -1,108 +1,284 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rangel Santos — Estúdio de Fotografia </title>
-<meta name="description" content="Fotografia de retrato feminino em Vale de Cambra, Portugal. Sessões pensadas para devolver autoestima e confiança.">
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO será preenchido pelo CMS -->
+  <title id="page-title">Rangel Santos — Estúdio de Fotografia</title>
+
+  <meta
+    id="page-description"
+    name="description"
+    content="Fotografia de retrato feminino em Vale de Cambra, Portugal."
+  >
+
+  <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
-<nav class="nav">
-  <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
-    <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
-    <div class="nav-links">
-      <a href="/inicio" class="active">Início</a>
-      <a href="/galeria">Galeria</a>
-      <a href="/sobre">Sobre</a>
-      <a href="/contato">Contato</a>
-      <a href="/area-cliente" class="nav-cta">Área do Cliente</a>
-    </div>
-  </div>
-</nav>
+  <!-- ============================================
+       MENU
+       ============================================ -->
 
-<header class="hero">
- <div class="hero-media">
-  <picture>
-    <source media="(max-width: 899px)" srcset="images/hero-bg-mobile.jpg">
-    <img src="images/hero-bg.jpg" alt="Rangel Santos, fotógrafo" class="hero-photo">
-  </picture>
-  <div class="hero-overlay"></div>
-</div>
-  <div class="container">
-    <p class="hero-eyebrow">Fotógrafo de Retratos Femininos </p>
-    <h1 class="hero-title">Você, como <br><em>sempre</em> foi.</h1>
-    <p class="hero-sub">Fotografo mulheres em sessões pensadas para devolver confiança, não só registrar um retrato. Cada sessão é um espaço para você se ver como realmente é.</p>
-    <div style="margin-top:36px; display:flex; gap:16px; flex-wrap:wrap;">
-      <a href="/galeria" class="btn">Ver galeria</a>
-      <a href="/contato" class="btn btn-accent">Agendar sessão</a>
-    </div>
-    <div class="hero-meta">
-      <div><strong>Baseado em</strong>Vale de Cambra, Portugal</div>
-      <div><strong>Especialidade</strong>Retrato Feminino</div>
-      <div><strong>Disponibilidade</strong>Agenda 2026 aberta</div>
-    </div>
-  </div>
-</header>
+  <nav class="nav">
 
-<section class="section">
-  <div class="container">
-    <div class="section-head">
-      <div>
-        <p class="section-eyebrow">Alguns dos</p>
-        <h2 class="section-title">Trabalhos recentes</h2>
+    <div class="container">
+
+      <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+
+      <button
+        class="nav-toggle"
+        aria-label="Abrir menu"
+        type="button"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-links">
+
+        <a href="/inicio" class="active">
+          Início
+        </a>
+
+        <a href="/galeria">
+          Galeria
+        </a>
+
+        <a href="/sobre">
+          Sobre
+        </a>
+
+        <a href="/contato">
+          Contato
+        </a>
+
+        <a
+          href="/area-cliente"
+          class="nav-cta"
+        >
+          Área do Cliente
+        </a>
+
       </div>
-      <a href="/galeria" class="btn">Galeria completa →</a>
+
     </div>
 
-    <div class="grid">
-      <div class="frame" data-category="estudio">
-        <img src="images/recentes/annia.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografico">
-        <span class="frame-num">01</span>
-        <div class="frame-caption"><span>Annia Raissa</span></div>
-      </div>
-      <div class="frame" data-category="externo">
-        <img src="images/recentes/carol.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografic, ensaio externo, fotos a noite">
-        <span class="frame-num">02</span>
-        <div class="frame-caption"><span>Carolina Fernandes</span></div>
-      </div>
-      <div class="frame" data-category="autoestima">
-        <img src="images/recentes/juliana.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografico">
-        <span class="frame-num">03</span>
-        <div class="frame-caption"><span>Juliana Santos</span></div>
-      </div>
-      <div class="frame" data-category="estudio">
-        <img src="images/recentes/emile.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografic, ensaio externo, fotos a noite">
-        <span class="frame-num">04</span>
-        <div class="frame-caption"><span>Emile Suzan</span></div>
-      </div>
-      <div class="frame" data-category="externo">
-        <img src="images/recentes/sara.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografico">
-        <span class="frame-num">05</span>
-        <div class="frame-caption"><span>Sarah Rodrigues</span></div>
-      </div>
-      <div class="frame" data-category="autoestima">
-        <img src="images/recentes/priscila.jpg" alt="retrato, mulher, ensaio externo, portugal, fotografia, ensaio feminio, fotografo feminino, estudio fotografico">
-        <span class="frame-num">06</span>
-        <div class="frame-caption"><span>Priscila Silva</span></div>
-      </div>
-    </div>
-  </div>
-</section>
+  </nav>
 
-<footer class="footer">
-  <div class="container">
-    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
-    <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
-      <a href="/area-cliente">Área do Cliente</a>
-    </div>
-  </div>
-</footer>
 
-<script src="js/main.js"></script>
+  <!-- ============================================
+       HERO
+       ============================================ -->
+
+  <header class="hero">
+
+    <div class="hero-media">
+
+      <picture>
+
+        <source
+          id="hero-mobile-image"
+          media="(max-width: 899px)"
+          srcset=""
+        >
+
+        <img
+          id="hero-desktop-image"
+          src=""
+          alt=""
+          class="hero-photo"
+        >
+
+      </picture>
+
+      <div class="hero-overlay"></div>
+
+    </div>
+
+
+    <div class="container">
+
+      <p
+        id="hero-eyebrow"
+        class="hero-eyebrow"
+      ></p>
+
+
+      <h1
+        id="hero-title"
+        class="hero-title"
+      ></h1>
+
+      <h1 id="hero-fallback" class="hero-title">Você, como <br><em>sempre</em> foi.</h1>
+
+
+      <p
+        id="hero-description"
+        class="hero-sub"
+      ></p>
+
+
+      <div
+        style="
+          margin-top:36px;
+          display:flex;
+          gap:16px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <a
+          id="hero-primary-button"
+          href="/galeria"
+          class="btn"
+        >
+          Ver galeria
+        </a>
+
+
+        <a
+          id="hero-secondary-button"
+          href="/contato"
+          class="btn btn-accent"
+        >
+          Agendar sessão
+        </a>
+
+      </div>
+
+
+      <div
+        id="hero-meta"
+        class="hero-meta"
+      ></div>
+
+    </div>
+
+  </header>
+
+
+  <!-- ============================================
+       TRABALHOS RECENTES
+       ============================================ -->
+
+  <section class="section">
+
+    <div class="container">
+
+      <div class="section-head">
+
+        <div>
+
+          <p
+            id="recent-work-eyebrow"
+            class="section-eyebrow"
+          ></p>
+
+
+          <h2
+            id="recent-work-title"
+            class="section-title"
+          ></h2>
+
+        </div>
+
+
+        <a
+          id="recent-work-button"
+          href="/galeria"
+          class="btn"
+        >
+          Galeria completa →
+        </a>
+
+      </div>
+
+
+      <!--
+        As fotografias serão carregadas automaticamente
+        pelo Supabase.
+      -->
+
+      <div
+        id="recent-work-grid"
+        class="grid"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ============================================
+       FOOTER
+       ============================================ -->
+
+  <footer class="footer">
+
+    <div class="container">
+
+      <span
+        id="footer-copyright"
+        class="footer-mono"
+        data-setting="footer_text"
+      >
+        © 2026 Rangel Santos — Fotografia
+      </span>
+
+
+      <div class="footer-links footer-mono">
+
+        <a
+          id="footer-instagram"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          data-setting="instagram_url"
+        >
+          Instagram
+        </a>
+
+
+        <a
+          id="footer-whatsapp"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          data-setting="whatsapp"
+        >
+          WhatsApp
+        </a>
+
+
+        <a href="/area-cliente">
+          Área do Cliente
+        </a>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+
+  <!-- ============================================
+       SUPABASE / CMS
+       ============================================ -->
+
+<script type="module">
+  import { initSite } from './js/cms-config.js';
+  initSite();
+</script>
+
+<script type="module" src="./js/inicio.js"></script>
+
+<script src="./js/main.js"></script>
+  
 </body>
+
 </html>

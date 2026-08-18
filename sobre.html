@@ -10,7 +10,7 @@
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
     <a href="/inicio">Início</a>
@@ -26,15 +26,17 @@
   <div class="container">
     <div class="about-grid">
       <div class="about-portrait">
-        <img src="images/retrato-01.jpg" alt="Retrato de Rangel Santos, fotógrafo">
+        <img id="sobre-portrait" src="images/retrato-01.jpg" alt="Retrato de Rangel Santos, fotógrafo">
       </div>
       <div class="about-text">
-        <p class="section-eyebrow">Sobre mim</p>
-        <p>Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. Meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.</p>
-        <p>Ajudar mulheres a reconstruir a autoestima é o que me motiva a cada sessão. Muitas chegam inseguras diante da câmera, e minha função é criar o ambiente certo para que isso se dissolva — com luz, tempo, e escuta.</p>
-        <p>Cada projeto é entregue com cuidado: você recebe um link privado para escolher suas fotos favoritas, e eu trato as imagens escolhidas uma a uma antes da entrega final.</p>
+        <p class="section-eyebrow" id="sobre-eyebrow">Sobre mim</p>
+        <div id="sobre-paragraphs">
+          <p>Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. Meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.</p>
+          <p>Ajudar mulheres a reconstruir a autoestima é o que me motiva a cada sessão. Muitas chegam inseguras diante da câmera, e minha função é criar o ambiente certo para que isso se dissolva — com luz, tempo, e escuta.</p>
+          <p>Cada projeto é entregue com cuidado: você recebe um link privado para escolher suas fotos favoritas, e eu trato as imagens escolhidas uma a uma antes da entrega final.</p>
+        </div>
 
-        <dl class="specs">
+        <dl class="specs" id="sobre-specs">
           <div><dt>Baseado em</dt><dd>Vale de Cambra, Portugal</dd></div>
           <div><dt>Especialidade</dt><dd>Retrato Feminino &amp; Autoestima</dd></div>
           <div><dt>Prazo de entrega</dt><dd>05–10 dias úteis</dd></div>
@@ -42,7 +44,7 @@
         </dl>
 
         <div style="margin-top:36px;">
-          <a href="/contato" class="btn btn-accent">Vamos conversar</a>
+          <a href="/contato" class="btn btn-accent" id="sobre-cta">Vamos conversar</a>
         </div>
       </div>
     </div>
@@ -51,15 +53,16 @@
 
 <footer class="footer">
   <div class="container">
-    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
+    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a>
       <a href="/area-cliente">Área do Cliente</a>
     </div>
   </div>
 </footer>
 
 <script src="js/main.js"></script>
+<script type="module" src="js/sobre.js"></script>
 </body>
 </html>
