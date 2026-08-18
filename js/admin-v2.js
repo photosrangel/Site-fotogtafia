@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v6 — tela de login corrigida');
+console.log('[admin-v2] Build v7 — visual compacto');
 
 const $ = id => document.getElementById(id);
 
