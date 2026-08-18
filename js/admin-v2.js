@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v7 — visual compacto');
+console.log('[admin-v2] Build v8 — tela cheia responsiva');
 
 const $ = id => document.getElementById(id);
 
