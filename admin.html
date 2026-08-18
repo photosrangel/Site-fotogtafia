@@ -348,7 +348,7 @@ async function toggleDetail(ens) {
       ${provas.map((f, i) => `
         <div class="photo-mini ${f.selecionada ? 'selecionada' : ''}">
           <img src="${f.url}">
-          <span class="photo-order">${numero.cr3(i)}</span>
+          <span class="photo-order">${numero(i)}</span>
         </div>
       `).join('')}
     </div>
