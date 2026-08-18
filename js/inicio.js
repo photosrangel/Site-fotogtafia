@@ -585,7 +585,7 @@ async function carregarTrabalhosRecentes(
   // ============================================
 
   console.log(
-    'CMS: buscando fotografias...'
+    'CMS: buscando capas das galerias publicadas...'
   );
 
 
@@ -604,7 +604,7 @@ async function carregarTrabalhosRecentes(
   if (photosError) {
 
     console.error(
-      'CMS: erro ao buscar gallery_photos:',
+      'CMS: erro ao buscar capas das galerias:',
       photosError
     );
 
@@ -623,7 +623,7 @@ async function carregarTrabalhosRecentes(
   ) {
 
     console.warn(
-      'CMS: nenhuma fotografia publicada encontrada.'
+      'CMS: nenhuma galeria pública com capa encontrada.'
     );
 
     return;
@@ -632,7 +632,7 @@ async function carregarTrabalhosRecentes(
 
 
   console.log(
-    'CMS: fotografias encontradas:',
+    'CMS: capas de galerias encontradas:',
     photos
   );
 
@@ -804,15 +804,19 @@ async function supabaseBuscarFotos(
 
 
   /*
-    TRABALHOS RECENTES
-    ------------------
-    Uma fotografia só pode aparecer na página inicial quando:
-    1) a galeria inteira está PUBLICADA;
-    2) a fotografia individual também está PUBLICADA.
+    TRABALHOS RECENTES = CAPAS DAS GALERIAS
 
-    Fazemos as consultas separadamente para não depender de uma
-    relação embutida do PostgREST, que já causou erro HTTP 400
-    neste projeto anteriormente.
+    Regra:
+    - somente galerias PUBLICADAS;
+    - uma única imagem por galeria;
+    - usa cover_url da própria galeria;
+    - galerias mais novas aparecem primeiro;
+    - se uma galeria publicada não tiver cover_url,
+      tenta usar a primeira fotografia publicada dela.
+
+    Dessa forma, adicionar/publicar uma nova galeria já faz
+    a capa dela entrar automaticamente em Trabalhos recentes
+    no próximo carregamento da página.
   */
 
   const {
@@ -820,8 +824,22 @@ async function supabaseBuscarFotos(
     error: galleriesError
   } = await supabase
     .from('galleries')
-    .select('id')
-    .eq('published', true);
+    .select(`
+      id,
+      title,
+      slug,
+      cover_url,
+      sort_order,
+      created_at,
+      published
+    `)
+    .eq('published', true)
+    .order('created_at', {
+      ascending: false
+    })
+    .order('sort_order', {
+      ascending: true
+    });
 
 
   if (galleriesError) {
@@ -832,13 +850,11 @@ async function supabaseBuscarFotos(
   }
 
 
-  const galleryIds =
-    (galleries || [])
-      .map(gallery => gallery.id)
-      .filter(Boolean);
+  const publicGalleries =
+    galleries || [];
 
 
-  if (!galleryIds.length) {
+  if (!publicGalleries.length) {
     return {
       data: [],
       error: null
@@ -846,26 +862,127 @@ async function supabaseBuscarFotos(
   }
 
 
-  return await supabase
+  // Busca fotos apenas para servir de fallback em galerias
+  // publicadas que ainda não tenham cover_url definida.
+  const galleryIds =
+    publicGalleries
+      .map(g => g.id)
+      .filter(Boolean);
+
+
+  const {
+    data: fallbackPhotos,
+    error: fallbackError
+  } = await supabase
     .from('gallery_photos')
     .select(`
       id,
+      gallery_id,
       image_url,
       alt_text,
       sort_order,
-      published,
-      gallery_id,
-      created_at
+      created_at,
+      published
     `)
     .in('gallery_id', galleryIds)
     .eq('published', true)
-    .order('created_at', {
-      ascending: false
-    })
     .order('sort_order', {
       ascending: true
     })
-    .limit(limit);
+    .order('created_at', {
+      ascending: true
+    });
+
+
+  if (fallbackError) {
+    console.warn(
+      'CMS: não foi possível carregar fotos de fallback das galerias:',
+      fallbackError
+    );
+  }
+
+
+  const primeiraFotoPorGaleria =
+    new Map();
+
+
+  (fallbackPhotos || []).forEach(photo => {
+
+    if (
+      photo.gallery_id &&
+      !primeiraFotoPorGaleria.has(
+        photo.gallery_id
+      )
+    ) {
+      primeiraFotoPorGaleria.set(
+        photo.gallery_id,
+        photo
+      );
+    }
+
+  });
+
+
+  const covers =
+    publicGalleries
+      .map(gallery => {
+
+        const fallback =
+          primeiraFotoPorGaleria.get(
+            gallery.id
+          );
+
+        const imageUrl =
+          gallery.cover_url ||
+          fallback?.image_url ||
+          '';
+
+
+        if (!imageUrl) {
+          return null;
+        }
+
+
+        return {
+          id:
+            gallery.id,
+
+          image_url:
+            imageUrl,
+
+          alt_text:
+            gallery.title ||
+            fallback?.alt_text ||
+            'Galeria de Rangel Santos Fotografia',
+
+          gallery_id:
+            gallery.id,
+
+          gallery_slug:
+            gallery.slug || '',
+
+          created_at:
+            gallery.created_at,
+
+          sort_order:
+            gallery.sort_order ?? 0
+        };
+
+      })
+      .filter(Boolean)
+      .slice(
+        0,
+        Math.max(
+          1,
+          Number(limit) || 6
+        )
+      );
+
+
+  return {
+    data: covers,
+    error: null
+  };
 
 }
 
