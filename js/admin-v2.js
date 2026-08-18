@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v3 — correções de login, contato e sobre');
+console.log('[admin-v2] Build v4 — sessão expirada/inválida corrigida');
 
 const $ = id => document.getElementById(id);
 
@@ -93,6 +93,26 @@ async function requireAdmin() {
   if (!session) {
     $('login-screen').hidden = false;
     $('app').hidden = true;
+    return false;
+  }
+
+  const expirou =
+    session.expires_at
+      ? session.expires_at * 1000 <= Date.now()
+      : false;
+
+  if (expirou) {
+    await supabase.auth.signOut().catch(() => {});
+
+    $('login-screen').hidden = false;
+    $('app').hidden = true;
+
+    msg(
+      $('login-msg'),
+      'Sua sessão anterior expirou. Entre novamente.',
+      'erro'
+    );
+
     return false;
   }
 
@@ -360,6 +380,38 @@ async function loadDashboard() {
       )
 
   ]);
+
+  const falhas = [a, b, c, m]
+    .map(r => (r && r.error ? r.error : null))
+    .filter(Boolean);
+
+  if (falhas.length) {
+    console.error(
+      '[admin-v2] Falha ao carregar dados do dashboard:',
+      falhas[0]
+    );
+
+    const detalhe = String(
+      falhas[0].message || falhas[0].code || JSON.stringify(falhas[0])
+    );
+
+    flash(
+      `Erro ao carregar dados: ${detalhe} (veja o console F12)`,
+      'erro'
+    );
+
+    if (/JWT|jwt|expired|Unauthorized/i.test(detalhe)) {
+      await supabase.auth.signOut().catch(() => {});
+      $('login-screen').hidden = false;
+      $('app').hidden = true;
+      msg(
+        $('login-msg'),
+        'Sessão inválida. Entre novamente (limpe os dados do site se persistir).',
+        'erro'
+      );
+      return;
+    }
+  }
 
   const g = a.data || [];
   const k = b.data || [];
