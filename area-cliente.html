@@ -66,7 +66,7 @@
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
@@ -132,10 +132,10 @@
 
 <footer class="footer">
   <div class="container">
-    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
+    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://instagram.com" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a>
     </div>
   </div>
 </footer>
@@ -144,8 +144,11 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
+import { initSite } from './js/cms-config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+initSite();
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
 // foto marcada como protegida (prova/seleção) — sem afetar o resto da página.

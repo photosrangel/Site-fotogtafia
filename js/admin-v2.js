@@ -63,9 +63,11 @@ function setView(v) {
 
   const l = {
     dashboard: ['Painel', 'Dashboard'],
+    content: ['Páginas', 'Conteúdo'],
     galleries: ['Conteúdo', 'Galerias'],
     categories: ['Organização', 'Categorias'],
     sessions: ['Clientes', 'Ensaios'],
+    messages: ['Site', 'Mensagens'],
     settings: ['Site', 'Configurações']
   }[v];
 
@@ -73,9 +75,11 @@ function setView(v) {
   $('view-title').textContent = l[1];
 
   if (v === 'dashboard') loadDashboard();
+  if (v === 'content') loadContent();
   if (v === 'galleries') loadGalleries();
   if (v === 'categories') loadCategories();
   if (v === 'sessions') loadSessions();
+  if (v === 'messages') loadMessages();
   if (v === 'settings') loadSettings();
 }
 
@@ -274,7 +278,8 @@ async function loadDashboard() {
   const [
     a,
     b,
-    c
+    c,
+    m
   ] = await Promise.all([
 
     supabase
@@ -287,13 +292,20 @@ async function loadDashboard() {
 
     supabase
       .from('gallery_photos')
-      .select('id,published')
+      .select('id,published'),
+
+    supabase
+      .from('mensagens')
+      .select('id')
+      .eq('lida', false)
+      .catch(() => ({ data: [] }))
 
   ]);
 
   const g = a.data || [];
   const k = b.data || [];
   const p = c.data || [];
+  const msg = m.data || [];
 
   $('stat-galleries').textContent =
     g.length;
@@ -306,6 +318,10 @@ async function loadDashboard() {
 
   $('stat-photos').textContent =
     p.filter(x => x.published).length;
+
+  const msgEl = $('stat-messages');
+  msgEl.textContent = msg.length;
+  msgEl.style.color = msg.length ? 'var(--accent)' : '';
 }
 
 
@@ -2718,6 +2734,390 @@ async function saveSettings(e) {
     'Configurações salvas.',
     'sucesso'
   );
+}
+
+
+/* =========================================================
+   CONTEÚDO DAS PÁGINAS (site_content)
+========================================================= */
+
+const CONTENT_DEFAULTS = {
+  inicio: {
+    hero: {
+      eyebrow: '',
+      title: '',
+      description: '',
+      desktop_image: '',
+      mobile_image: '',
+      image_alt: 'Rangel Santos, fotógrafo',
+      primary_button: { text: 'Ver galeria', url: '/galeria' },
+      secondary_button: { text: 'Agendar sessão', url: '/contato' },
+      meta: []
+    },
+    recent_work: {
+      eyebrow: '',
+      title: '',
+      gallery_limit: 6,
+      button: { text: 'Galeria completa →', url: '/galeria' }
+    }
+  },
+  sobre: {
+    conteudo: {
+      eyebrow: 'Sobre mim',
+      paragraphs: [],
+      specs: [],
+      portrait_url: '',
+      portrait_alt: 'Retrato de Rangel Santos, fotógrafo',
+      cta_text: 'Vamos conversar',
+      cta_url: '/contato'
+    }
+  },
+  contato: {
+    conteudo: {
+      eyebrow: 'Renove sua autoestima',
+      title: 'Contato',
+      submit_label: 'Enviar mensagem',
+      tipos: [],
+      atendimento: ''
+    }
+  }
+};
+
+let contentCache = null;
+
+async function fetchContent() {
+  const { data } = await supabase
+    .from('site_content')
+    .select('slug, section_key, content');
+
+  const map = { inicio: {}, sobre: {}, contato: {} };
+
+  (data || []).forEach(row => {
+    if (!map[row.slug]) return;
+
+    let content = row.content;
+    if (typeof content === 'string') {
+      try { content = JSON.parse(content); }
+      catch (e) { content = {}; }
+    }
+
+    map[row.slug][row.section_key] = content || {};
+  });
+
+  return map;
+}
+
+function mergeContent(map) {
+  const out = JSON.parse(JSON.stringify(CONTENT_DEFAULTS));
+
+  ['inicio', 'sobre', 'contato'].forEach(page => {
+    Object.keys(out[page]).forEach(key => {
+      if (map[page][key]) {
+        Object.assign(out[page][key], map[page][key]);
+      }
+    });
+  });
+
+  return out;
+}
+
+async function loadContent() {
+  const map = await fetchContent();
+  contentCache = mergeContent(map);
+
+  const h = contentCache.inicio.hero;
+  $('hero-eyebrow').value = h.eyebrow || '';
+  $('hero-title').value = h.title || '';
+  $('hero-description').value = h.description || '';
+  $('hero-desktop-image').value = h.desktop_image || '';
+  $('hero-mobile-image').value = h.mobile_image || '';
+  $('hero-image-alt').value = h.image_alt || '';
+  $('hero-primary-text').value = h.primary_button?.text || '';
+  $('hero-primary-url').value = h.primary_button?.url || '';
+  $('hero-secondary-text').value = h.secondary_button?.text || '';
+  $('hero-secondary-url').value = h.secondary_button?.url || '';
+  $('hero-meta').value = (h.meta || [])
+    .map(m => `${m.label} | ${m.value}`)
+    .join('\n');
+
+  const r = contentCache.inicio.recent_work;
+  $('recent-eyebrow').value = r.eyebrow || '';
+  $('recent-title').value = r.title || '';
+  $('recent-limit').value = r.gallery_limit ?? 6;
+  $('recent-btn-text').value = r.button?.text || '';
+  $('recent-btn-url').value = r.button?.url || '';
+
+  const s = contentCache.sobre.conteudo;
+  $('sobre-eyebrow').value = s.eyebrow || '';
+  $('sobre-paragraphs').value = (s.paragraphs || []).join('\n');
+  $('sobre-portrait-url').value = s.portrait_url || '';
+  $('sobre-portrait-alt').value = s.portrait_alt || '';
+  $('sobre-cta-text').value = s.cta_text || '';
+  $('sobre-cta-url').value = s.cta_url || '';
+  renderSpecsEditor(s.specs || []);
+
+  const ct = contentCache.contato.conteudo;
+  $('contato-eyebrow').value = ct.eyebrow || '';
+  $('contato-title').value = ct.title || '';
+  $('contato-submit-label').value = ct.submit_label || '';
+  $('contato-tipos').value = (ct.tipos || []).join('\n');
+  $('contato-atendimento').value = ct.atendimento || '';
+
+  ['hero-msg', 'recent-msg', 'sobre-msg', 'contato-msg']
+    .forEach(id => msg($(id), ''));
+}
+
+function renderSpecsEditor(specs) {
+  const c = $('sobre-specs-editor');
+  const lista = specs.length
+    ? specs
+    : [{ label: 'Baseado em', value: 'Vale de Cambra, Portugal' }];
+
+  c.innerHTML = lista.map((s, i) => `
+    <div class="inline-form" style="margin-bottom:10px;align-items:flex-end;" data-spec-row>
+      <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label" value="${esc(s.label)}"></div>
+      <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value" value="${esc(s.value)}"></div>
+      <button type="button" class="small-btn" data-remove-spec>Remover</button>
+    </div>`).join('');
+
+  c.querySelectorAll('[data-remove-spec]').forEach(b =>
+    b.addEventListener('click', () => b.closest('[data-spec-row]').remove())
+  );
+}
+
+function collectSpecs() {
+  return [...document.querySelectorAll('#sobre-specs-editor [data-spec-row]')]
+    .map(row => ({
+      label: row.querySelector('.spec-label').value.trim(),
+      value: row.querySelector('.spec-value').value.trim()
+    }))
+    .filter(s => s.label || s.value);
+}
+
+async function upsertContent(slug, sectionKey, payload, msgId) {
+  msg($(msgId), 'Salvando...');
+
+  const { data: existing } = await supabase
+    .from('site_content')
+    .select('id')
+    .eq('slug', slug)
+    .eq('section_key', sectionKey)
+    .maybeSingle();
+
+  const row = {
+    slug,
+    section_key: sectionKey,
+    content: payload,
+    updated_at: new Date().toISOString()
+  };
+
+  const r = existing?.id
+    ? await supabase.from('site_content').update(row).eq('id', existing.id)
+    : await supabase.from('site_content').insert(row);
+
+  if (r.error) {
+    msg($(msgId), 'Erro ao salvar: ' + r.error.message, 'erro');
+    return;
+  }
+
+  msg($(msgId), 'Salvo!', 'sucesso');
+  contentCache = null;
+}
+
+$('form-hero').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const meta = $('hero-meta').value
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean)
+    .map(l => {
+      const i = l.indexOf('|');
+      if (i === -1) return { label: l, value: '' };
+      return { label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() };
+    });
+
+  await upsertContent('inicio', 'hero', {
+    eyebrow: $('hero-eyebrow').value.trim(),
+    title: $('hero-title').value.trim(),
+    description: $('hero-description').value.trim(),
+    desktop_image: $('hero-desktop-image').value.trim(),
+    mobile_image: $('hero-mobile-image').value.trim(),
+    image_alt: $('hero-image-alt').value.trim(),
+    primary_button: {
+      text: $('hero-primary-text').value.trim(),
+      url: $('hero-primary-url').value.trim()
+    },
+    secondary_button: {
+      text: $('hero-secondary-text').value.trim(),
+      url: $('hero-secondary-url').value.trim()
+    },
+    meta
+  }, 'hero-msg');
+});
+
+$('form-recent').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  await upsertContent('inicio', 'recent_work', {
+    eyebrow: $('recent-eyebrow').value.trim(),
+    title: $('recent-title').value.trim(),
+    gallery_limit: Number($('recent-limit').value) || 6,
+    button: {
+      text: $('recent-btn-text').value.trim(),
+      url: $('recent-btn-url').value.trim()
+    }
+  }, 'recent-msg');
+});
+
+$('form-sobre').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  await upsertContent('sobre', 'conteudo', {
+    eyebrow: $('sobre-eyebrow').value.trim(),
+    paragraphs: $('sobre-paragraphs').value
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean),
+    specs: collectSpecs(),
+    portrait_url: $('sobre-portrait-url').value.trim(),
+    portrait_alt: $('sobre-portrait-alt').value.trim(),
+    cta_text: $('sobre-cta-text').value.trim(),
+    cta_url: $('sobre-cta-url').value.trim()
+  }, 'sobre-msg');
+});
+
+$('form-contato').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  await upsertContent('contato', 'conteudo', {
+    eyebrow: $('contato-eyebrow').value.trim(),
+    title: $('contato-title').value.trim(),
+    submit_label: $('contato-submit-label').value.trim(),
+    tipos: $('contato-tipos').value
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean),
+    atendimento: $('contato-atendimento').value.trim()
+  }, 'contato-msg');
+});
+
+$('btn-add-spec').addEventListener('click', () => {
+  const c = $('sobre-specs-editor');
+  const div = document.createElement('div');
+  div.className = 'inline-form';
+  div.style.cssText = 'margin-bottom:10px;align-items:flex-end;';
+  div.dataset.specRow = '';
+  div.innerHTML = `
+    <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label"></div>
+    <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value"></div>
+    <button type="button" class="small-btn" data-remove-spec>Remover</button>`;
+  div.querySelector('[data-remove-spec]')
+    .addEventListener('click', () => div.remove());
+  c.appendChild(div);
+});
+
+document.querySelectorAll('#content-tabs .tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('#content-tabs .tab').forEach(t =>
+      t.classList.toggle('active', t === tab)
+    );
+    ['inicio', 'sobre', 'contato'].forEach(p =>
+      $('content-panel-' + p).hidden = p !== tab.dataset.tab
+    );
+  });
+});
+
+/* =========================================================
+   MENSAGENS
+========================================================= */
+
+async function loadMessages() {
+  const list = $('messages-list');
+  list.innerHTML = '';
+
+  const { data, error } = await supabase
+    .from('mensagens')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .catch(() => ({
+      data: null,
+      error: { message: 'tabela-inexistente' }
+    }));
+
+  if (error) {
+    list.innerHTML = `
+      <div class="panel">
+        <p class="section-eyebrow">Tabela ainda não criada</p>
+        <p class="panel-copy">Rode o script SQL de "mensagens" no Supabase para começar a receber mensagens do formulário de contato.</p>
+      </div>`;
+    return;
+  }
+
+  const rows = data || [];
+
+  if (!rows.length) {
+    list.innerHTML = `
+      <div class="panel">
+        <p class="section-eyebrow">Nenhuma mensagem</p>
+        <p class="panel-copy">As mensagens enviadas pelo formulário da página de contato aparecerão aqui.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(m => `
+    <article class="msg-card ${m.lida ? '' : 'nao-lida'}">
+      <div class="msg-card-head">
+        <div>
+          <div class="msg-card-nome">${esc(m.nome)}</div>
+          <div class="msg-card-meta">${esc(m.email || '')}${m.tipo ? ' · ' + esc(m.tipo) : ''}</div>
+        </div>
+        <span class="msg-card-meta">${new Date(m.created_at).toLocaleString('pt-BR')}</span>
+      </div>
+      <p class="msg-card-corpo">${esc(m.mensagem)}</p>
+      <div class="card-actions">
+        ${m.lida ? '' : `<button class="small-btn" data-mark-read="${esc(m.id)}">Marcar como lida</button>`}
+        <button class="small-btn" data-del-msg="${esc(m.id)}">Excluir</button>
+      </div>
+    </article>`).join('');
+
+  list.querySelectorAll('[data-mark-read]').forEach(b =>
+    b.addEventListener('click', () => marcarLida(b.dataset.markRead))
+  );
+  list.querySelectorAll('[data-del-msg]').forEach(b =>
+    b.addEventListener('click', () => excluirMensagem(b.dataset.delMsg))
+  );
+}
+
+async function marcarLida(id) {
+  const { error } = await supabase
+    .from('mensagens')
+    .update({ lida: true })
+    .eq('id', id);
+
+  if (error) {
+    flash('Erro: ' + error.message, 'erro');
+    return;
+  }
+
+  await loadMessages();
+}
+
+async function excluirMensagem(id) {
+  if (!confirm('Excluir esta mensagem?')) return;
+
+  const { error } = await supabase
+    .from('mensagens')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    flash('Erro: ' + error.message, 'erro');
+    return;
+  }
+
+  flash('Mensagem excluída.', 'sucesso');
+  await loadMessages();
 }
 
 

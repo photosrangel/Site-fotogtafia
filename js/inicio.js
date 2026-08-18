@@ -201,6 +201,15 @@ function carregarHero(hero) {
       'hero-title'
     );
 
+  const fallback =
+    document.getElementById(
+      'hero-fallback'
+    );
+
+  if (fallback && hero.title) {
+    fallback.style.display = 'none';
+  }
+
   if (title) {
 
     const texto =

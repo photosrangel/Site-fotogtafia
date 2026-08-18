@@ -22,10 +22,10 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="content">Conteúdo</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="messages">Mensagens</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor">Ver site</a><button id="logout-btn" class="sidebar-link">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
-<section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article></div>
+<section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
 <div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2>Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery">Nova galeria</button></div><p class="panel-copy">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2>Ambiente seguro</h2></div><span class="status-pill online">PROTEGIDO</span></div><p class="panel-copy">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
 <section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" class="btn btn-accent">Nova galeria</button></div>
 <div id="gallery-form-wrap" class="panel" hidden><div class="panel-head"><div><p class="section-eyebrow">Galeria</p><h2 id="gallery-form-title">Nova galeria</h2></div><button class="icon-btn" id="close-gallery-form" type="button">×</button></div>
@@ -49,6 +49,84 @@
 </form>
 </div>
 <div id="sessions-list"></div>
+</section>
+<section id="view-content" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Edite os textos, títulos e imagens de cada página. As mudanças aparecem no site imediatamente, sem precisar mexer em código.</p></div>
+<div class="tabs" id="content-tabs"><button class="tab active" data-tab="inicio">Início</button><button class="tab" data-tab="sobre">Sobre</button><button class="tab" data-tab="contato">Contato</button></div>
+
+<div id="content-panel-inicio" class="content-panel">
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Herói</h2></div></div>
+<form id="form-hero">
+<div class="form-grid">
+<div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow"></div>
+<div class="field"><label for="hero-title">Título</label><input id="hero-title"></div>
+<div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3"></textarea></div>
+<div class="field field-full"><label for="hero-desktop-image">Imagem de fundo (desktop) — URL</label><input id="hero-desktop-image" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-mobile-image">Imagem de fundo (celular) — URL</label><input id="hero-mobile-image" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt"></div>
+<div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text"></div>
+<div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url"></div>
+<div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text"></div>
+<div class="field"><label for="hero-secondary-url">Botão secundário — link</label><input id="hero-secondary-url"></div>
+<div class="field field-full"><label for="hero-meta">Informações do rodapé do herói (uma por linha, formato: Rótulo | Valor)</label><textarea id="hero-meta" rows="3" placeholder="Baseado em | Vale de Cambra, Portugal"></textarea></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar herói</button><span id="hero-msg" class="msg"></span></div>
+</form>
+</div>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Trabalhos recentes</h2></div></div>
+<form id="form-recent">
+<div class="form-grid">
+<div class="field"><label for="recent-eyebrow">Texto acima do título</label><input id="recent-eyebrow"></div>
+<div class="field"><label for="recent-title">Título da seção</label><input id="recent-title"></div>
+<div class="field"><label for="recent-limit">Quantidade de fotos</label><input id="recent-limit" type="number" min="1" max="24"></div>
+<div class="field"><label for="recent-btn-text">Botão — texto</label><input id="recent-btn-text"></div>
+<div class="field"><label for="recent-btn-url">Botão — link</label><input id="recent-btn-url"></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar seção</button><span id="recent-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+
+<div id="content-panel-sobre" class="content-panel" hidden>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Sobre</p><h2>Conteúdo</h2></div></div>
+<form id="form-sobre">
+<div class="form-grid">
+<div class="field"><label for="sobre-eyebrow">Texto acima do título</label><input id="sobre-eyebrow"></div>
+<div class="field field-full"><label for="sobre-paragraphs">Parágrafos (um por linha)</label><textarea id="sobre-paragraphs" rows="6"></textarea></div>
+<div class="field"><label for="sobre-portrait-url">Retrato — URL da imagem</label><input id="sobre-portrait-url"></div>
+<div class="field"><label for="sobre-portrait-alt">Retrato — texto alternativo</label><input id="sobre-portrait-alt"></div>
+<div class="field"><label for="sobre-cta-text">Botão — texto</label><input id="sobre-cta-text"></div>
+<div class="field"><label for="sobre-cta-url">Botão — link</label><input id="sobre-cta-url"></div>
+</div>
+<div class="panel" style="border:none;padding:0;margin:0;">
+<p class="panel-copy">Itens da lista de detalhes (Ex.: Prazo de entrega). "Baseado em", "Especialidade" e "Atende" são preenchidos pelas Configurações do site.</p>
+<div id="sobre-specs-editor"></div>
+<button type="button" class="small-btn" id="btn-add-spec">+ Adicionar item</button>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar página</button><span id="sobre-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+
+<div id="content-panel-contato" class="content-panel" hidden>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Contato</p><h2>Conteúdo</h2></div></div>
+<form id="form-contato">
+<div class="form-grid">
+<div class="field"><label for="contato-eyebrow">Texto acima do título</label><input id="contato-eyebrow"></div>
+<div class="field"><label for="contato-title">Título</label><input id="contato-title"></div>
+<div class="field"><label for="contato-submit-label">Botão do formulário</label><input id="contato-submit-label"></div>
+<div class="field field-full"><label for="contato-tipos">Tipos de sessão (um por linha)</label><textarea id="contato-tipos" rows="5"></textarea></div>
+<div class="field field-full"><label for="contato-atendimento">Texto de atendimento</label><textarea id="contato-atendimento" rows="2"></textarea></div>
+</div>
+<p class="panel-copy">E-mail, WhatsApp e Instagram desta página vêm das Configurações do site.</p>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar página</button><span id="contato-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+</section>
+<section id="view-messages" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Mensagens recebidas pelo formulário da página de contato.</p></div>
+<div id="messages-list"></div>
 </section>
 </main></div>
 <div id="gallery-editor-modal" class="modal" hidden><div class="modal-backdrop" data-close-modal></div><div class="modal-dialog"><div class="modal-head"><div><p class="section-eyebrow">Fotografias</p><h2 id="modal-gallery-title">Galeria</h2></div><button class="icon-btn" data-close-modal type="button">×</button></div><div class="upload-drop"><input id="photo-upload" type="file" multiple accept="image/jpeg,image/png,image/webp"><label for="photo-upload"><strong>Adicionar fotografias</strong><span>JPG, PNG ou WebP</span></label></div><p id="upload-msg" class="msg"></p><div class="photo-toolbar"><span id="photo-count">0 fotografias</span><span class="footer-mono">Clique em uma foto para defini-la como capa</span></div><div id="photo-grid" class="admin-photo-grid"></div></div></div>

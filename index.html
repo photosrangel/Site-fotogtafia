@@ -27,7 +27,7 @@
 
     <div class="container">
 
-      <a href="/inicio" class="nav-logo">
+      <a href="/inicio" class="nav-logo" data-setting="site_name">
         Rangel <em>Santos</em>
       </a>
 
@@ -112,11 +112,11 @@
 
 
       <h1
-       i="hero-title"
-         class="hero-title"
+        id="hero-title"
+        class="hero-title"
       ></h1>
-      
-      <h1 class="hero-title">Você, como <br><em>sempre</em> foi.</h1>
+
+      <h1 id="hero-fallback" class="hero-title">Você, como <br><em>sempre</em> foi.</h1>
 
 
       <p
@@ -227,6 +227,7 @@
       <span
         id="footer-copyright"
         class="footer-mono"
+        data-setting="footer_text"
       >
         © 2026 Rangel Santos — Fotografia
       </span>
@@ -239,6 +240,7 @@
           href="#"
           target="_blank"
           rel="noopener"
+          data-setting="instagram_url"
         >
           Instagram
         </a>
@@ -249,6 +251,7 @@
           href="#"
           target="_blank"
           rel="noopener"
+          data-setting="whatsapp"
         >
           WhatsApp
         </a>
@@ -266,32 +269,12 @@
 
 
   <!-- ============================================
-       SUPABASE
+       SUPABASE / CMS
        ============================================ -->
 
-  <!--
-    MANTENHA AQUI O SEU SCRIPT DO SUPABASE
-    caso ele já esteja no projeto.
-  -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script type="module">
-  import {
-    SUPABASE_URL,
-    SUPABASE_ANON_KEY
-  } from './js/supabase-config.js';
-
-  window.supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
-
-  console.log('CMS: Supabase inicializado');
-
-  window.dispatchEvent(
-    new Event('supabase-ready')
-  );
+  import { initSite } from './js/cms-config.js';
+  initSite();
 </script>
 
 <script type="module" src="./js/inicio.js"></script>

@@ -10,7 +10,7 @@
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
@@ -37,8 +37,6 @@
   </button>
 </div>
 
-    </div>
-
     <div class="grid" id="gallery-grid">
       <!-- Os cards de ensaio são desenhados aqui automaticamente pelo js/gallery.js -->
     </div>
@@ -61,10 +59,10 @@
 
 <footer class="footer">
   <div class="container">
-    <span class="footer-mono">© 2026 Rangel Santos — Fotografia</span>
+    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
     <div class="footer-links footer-mono">
-      <a href="https://instagram.com" target="_blank" rel="noopener">Instagram</a>
-      <a href="https://wa.me/351931159748" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://instagram.com" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a>
       <a href="/area-cliente">Área do Cliente</a>
     </div>
   </div>
@@ -73,5 +71,9 @@
 <script src="js/gallery-data.js"></script>
 <script src="js/gallery.js"></script>
 <script src="js/main.js"></script>
+<script type="module">
+  import { initSite } from './js/cms-config.js';
+  initSite();
+</script>
 </body>
 </html>
