@@ -3,9 +3,7 @@
 // CMS + ÁREA DE CLIENTES
 // ============================================================
 
-import {
-  createClient
-} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 import {
   SUPABASE_URL,
@@ -22,53 +20,69 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
+console.log('ADMIN V2: Supabase inicializado');
+
+
+// ============================================================
+// ELEMENTOS
+// ============================================================
+
+const loginScreen =
+  document.getElementById('login-screen');
+
+const painel =
+  document.getElementById('app');
+
+const loginForm =
+  document.getElementById('login-form');
+
+const loginMsg =
+  document.getElementById('login-msg');
+
 
 // ============================================================
 // ESTADO
 // ============================================================
 
-let currentUser = null;
-let currentGallery = null;
-let openClientDetail = null;
+let detalheAberto = null;
 
 
 // ============================================================
 // UTILITÁRIOS
 // ============================================================
 
-function el(id) {
-  return document.getElementById(id);
-}
+function mostrarMensagem(
+  elemento,
+  texto,
+  tipo = ''
+) {
 
+  if (!elemento) return;
 
-function msg(element, text, type = '') {
+  elemento.textContent = texto;
 
-  if (!element) return;
-
-  element.textContent = text;
-
-  element.className =
-    type
-      ? `msg ${type}`
+  elemento.className =
+    tipo
+      ? `msg ${tipo}`
       : 'msg';
 }
 
 
-function escapeHTML(value) {
+function escaparHTML(valor) {
 
   const div =
     document.createElement('div');
 
   div.textContent =
-    value ?? '';
+    valor ?? '';
 
   return div.innerHTML;
 }
 
 
-function slugify(text) {
+function limparLogin(texto) {
 
-  return String(text || '')
+  return String(texto || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -78,17 +92,7 @@ function slugify(text) {
 }
 
 
-function safeFileName(name) {
-
-  return String(name || 'foto')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9._-]/g, '-')
-    .replace(/-+/g, '-');
-}
-
-
-function randomLogin() {
+function gerarLogin() {
 
   return (
     'cliente-' +
@@ -96,17 +100,27 @@ function randomLogin() {
       .toString(36)
       .slice(2, 8)
   );
-
 }
 
 
-function randomPassword() {
+function gerarSenha() {
 
-  return Math.random()
-    .toString(36)
-    .slice(2, 8)
-    .toUpperCase();
+  return (
+    Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase()
+  );
+}
 
+
+function nomeArquivoSeguro(nome) {
+
+  return String(nome || 'foto')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-');
 }
 
 
@@ -114,2191 +128,956 @@ function randomPassword() {
 // LOGIN
 // ============================================================
 
-async function login(event) {
+async function fazerLogin(event) {
 
   event.preventDefault();
 
-  const message =
-    el('login-msg');
-
-  msg(
-    message,
+  mostrarMensagem(
+    loginMsg,
     'Entrando...'
   );
 
   const email =
-    el('login-email')
-      ?.value
+    document.getElementById(
+      'login-email'
+    )?.value
       .trim();
 
-  const password =
-    el('login-password')
-      ?.value;
+  const senha =
+    document.getElementById(
+      'login-password'
+    )?.value ||
+    document.getElementById(
+      'login-senha'
+    )?.value;
 
-  if (!email || !password) {
+  if (!email || !senha) {
 
-    msg(
-      message,
+    mostrarMensagem(
+      loginMsg,
       'Preencha o e-mail e a senha.',
       'erro'
     );
 
     return;
-
   }
 
-
   const {
-    data,
     error
-  } =
-    await supabase.auth.signInWithPassword({
+  } = await supabase.auth.signInWithPassword({
 
-      email,
+    email,
 
-      password
+    password: senha
 
-    });
-
+  });
 
   if (error) {
 
     console.error(
-      'Erro no login:',
+      'ADMIN V2: erro no login:',
       error
     );
 
-    msg(
-      message,
+    mostrarMensagem(
+      loginMsg,
       'E-mail ou senha incorretos.',
       'erro'
     );
 
     return;
-
   }
 
+  mostrarMensagem(
+    loginMsg,
+    'Login realizado.',
+    'sucesso'
+  );
 
-  currentUser =
-    data.user;
-
-  await showApp();
-
+  await mostrarPainel();
 }
 
 
-// ============================================================
-// VERIFICAR SESSÃO
-// ============================================================
+async function verificarSessao() {
 
-async function checkSession() {
+  console.log(
+    'ADMIN V2: verificando sessão...'
+  );
 
   const {
     data,
     error
-  } =
-    await supabase.auth.getSession();
-
+  } = await supabase.auth.getSession();
 
   if (error) {
 
     console.error(
-      'Erro ao verificar sessão:',
+      'ADMIN V2: erro ao verificar sessão:',
       error
     );
 
     return;
-
   }
-
 
   if (data?.session) {
 
-    currentUser =
-      data.session.user;
-
-    await showApp();
-
-  }
-
-}
-
-
-// ============================================================
-// MOSTRAR PAINEL
-// ============================================================
-
-async function showApp() {
-
-  el('login-screen').style.display =
-    'none';
-
-  el('app').hidden =
-    false;
-
-
-  if (currentUser?.email) {
-
-    el('user-email').textContent =
-      currentUser.email;
-
-  }
-
-
-  showView('dashboard');
-
-  await loadDashboard();
-
-}
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-async function logout() {
-
-  await supabase.auth.signOut();
-
-  window.location.reload();
-
-}
-
-
-// ============================================================
-// NAVEGAÇÃO
-// ============================================================
-
-function showView(view) {
-
-  document
-    .querySelectorAll('.admin-view')
-    .forEach(section => {
-
-      section.hidden =
-        section.id !== `view-${view}`;
-
-    });
-
-
-  document
-    .querySelectorAll('.sidebar-link[data-view]')
-    .forEach(button => {
-
-      button.classList.toggle(
-        'active',
-        button.dataset.view === view
-      );
-
-    });
-
-
-  const titles = {
-
-    dashboard: [
-      'Painel',
-      'Dashboard'
-    ],
-
-    galleries: [
-      'Conteúdo',
-      'Galerias'
-    ],
-
-    clients: [
-      'Clientes',
-      'Clientes / Ensaios'
-    ],
-
-    categories: [
-      'Organização',
-      'Categorias'
-    ],
-
-    settings: [
-      'Site',
-      'Configurações'
-    ]
-
-  };
-
-
-  const title =
-    titles[view] ||
-    titles.dashboard;
-
-
-  el('view-eyebrow').textContent =
-    title[0];
-
-  el('view-title').textContent =
-    title[1];
-
-
-  if (view === 'galleries') {
-
-    loadCategoriesForGallery();
-
-    loadGalleries();
-
-  }
-
-
-  if (view === 'clients') {
-
-    loadClients();
-
-  }
-
-
-  if (view === 'categories') {
-
-    loadCategories();
-
-  }
-
-
-  if (view === 'dashboard') {
-
-    loadDashboard();
-
-  }
-
-}
-
-
-// ============================================================
-// DASHBOARD
-// ============================================================
-
-async function loadDashboard() {
-
-  const [
-    galleriesResult,
-    clientsResult,
-    categoriesResult,
-    photosResult
-  ] =
-    await Promise.all([
-
-      supabase
-        .from('galleries')
-        .select('id,published', {
-          count: 'exact'
-        }),
-
-      supabase
-        .from('ensaios')
-        .select('id', {
-          count: 'exact'
-        }),
-
-      supabase
-        .from('categories')
-        .select('id', {
-          count: 'exact'
-        }),
-
-      supabase
-        .from('gallery_photos')
-        .select('id', {
-          count: 'exact'
-        })
-
-    ]);
-
-
-  if (galleriesResult.error) {
-
-    console.error(
-      galleriesResult.error
+    console.log(
+      'ADMIN V2: sessão encontrada.'
     );
 
+    await mostrarPainel();
+
+  } else {
+
+    console.log(
+      'ADMIN V2: nenhum usuário autenticado.'
+    );
   }
-
-
-  const galleries =
-    galleriesResult.data || [];
-
-
-  el('stat-galleries').textContent =
-    galleriesResult.count ??
-    galleries.length;
-
-
-  el('stat-published').textContent =
-    galleries.filter(
-      item => item.published
-    ).length;
-
-
-  el('stat-clients').textContent =
-    clientsResult.count ?? 0;
-
-
-  el('stat-photos').textContent =
-    photosResult.count ?? 0;
-
-
-  el('stat-categories').textContent =
-    categoriesResult.count ?? 0;
-
 }
 
 
-// ============================================================
-// CATEGORIAS
-// ============================================================
-
-async function loadCategories() {
-
-  const list =
-    el('categories-list');
-
-  if (!list) return;
-
-
-  list.innerHTML =
-    '<p class="msg">Carregando...</p>';
-
+async function fazerLogout() {
 
   const {
-    data,
     error
-  } =
-    await supabase
-      .from('categories')
-      .select('*')
-      .order(
-        'sort_order',
-        {
-          ascending: true
-        }
-      );
-
-
-  if (error) {
-
-    list.innerHTML =
-      `<p class="msg erro">
-        ${escapeHTML(error.message)}
-      </p>`;
-
-    return;
-
-  }
-
-
-  if (!data?.length) {
-
-    list.innerHTML =
-      '<p class="msg">Nenhuma categoria cadastrada.</p>';
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    data
-      .map(category => `
-
-        <div
-          class="category-item"
-          style="
-            display:flex;
-            justify-content:space-between;
-            gap:15px;
-            align-items:center;
-            padding:15px 0;
-            border-bottom:1px solid var(--hairline);
-          "
-        >
-
-          <div>
-
-            <strong>
-              ${escapeHTML(category.name)}
-            </strong>
-
-            <p class="footer-mono">
-              ${escapeHTML(category.slug)}
-            </p>
-
-          </div>
-
-
-          <div
-            style="
-              display:flex;
-              gap:8px;
-              flex-wrap:wrap;
-            "
-          >
-
-            <button
-              class="small-btn"
-              data-edit-category="${category.id}"
-            >
-              Editar
-            </button>
-
-            <button
-              class="small-btn"
-              data-delete-category="${category.id}"
-            >
-              Excluir
-            </button>
-
-          </div>
-
-        </div>
-
-      `)
-      .join('');
-
-
-  list
-    .querySelectorAll('[data-edit-category]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          editCategory(
-            data.find(
-              item =>
-                item.id ===
-                button.dataset.editCategory
-            )
-          )
-      );
-
-    });
-
-
-  list
-    .querySelectorAll('[data-delete-category]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          deleteCategory(
-            button.dataset.deleteCategory
-          )
-      );
-
-    });
-
-}
-
-
-async function loadCategoriesForGallery() {
-
-  const select =
-    el('gallery-category');
-
-  if (!select) return;
-
-
-  const {
-    data,
-    error
-  } =
-    await supabase
-      .from('categories')
-      .select(
-        'id,name'
-      )
-      .eq(
-        'published',
-        true
-      )
-      .order(
-        'sort_order'
-      );
-
+  } = await supabase.auth.signOut();
 
   if (error) {
 
     console.error(
+      'ADMIN V2: erro ao sair:',
       error
     );
 
     return;
-
   }
 
-
-  select.innerHTML =
-    '<option value="">Sem categoria</option>';
-
-
-  (data || [])
-    .forEach(category => {
-
-      const option =
-        document.createElement('option');
-
-      option.value =
-        category.id;
-
-      option.textContent =
-        category.name;
-
-      select.appendChild(
-        option
-      );
-
-    });
-
+  window.location.reload();
 }
 
 
-async function saveCategory(event) {
+async function mostrarPainel() {
+
+  if (loginScreen) {
+
+    loginScreen.hidden = true;
+    loginScreen.style.display = 'none';
+  }
+
+  if (painel) {
+
+    painel.hidden = false;
+    painel.style.display = '';
+  }
+
+  await carregarEnsaios();
+}
+
+
+// ============================================================
+// GERADORES
+// ============================================================
+
+function configurarGeradores() {
+
+  const btnLogin =
+    document.getElementById(
+      'btn-gerar-login'
+    );
+
+  const btnCodigo =
+    document.getElementById(
+      'btn-gerar-codigo'
+    );
+
+  if (btnLogin) {
+
+    btnLogin.addEventListener(
+      'click',
+      () => {
+
+        const campo =
+          document.getElementById(
+            'novo-login'
+          );
+
+        if (campo) {
+          campo.value =
+            gerarLogin();
+        }
+      }
+    );
+  }
+
+  if (btnCodigo) {
+
+    btnCodigo.addEventListener(
+      'click',
+      () => {
+
+        const campo =
+          document.getElementById(
+            'novo-codigo'
+          );
+
+        if (campo) {
+          campo.value =
+            gerarSenha();
+        }
+      }
+    );
+  }
+}
+
+
+// ============================================================
+// CRIAR ENSAIO
+// ============================================================
+
+async function criarEnsaio(event) {
 
   event.preventDefault();
 
+  const form =
+    event.target;
 
-  const id =
-    el('category-id').value;
+  const mensagem =
+    document.getElementById(
+      'novo-ensaio-msg'
+    );
 
+  const titulo =
+    document.getElementById(
+      'novo-titulo'
+    )?.value
+      .trim();
 
-  const payload = {
+  const clienteNome =
+    document.getElementById(
+      'novo-cliente'
+    )?.value
+      .trim();
 
-    name:
-      el('category-name').value.trim(),
+  const categoria =
+    document.getElementById(
+      'novo-categoria'
+    )?.value;
 
-    slug:
-      slugify(
-        el('category-slug').value
-      ),
+  const loginOriginal =
+    document.getElementById(
+      'novo-login'
+    )?.value
+      .trim();
 
-    description:
-      el('category-description').value.trim() ||
-      null,
+  const codigo =
+    document.getElementById(
+      'novo-codigo'
+    )?.value
+      .trim();
 
-    sort_order:
-      Number(
-        el('category-order').value || 0
-      )
+  const slug =
+    limparLogin(
+      loginOriginal
+    );
 
-  };
+  if (!titulo) {
 
-
-  const operation =
-    id
-      ? supabase
-          .from('categories')
-          .update(payload)
-          .eq('id', id)
-
-      : supabase
-          .from('categories')
-          .insert(payload);
-
-
-  const {
-    error
-  } =
-    await operation;
-
-
-  if (error) {
-
-    msg(
-      el('category-msg'),
-      error.message,
+    mostrarMensagem(
+      mensagem,
+      'Digite o título do ensaio.',
       'erro'
     );
 
     return;
-
   }
 
+  if (!slug) {
 
-  msg(
-    el('category-msg'),
-    'Categoria salva.',
+    mostrarMensagem(
+      mensagem,
+      'Digite um login válido para a cliente.',
+      'erro'
+    );
+
+    return;
+  }
+
+  if (!codigo) {
+
+    mostrarMensagem(
+      mensagem,
+      'Digite uma senha para a cliente.',
+      'erro'
+    );
+
+    return;
+  }
+
+  mostrarMensagem(
+    mensagem,
+    'Criando ensaio...'
+  );
+
+  const {
+    error
+  } = await supabase
+    .from('ensaios')
+    .insert({
+
+      titulo,
+
+      cliente_nome:
+        clienteNome || null,
+
+      categoria:
+        categoria || null,
+
+      codigo_acesso:
+        codigo,
+
+      slug,
+
+      status:
+        'aguardando_selecao'
+
+    });
+
+  if (error) {
+
+    console.error(
+      'ADMIN V2: erro ao criar ensaio:',
+      error
+    );
+
+    const textoErro =
+      String(
+        error.message || ''
+      ).toLowerCase();
+
+    if (
+      textoErro.includes('duplicate') ||
+      textoErro.includes('unique')
+    ) {
+
+      mostrarMensagem(
+        mensagem,
+        `O login "${slug}" já está em uso.`,
+        'erro'
+      );
+
+    } else {
+
+      mostrarMensagem(
+        mensagem,
+        'Erro ao criar ensaio: ' +
+        error.message,
+        'erro'
+      );
+    }
+
+    return;
+  }
+
+  mostrarMensagem(
+    mensagem,
+    'Ensaio criado com sucesso!',
     'sucesso'
   );
 
+  form.reset();
 
-  resetCategoryForm();
-
-  await loadCategories();
-
-  await loadCategoriesForGallery();
-
+  await carregarEnsaios();
 }
 
 
-function editCategory(category) {
+// ============================================================
+// CARREGAR ENSAIOS
+// ============================================================
 
-  if (!category) return;
+async function carregarEnsaios() {
 
-  el('category-id').value =
-    category.id;
+  const lista =
+    document.getElementById(
+      'lista-ensaios'
+    );
 
-  el('category-name').value =
-    category.name;
+  if (!lista) {
 
-  el('category-slug').value =
-    category.slug;
-
-  el('category-description').value =
-    category.description || '';
-
-  el('category-order').value =
-    category.sort_order || 0;
-
-  el('cancel-category').hidden =
-    false;
-
-}
-
-
-function resetCategoryForm() {
-
-  el('category-form').reset();
-
-  el('category-id').value =
-    '';
-
-  el('category-order').value =
-    0;
-
-  el('cancel-category').hidden =
-    true;
-
-}
-
-
-async function deleteCategory(id) {
-
-  if (
-    !confirm(
-      'Excluir esta categoria?'
-    )
-  ) return;
-
-
-  const {
-    error
-  } =
-    await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
-
-
-  if (error) {
-
-    alert(
-      'Erro ao excluir: ' +
-      error.message
+    console.log(
+      'ADMIN V2: lista-ensaios não está presente.'
     );
 
     return;
-
   }
 
-
-  await loadCategories();
-
-  await loadCategoriesForGallery();
-
-}
-
-
-// ============================================================
-// GALERIAS
-// ============================================================
-
-async function loadGalleries() {
-
-  const list =
-    el('galleries-list');
-
-  if (!list) return;
-
-
-  list.innerHTML =
-    '<p class="msg">Carregando galerias...</p>';
-
+  lista.innerHTML = `
+    <p class="msg">
+      Carregando ensaios...
+    </p>
+  `;
 
   const {
-    data,
+    data: ensaios,
     error
-  } =
-    await supabase
-      .from('galleries')
-      .select(`
-        id,
-        title,
-        slug,
-        description,
-        category_id,
-        cover_url,
-        published,
-        sort_order,
-        created_at
-      `)
-      .order(
-        'sort_order',
-        {
-          ascending: true
-        }
-      );
-
+  } = await supabase
+    .from('ensaios')
+    .select(`
+      id,
+      slug,
+      titulo,
+      cliente_nome,
+      codigo_acesso,
+      categoria,
+      status,
+      created_at
+    `)
+    .order(
+      'created_at',
+      {
+        ascending: false
+      }
+    );
 
   if (error) {
 
-    list.innerHTML =
-      `<p class="msg erro">
-        ${escapeHTML(error.message)}
-      </p>`;
+    console.error(
+      'ADMIN V2: erro ao carregar ensaios:',
+      error
+    );
+
+    lista.innerHTML = `
+      <p class="msg erro">
+        Erro ao carregar ensaios:
+        ${escaparHTML(error.message)}
+      </p>
+    `;
 
     return;
-
   }
 
+  if (!ensaios || !ensaios.length) {
 
-  if (!data?.length) {
-
-    list.innerHTML =
-      `
-        <div class="empty-state">
-          <p class="msg">
-            Nenhuma galeria criada ainda.
-          </p>
-        </div>
-      `;
+    lista.innerHTML = `
+      <div class="ensaio-card">
+        <p class="msg">
+          Nenhum ensaio cadastrado ainda.
+        </p>
+      </div>
+    `;
 
     return;
-
   }
 
-
-  list.innerHTML =
-    data
-      .map(gallery => `
-
-        <article
-          class="panel"
-          style="margin-bottom:15px;"
-        >
-
-          <div class="panel-head">
-
-            <div>
-
-              <p class="section-eyebrow">
-                ${gallery.published ? 'Publicada' : 'Rascunho'}
-              </p>
-
-              <h2>
-                ${escapeHTML(gallery.title)}
-              </h2>
-
-              <p class="footer-mono">
-                /${escapeHTML(gallery.slug)}
-              </p>
-
-            </div>
-
-
-            <div
-              style="
-                display:flex;
-                gap:8px;
-                flex-wrap:wrap;
-              "
-            >
-
-              <button
-                class="small-btn"
-                data-gallery-photos="${gallery.id}"
-              >
-                Fotos
-              </button>
-
-              <button
-                class="small-btn"
-                data-gallery-edit="${gallery.id}"
-              >
-                Editar
-              </button>
-
-              <button
-                class="small-btn"
-                data-gallery-publish="${gallery.id}"
-              >
-                ${gallery.published ? 'Despublicar' : 'Publicar'}
-              </button>
-
-              <button
-                class="small-btn"
-                data-gallery-delete="${gallery.id}"
-              >
-                Excluir
-              </button>
-
-            </div>
-
-          </div>
-
-        </article>
-
-      `)
+  lista.innerHTML =
+    ensaios
+      .map(
+        ensaioCardHTML
+      )
       .join('');
 
-
-  list
-    .querySelectorAll('[data-gallery-photos]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          openGalleryPhotos(
-            data.find(
-              item =>
-                item.id ===
-                button.dataset.galleryPhotos
-            )
-          )
-      );
-
-    });
-
-
-  list
-    .querySelectorAll('[data-gallery-edit]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          editGallery(
-            data.find(
-              item =>
-                item.id ===
-                button.dataset.galleryEdit
-            )
-          )
-      );
-
-    });
-
-
-  list
-    .querySelectorAll('[data-gallery-publish]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          toggleGalleryPublished(
-            data.find(
-              item =>
-                item.id ===
-                button.dataset.galleryPublish
-            )
-          )
-      );
-
-    });
-
-
-  list
-    .querySelectorAll('[data-gallery-delete]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          deleteGallery(
-            button.dataset.galleryDelete
-          )
-      );
-
-    });
-
-}
-
-
-function openGalleryForm() {
-
-  el('gallery-form-wrap').hidden =
-    false;
-
-  el('gallery-form-title').textContent =
-    'Nova galeria';
-
-  el('gallery-form').reset();
-
-  el('gallery-id').value =
-    '';
-
-  el('gallery-order').value =
-    0;
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-
-}
-
-
-function closeGalleryForm() {
-
-  el('gallery-form-wrap').hidden =
-    true;
-
-}
-
-
-function editGallery(gallery) {
-
-  el('gallery-form-wrap').hidden =
-    false;
-
-  el('gallery-form-title').textContent =
-    'Editar galeria';
-
-  el('gallery-id').value =
-    gallery.id;
-
-  el('gallery-title').value =
-    gallery.title;
-
-  el('gallery-slug').value =
-    gallery.slug;
-
-  el('gallery-category').value =
-    gallery.category_id || '';
-
-  el('gallery-order').value =
-    gallery.sort_order || 0;
-
-  el('gallery-description').value =
-    gallery.description || '';
-
-  el('gallery-cover').value =
-    gallery.cover_url || '';
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-
-}
-
-
-async function saveGallery(event) {
-
-  event.preventDefault();
-
-
-  const id =
-    el('gallery-id').value;
-
-
-  const payload = {
-
-    title:
-      el('gallery-title')
-        .value
-        .trim(),
-
-    slug:
-      slugify(
-        el('gallery-slug').value
-      ),
-
-    description:
-      el('gallery-description')
-        .value
-        .trim() ||
-      null,
-
-    category_id:
-      el('gallery-category').value ||
-      null,
-
-    cover_url:
-      el('gallery-cover')
-        .value
-        .trim() ||
-      null,
-
-    sort_order:
-      Number(
-        el('gallery-order').value || 0
-      )
-
-  };
-
-
-  if (!payload.title) {
-
-    msg(
-      el('gallery-form-msg'),
-      'Digite o título.',
-      'erro'
-    );
-
-    return;
-
-  }
-
-
-  const operation =
-    id
-
-      ? supabase
-          .from('galleries')
-          .update(payload)
-          .eq('id', id)
-
-      : supabase
-          .from('galleries')
-          .insert(payload);
-
-
-  const {
-    error
-  } =
-    await operation;
-
-
-  if (error) {
-
-    msg(
-      el('gallery-form-msg'),
-      error.message,
-      'erro'
-    );
-
-    return;
-
-  }
-
-
-  msg(
-    el('gallery-form-msg'),
-    'Galeria salva.',
-    'sucesso'
-  );
-
-
-  closeGalleryForm();
-
-  await loadGalleries();
-
-  await loadDashboard();
-
-}
-
-
-async function toggleGalleryPublished(gallery) {
-
-  const {
-    error
-  } =
-    await supabase
-      .from('galleries')
-      .update({
-        published:
-          !gallery.published
-      })
-      .eq(
-        'id',
-        gallery.id
-      );
-
-
-  if (error) {
-
-    alert(
-      error.message
-    );
-
-    return;
-
-  }
-
-
-  await loadGalleries();
-
-  await loadDashboard();
-
-}
-
-
-async function deleteGallery(id) {
-
-  if (
-    !confirm(
-      'Excluir esta galeria e todas as suas fotos?'
-    )
-  ) return;
-
-
-  const {
-    error: photosError
-  } =
-    await supabase
-      .from('gallery_photos')
-      .delete()
-      .eq(
-        'gallery_id',
-        id
-      );
-
-
-  if (photosError) {
-
-    alert(
-      'Erro ao excluir fotos: ' +
-      photosError.message
-    );
-
-    return;
-
-  }
-
-
-  const {
-    error
-  } =
-    await supabase
-      .from('galleries')
-      .delete()
-      .eq(
-        'id',
-        id
-      );
-
-
-  if (error) {
-
-    alert(
-      'Erro ao excluir galeria: ' +
-      error.message
-    );
-
-    return;
-
-  }
-
-
-  await loadGalleries();
-
-  await loadDashboard();
-
-}
-
-
-// ============================================================
-// FOTOS DAS GALERIAS PÚBLICAS
-// ============================================================
-
-async function openGalleryPhotos(gallery) {
-
-  currentGallery =
-    gallery;
-
-
-  el('modal-gallery-title')
-    .textContent =
-      gallery.title;
-
-
-  el('gallery-editor-modal')
-    .hidden =
-      false;
-
-
-  await loadGalleryPhotos();
-
-}
-
-
-function closeGalleryModal() {
-
-  el('gallery-editor-modal')
-    .hidden =
-      true;
-
-  currentGallery =
-    null;
-
-}
-
-
-async function loadGalleryPhotos() {
-
-  if (!currentGallery) return;
-
-
-  const grid =
-    el('photo-grid');
-
-
-  grid.innerHTML =
-    '<p class="msg">Carregando fotos...</p>';
-
-
-  const {
-    data,
-    error
-  } =
-    await supabase
-      .from('gallery_photos')
-      .select('*')
-      .eq(
-        'gallery_id',
-        currentGallery.id
-      )
-      .order(
-        'sort_order',
-        {
-          ascending: true
-        }
-      );
-
-
-  if (error) {
-
-    grid.innerHTML =
-      `<p class="msg erro">
-        ${escapeHTML(error.message)}
-      </p>`;
-
-    return;
-
-  }
-
-
-  const photos =
-    data || [];
-
-
-  el('photo-count')
-    .textContent =
-      `${photos.length} fotografia(s)`;
-
-
-  if (!photos.length) {
-
-    grid.innerHTML =
-      '<p class="msg">Nenhuma foto nesta galeria.</p>';
-
-    return;
-
-  }
-
-
-  grid.innerHTML =
-    photos
-      .map(photo => `
-
-        <div
-          class="admin-photo ${
-            currentGallery.cover_url === photo.image_url
-              ? 'cover'
-              : ''
-          }"
-          data-photo-id="${photo.id}"
-        >
-
-          <img
-            src="${escapeHTML(photo.image_url)}"
-            alt="${escapeHTML(photo.alt_text || '')}"
-            loading="lazy"
-          >
-
-          ${
-            currentGallery.cover_url === photo.image_url
-              ? `
-                <span class="admin-photo-cover">
-                  CAPA
-                </span>
-              `
-              : ''
-          }
-
-
-          <button
-            class="admin-photo-delete"
-            type="button"
-            data-delete-photo="${photo.id}"
-          >
-            ×
-          </button>
-
-        </div>
-
-      `)
-      .join('');
-
-
-  grid
-    .querySelectorAll('[data-photo-id]')
-    .forEach(item => {
-
-      item.addEventListener(
-        'click',
-        event => {
-
-          if (
-            event.target.closest(
-              '[data-delete-photo]'
-            )
-          ) return;
-
-          setGalleryCover(
-            item.dataset.photoId,
-            photos
-          );
-
-        }
-      );
-
-    });
-
-
-  grid
-    .querySelectorAll('[data-delete-photo]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        event => {
-
-          event.stopPropagation();
-
-          deleteGalleryPhoto(
-            button.dataset.deletePhoto
-          );
-
-        }
-      );
-
-    });
-
-}
-
-
-async function uploadGalleryPhotos(event) {
-
-  if (!currentGallery) return;
-
-
-  const files =
-    Array.from(
-      event.target.files || []
-    );
-
-
-  if (!files.length) return;
-
-
-  msg(
-    el('upload-msg'),
-    `Enviando ${files.length} foto(s)...`
-  );
-
-
-  let uploaded =
-    0;
-
-  let errors =
-    0;
-
-
-  for (const file of files) {
-
-    try {
-
-      const fileName =
-        `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}-${safeFileName(file.name)}`;
-
-
-      const path =
-        `galerias/${currentGallery.id}/${fileName}`;
-
-
-      const {
-        error: uploadError
-      } =
-        await supabase
-          .storage
-          .from('fotos')
-          .upload(
-            path,
-            file,
-            {
-              upsert: false
-            }
-          );
-
-
-      if (uploadError) {
-
-        console.error(
-          uploadError
+  ensaios.forEach(
+    ensaio => {
+
+      const cabecalho =
+        document.getElementById(
+          `head-${ensaio.id}`
         );
 
-        errors++;
+      if (cabecalho) {
 
-        continue;
-
-      }
-
-
-      const {
-        data: urlData
-      } =
-        supabase
-          .storage
-          .from('fotos')
-          .getPublicUrl(path);
-
-
-      const {
-        error: insertError
-      } =
-        await supabase
-          .from('gallery_photos')
-          .insert({
-
-            gallery_id:
-              currentGallery.id,
-
-            image_url:
-              urlData.publicUrl,
-
-            alt_text:
-              currentGallery.title,
-
-            sort_order:
-              uploaded,
-
-            published:
-              true
-
-          });
-
-
-      if (insertError) {
-
-        console.error(
-          insertError
+        cabecalho.addEventListener(
+          'click',
+          () =>
+            toggleDetail(ensaio)
         );
-
-        errors++;
-
-        continue;
-
       }
-
-
-      uploaded++;
-
-    } catch (error) {
-
-      console.error(
-        error
-      );
-
-      errors++;
-
     }
-
-  }
-
-
-  event.target.value =
-    '';
-
-
-  msg(
-    el('upload-msg'),
-    errors
-      ? `${uploaded} enviada(s), ${errors} com erro.`
-      : `${uploaded} foto(s) enviada(s) com sucesso!`,
-    errors ? 'erro' : 'sucesso'
   );
 
-
-  await loadGalleryPhotos();
-
-  await loadDashboard();
-
-}
-
-
-async function setGalleryCover(
-  photoId,
-  photos
-) {
-
-  const photo =
-    photos.find(
-      item =>
-        item.id === photoId
-    );
-
-
-  if (!photo) return;
-
-
-  const {
-    error
-  } =
-    await supabase
-      .from('galleries')
-      .update({
-        cover_url:
-          photo.image_url
-      })
-      .eq(
-        'id',
-        currentGallery.id
-      );
-
-
-  if (error) {
-
-    alert(
-      error.message
-    );
-
-    return;
-
-  }
-
-
-  currentGallery.cover_url =
-    photo.image_url;
-
-
-  await loadGalleryPhotos();
-
-}
-
-
-async function deleteGalleryPhoto(id) {
-
-  if (
-    !confirm(
-      'Excluir esta fotografia?'
-    )
-  ) return;
-
-
-  const {
-    data: photo,
-    error: findError
-  } =
-    await supabase
-      .from('gallery_photos')
-      .select('*')
-      .eq(
-        'id',
-        id
-      )
-      .single();
-
-
-  if (findError) {
-
-    alert(
-      findError.message
-    );
-
-    return;
-
-  }
-
-
-  const {
-    error
-  } =
-    await supabase
-      .from('gallery_photos')
-      .delete()
-      .eq(
-        'id',
-        id
-      );
-
-
-  if (error) {
-
-    alert(
-      error.message
-    );
-
-    return;
-
-  }
-
-
-  if (
-    currentGallery.cover_url ===
-    photo.image_url
-  ) {
-
-    await supabase
-      .from('galleries')
-      .update({
-        cover_url:
-          null
-      })
-      .eq(
-        'id',
-        currentGallery.id
-      );
-
-    currentGallery.cover_url =
-      null;
-
-  }
-
-
-  await loadGalleryPhotos();
-
+  console.log(
+    'ADMIN V2: ensaios carregados:',
+    ensaios
+  );
 }
 
 
 // ============================================================
-// CLIENTES / ENSAIOS
+// CARD DO ENSAIO
 // ============================================================
 
-async function loadClients() {
-
-  const list =
-    el('clients-list');
-
-  if (!list) return;
-
-
-  list.innerHTML =
-    '<p class="msg">Carregando ensaios...</p>';
-
-
-  const {
-    data,
-    error
-  } =
-    await supabase
-      .from('ensaios')
-      .select(`
-        id,
-        slug,
-        titulo,
-        cliente_nome,
-        codigo_acesso,
-        categoria,
-        status,
-        created_at
-      `)
-      .order(
-        'created_at',
-        {
-          ascending: false
-        }
-      );
-
-
-  if (error) {
-
-    list.innerHTML =
-      `<p class="msg erro">
-        ${escapeHTML(error.message)}
-      </p>`;
-
-    return;
-
-  }
-
-
-  if (!data?.length) {
-
-    list.innerHTML =
-      `
-        <div class="empty-state">
-
-          <p class="msg">
-            Nenhum ensaio cadastrado ainda.
-          </p>
-
-        </div>
-      `;
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    data
-      .map(clientCardHTML)
-      .join('');
-
-
-  data.forEach(ensaio => {
-
-    const header =
-      document.getElementById(
-        `client-head-${ensaio.id}`
-      );
-
-
-    if (header) {
-
-      header.addEventListener(
-        'click',
-        () =>
-          toggleClientDetail(
-            ensaio
-          )
-      );
-
-    }
-
-  });
-
-}
-
-
-function clientCardHTML(ensaio) {
-
-  const status =
-    normalizeClientStatus(
-      ensaio.status
-    );
-
+function ensaioCardHTML(ensaio) {
 
   return `
 
-    <article class="client-card">
+    <div class="ensaio-card">
 
       <div
-        class="client-card-head"
-        id="client-head-${ensaio.id}"
+        class="ensaio-card-head"
+        id="head-${ensaio.id}"
       >
 
-        <div class="client-card-info">
+        <div>
 
-          <strong>
-            ${escapeHTML(ensaio.titulo)}
+          <strong
+            style="
+              font-family:var(--font-display);
+              font-size:1.1rem;
+            "
+          >
+            ${escaparHTML(
+              ensaio.titulo
+            )}
           </strong>
 
-          <p class="footer-mono">
-            ${escapeHTML(
+          <p
+            class="footer-mono"
+            style="margin-top:4px;"
+          >
+            ${escaparHTML(
               ensaio.cliente_nome || ''
             )}
           </p>
 
         </div>
 
-
         <span
-          class="client-status ${status}"
+          class="ensaio-status ${escaparHTML(
+            ensaio.status || ''
+          )}"
         >
-          ${clientStatusLabel(status)}
+          ${statusLabel(
+            ensaio.status
+          )}
         </span>
 
       </div>
 
-
       <div
-        class="client-detail"
-        id="client-detail-${ensaio.id}"
+        class="ensaio-detail"
+        id="detail-${ensaio.id}"
       ></div>
 
-    </article>
+    </div>
 
   `;
-
 }
 
 
-function normalizeClientStatus(status) {
+// ============================================================
+// STATUS
+// ============================================================
 
-  if (
-    status === 'entregue'
-  ) return 'entregue';
+function statusLabel(status) {
 
-
-  if (
-    status === 'selecionado'
-  ) return 'selecionado';
-
-
-  if (
-    status === 'aguardando' ||
-    status === 'aguardando_selecao'
-  ) {
-
-    return 'aguardando_selecao';
-
-  }
-
-
-  return 'aguardando_selecao';
-
-}
-
-
-function clientStatusLabel(status) {
-
-  if (
-    status === 'entregue'
-  ) {
+  if (status === 'entregue') {
 
     return 'Entregue';
-
   }
 
-
   if (
-    status === 'selecionado'
+    status === 'selecionado' ||
+    status === 'aguardando_final'
   ) {
 
     return 'Cliente escolheu';
-
   }
 
-
   return 'Aguardando seleção';
-
 }
 
 
 // ============================================================
-// DETALHES DO CLIENTE
+// DETALHE DO ENSAIO
 // ============================================================
 
-async function toggleClientDetail(ensaio) {
+async function toggleDetail(ensaio) {
 
   const detail =
-    el(
-      `client-detail-${ensaio.id}`
+    document.getElementById(
+      `detail-${ensaio.id}`
     );
-
 
   if (!detail) return;
 
-
-  const wasOpen =
+  const estavaAberto =
     detail.classList.contains(
       'is-open'
     );
 
-
   if (
-    openClientDetail &&
-    openClientDetail !== detail
+    detalheAberto &&
+    detalheAberto !== detail
   ) {
 
-    openClientDetail.classList.remove(
+    detalheAberto.classList.remove(
       'is-open'
     );
-
   }
 
-
-  if (wasOpen) {
+  if (estavaAberto) {
 
     detail.classList.remove(
       'is-open'
     );
 
-    openClientDetail =
-      null;
+    detalheAberto = null;
 
     return;
-
   }
-
 
   detail.classList.add(
     'is-open'
   );
 
-  openClientDetail =
-    detail;
+  detalheAberto = detail;
+
+  await atualizarDetalheEnsaio(
+    ensaio
+  );
+}
 
 
-  detail.innerHTML =
-    '<p class="msg">Carregando...</p>';
+// ============================================================
+// ATUALIZAR DETALHE
+// ============================================================
 
+async function atualizarDetalheEnsaio(
+  ensaio
+) {
+
+  const detail =
+    document.getElementById(
+      `detail-${ensaio.id}`
+    );
+
+  if (!detail) return;
+
+  detail.innerHTML = `
+    <p class="msg">
+      Carregando informações...
+    </p>
+  `;
 
   const {
-    data: photos,
+    data: fotos,
     error
-  } =
-    await supabase
-      .from('fotos')
-      .select(`
-        id,
-        ensaio_id,
-        url,
-        tipo,
-        selecionada,
-        ordem,
-        created_at
-      `)
-      .eq(
-        'ensaio_id',
-        ensaio.id
-      )
-      .order(
-        'ordem',
-        {
-          ascending: true
-        }
-      );
-
+  } = await supabase
+    .from('fotos')
+    .select(`
+      id,
+      ensaio_id,
+      url,
+      tipo,
+      selecionada,
+      ordem,
+      created_at
+    `)
+    .eq(
+      'ensaio_id',
+      ensaio.id
+    )
+    .order(
+      'ordem',
+      {
+        ascending: true,
+        nullsFirst: false
+      }
+    );
 
   if (error) {
 
-    detail.innerHTML =
-      `<p class="msg erro">
-        ${escapeHTML(error.message)}
-      </p>`;
+    console.error(
+      'ADMIN V2: erro ao carregar fotos:',
+      error
+    );
+
+    detail.innerHTML = `
+      <p class="msg erro">
+        Erro ao carregar fotos:
+        ${escaparHTML(error.message)}
+      </p>
+    `;
 
     return;
-
   }
 
+  const todas =
+    fotos || [];
 
   const provas =
-    (photos || [])
-      .filter(
-        photo =>
-          photo.tipo === 'prova'
-      );
-
+    todas.filter(
+      foto =>
+        foto.tipo === 'prova'
+    );
 
   const finais =
-    (photos || [])
-      .filter(
-        photo =>
-          photo.tipo === 'final'
-      );
-
+    todas.filter(
+      foto =>
+        foto.tipo === 'final'
+    );
 
   const selecionadas =
     provas.filter(
-      photo =>
-        photo.selecionada === true
+      foto =>
+        foto.selecionada === true
     );
 
-
   detail.innerHTML =
-    clientDetailHTML(
+    detalhesHTML(
       ensaio,
       provas,
       finais,
       selecionadas
     );
 
-
-  configureClientDetail(
+  configurarDetalhes(
     ensaio
   );
-
 }
 
 
-function clientDetailHTML(
+// ============================================================
+// HTML DETALHES
+// ============================================================
+
+function detalhesHTML(
   ensaio,
   provas,
   finais,
   selecionadas
 ) {
 
-  const link =
+  const linkCliente =
     `${location.origin}/area-cliente`;
 
+  const htmlProvas =
+    provas.length
+
+      ? provas
+          .map(
+            foto =>
+              `
+              <div
+                class="photo-mini ${
+                  foto.selecionada
+                    ? 'selecionada'
+                    : ''
+                }"
+                title="${
+                  foto.selecionada
+                    ? 'Selecionada pela cliente'
+                    : 'Não selecionada'
+                }"
+              >
+
+                <img
+                  src="${escaparHTML(
+                    foto.url
+                  )}"
+                  alt="Foto de prova"
+                  loading="lazy"
+                >
+
+              </div>
+              `
+          )
+          .join('')
+
+      : `
+        <p class="msg">
+          Nenhuma prova enviada ainda.
+        </p>
+      `;
+
+  const htmlFinais =
+    finais.length
+
+      ? finais
+          .map(
+            foto =>
+              `
+              <div class="photo-mini">
+
+                <img
+                  src="${escaparHTML(
+                    foto.url
+                  )}"
+                  alt="Foto final"
+                  loading="lazy"
+                >
+
+              </div>
+              `
+          )
+          .join('')
+
+      : `
+        <p class="msg">
+          Nenhuma foto final enviada ainda.
+        </p>
+      `;
 
   return `
 
     <p class="footer-mono">
-      Dados de acesso da cliente
+      Dados para acesso da cliente:
     </p>
 
+    <div style="margin:10px 0;">
 
-    <div class="client-access-grid">
+      <p
+        class="footer-mono"
+        style="margin-bottom:4px;"
+      >
+        Link da Área do Cliente
+      </p>
 
-      <div class="client-access-item">
-
-        <label>
-          Área do Cliente
-        </label>
-
-        <div class="client-access-value">
-          ${escapeHTML(link)}
-        </div>
-
-      </div>
-
-
-      <div class="client-access-item">
-
-        <label>
-          Login
-        </label>
-
-        <div class="client-access-value">
-          ${escapeHTML(ensaio.slug)}
-        </div>
-
-      </div>
-
-
-      <div class="client-access-item">
-
-        <label>
-          Senha
-        </label>
-
-        <div class="client-access-value">
-          ${escapeHTML(ensaio.codigo_acesso)}
-        </div>
-
+      <div class="link-box">
+        ${escaparHTML(
+          linkCliente
+        )}
       </div>
 
     </div>
 
+    <div style="margin:10px 0;">
+
+      <p
+        class="footer-mono"
+        style="margin-bottom:4px;"
+      >
+        Login
+      </p>
+
+      <div class="link-box">
+        ${escaparHTML(
+          ensaio.slug
+        )}
+      </div>
+
+    </div>
+
+    <div style="margin:10px 0;">
+
+      <p
+        class="footer-mono"
+        style="margin-bottom:4px;"
+      >
+        Senha
+      </p>
+
+      <div class="link-box">
+        ${escaparHTML(
+          ensaio.codigo_acesso
+        )}
+      </div>
+
+    </div>
 
     <button
       type="button"
       class="small-btn"
-      id="copy-client-${ensaio.id}"
+      id="btn-copiar-${ensaio.id}"
     >
       Copiar dados de acesso
     </button>
 
 
+    <!-- ================================================= -->
     <!-- PROVAS -->
+    <!-- ================================================= -->
 
-    <div class="client-photo-section">
+    <p
+      class="footer-mono"
+      style="margin-top:24px;"
+    >
+      Fotos para a cliente escolher
+      (provas)
+      —
+      ${provas.length}
+      enviadas,
+      ${selecionadas.length}
+      selecionadas:
+    </p>
 
-      <p class="footer-mono">
+    <div class="upload-area">
 
-        Fotos para a cliente escolher —
-        ${provas.length}
-        enviadas,
-        ${selecionadas.length}
-        selecionadas
-
-      </p>
-
-
-      <div class="client-upload">
-
-        <input
-          type="file"
-          id="upload-proof-${ensaio.id}"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-        >
-
-        <p class="footer-mono">
-          Selecione uma ou várias fotografias.
-        </p>
-
-      </div>
-
-
-      <div
-        class="client-photo-grid"
-        id="proof-grid-${ensaio.id}"
+      <input
+        type="file"
+        id="upload-prova-${ensaio.id}"
+        multiple
+        accept="image/jpeg,image/png,image/webp"
       >
 
-        ${
-          provas.length
-            ? provas
-                .map(clientPhotoHTML)
-                .join('')
-            : `
-              <p class="msg">
-                Nenhuma prova enviada ainda.
-              </p>
-            `
-        }
-
-      </div>
+      <p
+        class="footer-mono"
+        style="margin-top:8px;"
+      >
+        Selecione uma ou várias fotos.
+      </p>
 
     </div>
 
+    <div
+      class="photo-mini-grid"
+      id="grid-prova-${ensaio.id}"
+    >
+      ${htmlProvas}
+    </div>
 
+
+    <!-- ================================================= -->
     <!-- FINAIS -->
+    <!-- ================================================= -->
 
-    <div class="client-photo-section">
+    <p
+      class="footer-mono"
+      style="margin-top:24px;"
+    >
+      Fotos finais
+      —
+      ${finais.length}
+      enviadas:
+    </p>
 
-      <p class="footer-mono">
+    <div class="upload-area">
 
-        Fotos finais —
-        ${finais.length}
-        enviadas
-
-      </p>
-
-
-      <div class="client-upload">
-
-        <input
-          type="file"
-          id="upload-final-${ensaio.id}"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-        >
-
-        <p class="footer-mono">
-          Fotografias finais para entrega.
-        </p>
-
-      </div>
-
-
-      <div
-        class="client-photo-grid"
-        id="final-grid-${ensaio.id}"
+      <input
+        type="file"
+        id="upload-final-${ensaio.id}"
+        multiple
+        accept="image/jpeg,image/png,image/webp"
       >
 
-        ${
-          finais.length
-            ? finais
-                .map(clientPhotoHTML)
-                .join('')
-            : `
-              <p class="msg">
-                Nenhuma foto final enviada ainda.
-              </p>
-            `
-        }
-
-      </div>
+      <p
+        class="footer-mono"
+        style="margin-top:8px;"
+      >
+        Fotos finais para entrega.
+      </p>
 
     </div>
 
+    <div
+      class="photo-mini-grid"
+      id="grid-final-${ensaio.id}"
+    >
+      ${htmlFinais}
+    </div>
 
+
+    <!-- ================================================= -->
     <!-- AÇÕES -->
+    <!-- ================================================= -->
 
-    <div class="client-actions">
+    <div
+      style="
+        margin-top:20px;
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+      "
+    >
 
       <button
         type="button"
@@ -2307,439 +1086,365 @@ function clientDetailHTML(
             ? ''
             : 'btn-accent'
         }"
-        id="deliver-${ensaio.id}"
-        ${
-          ensaio.status === 'entregue'
-            ? 'disabled'
-            : ''
-        }
+        id="btn-entregar-${ensaio.id}"
       >
-
         ${
           ensaio.status === 'entregue'
             ? 'Já entregue ✓'
             : 'Marcar como entregue'
         }
-
       </button>
-
 
       <button
         type="button"
-        class="btn danger-btn"
-        id="delete-client-${ensaio.id}"
+        class="btn"
+        id="btn-excluir-${ensaio.id}"
+        style="border-color:#8c877e;"
       >
         Excluir permanentemente
       </button>
 
     </div>
 
-
     <p
       class="msg"
-      id="client-msg-${ensaio.id}"
+      id="msg-${ensaio.id}"
     ></p>
 
   `;
-
-}
-
-
-function clientPhotoHTML(photo) {
-
-  return `
-
-    <div
-      class="client-photo ${
-        photo.selecionada
-          ? 'selected'
-          : ''
-      }"
-    >
-
-      <img
-        src="${escapeHTML(photo.url)}"
-        alt="Fotografia"
-        loading="lazy"
-      >
-
-      <span class="client-photo-type">
-        ${escapeHTML(photo.tipo)}
-      </span>
-
-    </div>
-
-  `;
-
 }
 
 
 // ============================================================
-// CONFIGURAR DETALHES CLIENTE
+// CONFIGURAR DETALHES
 // ============================================================
 
-function configureClientDetail(
+function configurarDetalhes(
   ensaio
 ) {
 
-  const proofUpload =
-    el(
-      `upload-proof-${ensaio.id}`
+  const uploadProva =
+    document.getElementById(
+      `upload-prova-${ensaio.id}`
     );
 
-
-  const finalUpload =
-    el(
+  const uploadFinal =
+    document.getElementById(
       `upload-final-${ensaio.id}`
     );
 
-
-  const copyButton =
-    el(
-      `copy-client-${ensaio.id}`
+  const btnCopiar =
+    document.getElementById(
+      `btn-copiar-${ensaio.id}`
     );
 
-
-  const deliverButton =
-    el(
-      `deliver-${ensaio.id}`
+  const btnEntregar =
+    document.getElementById(
+      `btn-entregar-${ensaio.id}`
     );
 
-
-  const deleteButton =
-    el(
-      `delete-client-${ensaio.id}`
+  const btnExcluir =
+    document.getElementById(
+      `btn-excluir-${ensaio.id}`
     );
 
+  if (uploadProva) {
 
-  if (proofUpload) {
-
-    proofUpload.addEventListener(
+    uploadProva.addEventListener(
       'change',
       event =>
-        uploadClientPhotos(
+        uploadFotos(
           event,
           ensaio,
           'prova'
         )
     );
-
   }
 
+  if (uploadFinal) {
 
-  if (finalUpload) {
-
-    finalUpload.addEventListener(
+    uploadFinal.addEventListener(
       'change',
       event =>
-        uploadClientPhotos(
+        uploadFotos(
           event,
           ensaio,
           'final'
         )
     );
-
   }
 
+  if (btnCopiar) {
 
-  if (copyButton) {
-
-    copyButton.addEventListener(
+    btnCopiar.addEventListener(
       'click',
       () =>
-        copyClientAccess(
+        copiarAcesso(
           ensaio,
-          copyButton
+          btnCopiar
         )
     );
-
   }
 
+  if (btnEntregar) {
 
-  if (deliverButton) {
-
-    deliverButton.addEventListener(
+    btnEntregar.addEventListener(
       'click',
       () =>
-        deliverClient(
+        marcarEntregue(
           ensaio
         )
     );
-
   }
 
+  if (btnExcluir) {
 
-  if (deleteButton) {
-
-    deleteButton.addEventListener(
+    btnExcluir.addEventListener(
       'click',
       () =>
-        deleteClient(
+        excluirEnsaio(
           ensaio
         )
     );
-
   }
-
 }
 
 
 // ============================================================
-// CRIAR ENSAIO
+// COPIAR ACESSO
 // ============================================================
 
-async function saveClient(event) {
+async function copiarAcesso(
+  ensaio,
+  botao
+) {
 
-  event.preventDefault();
+  const texto =
+`Acesse em: ${location.origin}/area-cliente
+Login: ${ensaio.slug}
+Senha: ${ensaio.codigo_acesso}`;
 
+  try {
 
-  const message =
-    el('client-form-msg');
-
-
-  const titulo =
-    el('client-title')
-      .value
-      .trim();
-
-
-  const clienteNome =
-    el('client-name')
-      .value
-      .trim();
-
-
-  const categoria =
-    el('client-category')
-      .value;
-
-
-  const login =
-    slugify(
-      el('client-login')
-        .value
+    await navigator.clipboard.writeText(
+      texto
     );
 
+    const textoOriginal =
+      botao.textContent;
 
-  const password =
-    el('client-password')
-      .value
-      .trim();
+    botao.textContent =
+      'Copiado!';
 
+    setTimeout(
+      () => {
 
-  if (!titulo) {
+        botao.textContent =
+          textoOriginal;
 
-    msg(
-      message,
-      'Digite o título do ensaio.',
-      'erro'
+      },
+      2000
     );
 
-    return;
-
-  }
-
-
-  if (!login) {
-
-    msg(
-      message,
-      'Digite um login válido.',
-      'erro'
-    );
-
-    return;
-
-  }
-
-
-  if (!password) {
-
-    msg(
-      message,
-      'Digite uma senha.',
-      'erro'
-    );
-
-    return;
-
-  }
-
-
-  msg(
-    message,
-    'Criando ensaio...'
-  );
-
-
-  const {
-    error
-  } =
-    await supabase
-      .from('ensaios')
-      .insert({
-
-        slug:
-          login,
-
-        titulo:
-          titulo,
-
-        cliente_nome:
-          clienteNome ||
-          null,
-
-        codigo_acesso:
-          password,
-
-        categoria:
-          categoria ||
-          null,
-
-        status:
-          'aguardando_selecao'
-
-      });
-
-
-  if (error) {
+  } catch (error) {
 
     console.error(
+      'ADMIN V2: erro ao copiar:',
       error
     );
 
-
-    if (
-      error.message
-        ?.toLowerCase()
-        .includes('duplicate')
-      ||
-      error.message
-        ?.toLowerCase()
-        .includes('unique')
-    ) {
-
-      msg(
-        message,
-        `O login "${login}" já está em uso.`,
-        'erro'
-      );
-
-    } else {
-
-      msg(
-        message,
-        'Erro ao criar ensaio: ' +
-        error.message,
-        'erro'
-      );
-
-    }
-
-    return;
-
+    mostrarMensagem(
+      document.getElementById(
+        `msg-${ensaio.id}`
+      ),
+      'Não foi possível copiar os dados.',
+      'erro'
+    );
   }
-
-
-  msg(
-    message,
-    'Ensaio criado com sucesso!',
-    'sucesso'
-  );
-
-
-  el('client-form').reset();
-
-  el('client-form-wrap').hidden =
-    true;
-
-
-  await loadClients();
-
-  await loadDashboard();
-
 }
 
 
 // ============================================================
-// UPLOAD CLIENTE
+// UPLOAD DE FOTOS
 // ============================================================
 
-async function uploadClientPhotos(
+async function uploadFotos(
   event,
   ensaio,
   tipo
 ) {
 
-  const files =
+  const arquivos =
     Array.from(
       event.target.files || []
     );
 
+  if (!arquivos.length) {
+    return;
+  }
 
-  if (!files.length) return;
-
-
-  const message =
-    el(
-      `client-msg-${ensaio.id}`
+  const mensagem =
+    document.getElementById(
+      `msg-${ensaio.id}`
     );
 
-
-  msg(
-    message,
-    `Enviando ${files.length} foto(s)...`
+  mostrarMensagem(
+    mensagem,
+    `Iniciando upload de ${arquivos.length} foto(s)...`
   );
 
+  let enviadas = 0;
+  let erros = 0;
 
-  let success =
-    0;
+  for (
+    let i = 0;
+    i < arquivos.length;
+    i++
+  ) {
 
-  let errors =
-    0;
-
-
-  for (const file of files) {
+    const arquivo =
+      arquivos[i];
 
     try {
 
-      const fileName =
-        `${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 7)}-${safeFileName(file.name)}`;
+      console.log(
+        '================================'
+      );
+
+      console.log(
+        'ADMIN V2 — UPLOAD'
+      );
+
+      console.log(
+        'Ensaio:',
+        ensaio.id
+      );
+
+      console.log(
+        'Tipo:',
+        tipo
+      );
+
+      console.log(
+        'Arquivo:',
+        arquivo.name
+      );
+
+      console.log(
+        'Tamanho:',
+        arquivo.size
+      );
+
+      console.log(
+        'Tipo MIME:',
+        arquivo.type
+      );
 
 
-      const path =
-        `${ensaio.id}/${tipo}/${fileName}`;
-
+      // ------------------------------------------------------
+      // SESSÃO
+      // ------------------------------------------------------
 
       const {
+        data: sessionData,
+        error: sessionError
+      } =
+        await supabase.auth.getSession();
+
+      console.log(
+        'Sessão:',
+        sessionData?.session
+          ? 'AUTENTICADO'
+          : 'NÃO AUTENTICADO'
+      );
+
+      if (sessionError) {
+
+        throw sessionError;
+      }
+
+      if (!sessionData?.session) {
+
+        throw new Error(
+          'Usuário não está autenticado no Supabase.'
+        );
+      }
+
+
+      // ------------------------------------------------------
+      // CAMINHO
+      // ------------------------------------------------------
+
+      const nomeSeguro =
+        nomeArquivoSeguro(
+          arquivo.name
+        );
+
+      const identificador =
+        `${Date.now()}-${crypto.randomUUID()}`;
+
+      const caminho =
+        `${ensaio.id}/${tipo}/${identificador}-${nomeSeguro}`;
+
+      console.log(
+        'Caminho Storage:',
+        caminho
+      );
+
+
+      // ------------------------------------------------------
+      // UPLOAD STORAGE
+      // ------------------------------------------------------
+
+      mostrarMensagem(
+        mensagem,
+        `Enviando foto ${i + 1} de ${arquivos.length}...`
+      );
+
+      const {
+        data: uploadData,
         error: uploadError
       } =
         await supabase
           .storage
           .from('fotos')
           .upload(
-            path,
-            file,
+            caminho,
+            arquivo,
             {
-              upsert: false
+              cacheControl: '3600',
+              upsert: false,
+              contentType:
+                arquivo.type
             }
           );
 
+      console.log(
+        'Resultado Storage:',
+        uploadData
+      );
+
+      console.log(
+        'Erro Storage:',
+        uploadError
+      );
 
       if (uploadError) {
 
         console.error(
+          'UPLOAD STORAGE FALHOU:',
           uploadError
         );
 
-        errors++;
-
-        continue;
-
+        throw new Error(
+          `Storage: ${uploadError.message}`
+        );
       }
 
+
+      // ------------------------------------------------------
+      // URL
+      // ------------------------------------------------------
 
       const {
         data: urlData
@@ -2748,23 +1453,29 @@ async function uploadClientPhotos(
           .storage
           .from('fotos')
           .getPublicUrl(
-            path
+            caminho
           );
 
+      console.log(
+        'URL:',
+        urlData?.publicUrl
+      );
 
-      if (
-        !urlData?.publicUrl
-      ) {
+      if (!urlData?.publicUrl) {
 
-        errors++;
-
-        continue;
-
+        throw new Error(
+          'Supabase não retornou uma URL pública.'
+        );
       }
 
 
+      // ------------------------------------------------------
+      // INSERT NA TABELA FOTOS
+      // ------------------------------------------------------
+
       const {
-        error: insertError
+        data: fotoData,
+        error: fotoError
       } =
         await supabase
           .from('fotos')
@@ -2785,124 +1496,119 @@ async function uploadClientPhotos(
             ordem:
               Date.now()
 
-          });
+          })
+          .select()
+          .single();
 
+      console.log(
+        'Registro criado em fotos:',
+        fotoData
+      );
 
-      if (insertError) {
+      console.log(
+        'Erro tabela fotos:',
+        fotoError
+      );
+
+      if (fotoError) {
 
         console.error(
-          insertError
+          'INSERT NA TABELA FOTOS FALHOU:',
+          fotoError
         );
 
-        errors++;
+        // Remove o arquivo do Storage
+        // se o banco falhar.
 
-        continue;
+        await supabase
+          .storage
+          .from('fotos')
+          .remove([
+            caminho
+          ]);
 
+        throw new Error(
+          `Banco fotos: ${fotoError.message}`
+        );
       }
 
+      enviadas++;
 
-      success++;
-
-
-      await new Promise(
-        resolve =>
-          setTimeout(
-            resolve,
-            5
-          )
+      console.log(
+        'FOTO COMPLETA:',
+        arquivo.name
       );
 
     } catch (error) {
 
+      erros++;
+
       console.error(
+        'ERRO FINAL DA FOTO:',
         error
       );
 
-      errors++;
-
+      mostrarMensagem(
+        mensagem,
+        `Erro na foto "${arquivo.name}": ${error.message}`,
+        'erro'
+      );
     }
+  }
 
+  // Limpar input
+  event.target.value = '';
+
+
+  // ----------------------------------------------------------
+  // RESULTADO
+  // ----------------------------------------------------------
+
+  if (erros === 0) {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} foto(s) enviada(s) com sucesso!`,
+      'sucesso'
+    );
+
+  } else if (enviadas > 0) {
+
+    mostrarMensagem(
+      mensagem,
+      `${enviadas} enviada(s) e ${erros} com erro.`,
+      'erro'
+    );
+
+  } else {
+
+    mostrarMensagem(
+      mensagem,
+      'Nenhuma foto foi enviada. Verifique o Console do navegador.',
+      'erro'
+    );
   }
 
 
-  event.target.value =
-    '';
-
-
-  msg(
-    message,
-    errors
-      ? `${success} enviada(s), ${errors} com erro.`
-      : `${success} foto(s) enviada(s) com sucesso!`,
-    errors
-      ? 'erro'
-      : 'sucesso'
+  // Atualizar ensaio
+  await atualizarDetalheEnsaio(
+    ensaio
   );
-
-
-  await loadClients();
-
 }
 
 
 // ============================================================
-// COPIAR ACESSO
+// MARCAR COMO ENTREGUE
 // ============================================================
 
-async function copyClientAccess(
-  ensaio,
-  button
-) {
-
-  const text =
-`Acesse em: ${location.origin}/area-cliente
-Login: ${ensaio.slug}
-Senha: ${ensaio.codigo_acesso}`;
-
-
-  try {
-
-    await navigator.clipboard.writeText(
-      text
-    );
-
-
-    const original =
-      button.textContent;
-
-
-    button.textContent =
-      'Copiado!';
-
-
-    setTimeout(
-      () => {
-
-        button.textContent =
-          original;
-
-      },
-      2000
-    );
-
-  } catch (error) {
-
-    console.error(
-      error
-    );
-
-  }
-
-}
-
-
-// ============================================================
-// ENTREGAR
-// ============================================================
-
-async function deliverClient(
+async function marcarEntregue(
   ensaio
 ) {
+
+  const mensagem =
+    document.getElementById(
+      `msg-${ensaio.id}`
+    );
 
   if (
     ensaio.status ===
@@ -2910,32 +1616,21 @@ async function deliverClient(
   ) {
 
     return;
-
   }
 
-
-  if (
-    !confirm(
+  const confirmar =
+    window.confirm(
       `Marcar "${ensaio.titulo}" como entregue?`
-    )
-  ) {
-
-    return;
-
-  }
-
-
-  const message =
-    el(
-      `client-msg-${ensaio.id}`
     );
 
+  if (!confirmar) {
+    return;
+  }
 
-  msg(
-    message,
-    'Atualizando...'
+  mostrarMensagem(
+    mensagem,
+    'Atualizando ensaio...'
   );
-
 
   const {
     error
@@ -2953,98 +1648,97 @@ async function deliverClient(
         ensaio.id
       );
 
-
   if (error) {
 
-    msg(
-      message,
+    console.error(
+      'ADMIN V2: erro ao marcar entregue:',
+      error
+    );
+
+    mostrarMensagem(
+      mensagem,
+      'Erro: ' +
       error.message,
       'erro'
     );
 
     return;
-
   }
 
-
-  msg(
-    message,
-    'Ensaio marcado como entregue.',
+  mostrarMensagem(
+    mensagem,
+    'Ensaio marcado como entregue!',
     'sucesso'
   );
 
-
-  await loadClients();
-
+  await carregarEnsaios();
 }
 
 
 // ============================================================
-// APAGAR STORAGE DO CLIENTE
+// APAGAR ARQUIVOS DO STORAGE
 // ============================================================
 
-async function deleteClientStorage(
+async function apagarArquivosStorage(
   ensaioId
 ) {
 
   for (
-    const type
-    of ['prova', 'final']
+    const tipo of [
+      'prova',
+      'final'
+    ]
   ) {
 
-    const folder =
-      `${ensaioId}/${type}`;
-
+    const pasta =
+      `${ensaioId}/${tipo}`;
 
     const {
-      data: files,
+      data: arquivos,
       error
     } =
       await supabase
         .storage
         .from('fotos')
         .list(
-          folder,
+          pasta,
           {
             limit: 1000
           }
         );
 
-
     if (error) {
 
       console.error(
+        `ADMIN V2: erro ao listar ${pasta}:`,
         error
       );
 
       continue;
-
     }
 
-
     if (
-      !files?.length
+      !arquivos ||
+      !arquivos.length
     ) {
 
       continue;
-
     }
 
-
-    const paths =
-      files
+    const caminhos =
+      arquivos
         .filter(
-          file =>
-            file.name
+          arquivo =>
+            arquivo.name
         )
         .map(
-          file =>
-            `${folder}/${file.name}`
+          arquivo =>
+            `${pasta}/${arquivo.name}`
         );
 
-
-    if (!paths.length) continue;
-
+    if (!caminhos.length) {
+      continue;
+    }
 
     const {
       error: removeError
@@ -3053,65 +1747,65 @@ async function deleteClientStorage(
         .storage
         .from('fotos')
         .remove(
-          paths
+          caminhos
         );
-
 
     if (removeError) {
 
       console.error(
+        `ADMIN V2: erro ao apagar arquivos de ${pasta}:`,
         removeError
       );
-
     }
-
   }
-
 }
 
 
 // ============================================================
-// EXCLUIR CLIENTE
+// EXCLUIR ENSAIO
 // ============================================================
 
-async function deleteClient(
+async function excluirEnsaio(
   ensaio
 ) {
 
-  const confirmDelete =
-    confirm(
+  const confirmar =
+    window.confirm(
       `Tem certeza que deseja excluir "${ensaio.titulo}"?\n\n` +
-      `Isso apagará o ensaio, as provas e as fotos finais.\n\n` +
+      `Isso apagará o ensaio, as fotos de prova e as fotos finais.\n\n` +
       `Esta ação não pode ser desfeita.`
     );
 
+  if (!confirmar) {
+    return;
+  }
 
-  if (!confirmDelete) return;
-
-
-  const message =
-    el(
-      `client-msg-${ensaio.id}`
+  const mensagem =
+    document.getElementById(
+      `msg-${ensaio.id}`
     );
 
-
-  msg(
-    message,
+  mostrarMensagem(
+    mensagem,
     'Excluindo ensaio...'
   );
 
 
+  // ----------------------------------------------------------
   // STORAGE
+  // ----------------------------------------------------------
 
-  await deleteClientStorage(
+  await apagarArquivosStorage(
     ensaio.id
   );
 
 
-  // FOTOS
+  // ----------------------------------------------------------
+  // BANCO — FOTOS
+  // ----------------------------------------------------------
 
   const {
-    error: photosError
+    error: fotosError
   } =
     await supabase
       .from('fotos')
@@ -3121,22 +1815,27 @@ async function deleteClient(
         ensaio.id
       );
 
+  if (fotosError) {
 
-  if (photosError) {
+    console.error(
+      'ADMIN V2: erro ao apagar fotos:',
+      fotosError
+    );
 
-    msg(
-      message,
-      'Erro ao apagar fotos: ' +
-      photosError.message,
+    mostrarMensagem(
+      mensagem,
+      'Erro ao apagar as fotos: ' +
+      fotosError.message,
       'erro'
     );
 
     return;
-
   }
 
 
-  // ENSAIO
+  // ----------------------------------------------------------
+  // BANCO — ENSAIO
+  // ----------------------------------------------------------
 
   const {
     error: ensaioError
@@ -3149,280 +1848,95 @@ async function deleteClient(
         ensaio.id
       );
 
-
   if (ensaioError) {
 
-    msg(
-      message,
+    console.error(
+      'ADMIN V2: erro ao apagar ensaio:',
+      ensaioError
+    );
+
+    mostrarMensagem(
+      mensagem,
       'Erro ao apagar ensaio: ' +
       ensaioError.message,
       'erro'
     );
 
     return;
+  }
 
+  console.log(
+    'ADMIN V2: ensaio excluído:',
+    ensaio.id
+  );
+
+  await carregarEnsaios();
+}
+
+
+// ============================================================
+// EVENTOS
+// ============================================================
+
+function configurarEventos() {
+
+  // ----------------------------------------------------------
+  // LOGIN
+  // ----------------------------------------------------------
+
+  if (loginForm) {
+
+    loginForm.addEventListener(
+      'submit',
+      fazerLogin
+    );
   }
 
 
-  await loadClients();
-
-  await loadDashboard();
-
-}
-
-
-// ============================================================
-// FORMULÁRIOS
-// ============================================================
-
-function openClientForm() {
-
-  el('client-form-wrap').hidden =
-    false;
-
-  el('client-form').reset();
-
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-
-}
-
-
-function closeClientForm() {
-
-  el('client-form-wrap').hidden =
-    true;
-
-}
-
-
-function configureForms() {
-
-  // GALERIA
-
-  el('new-gallery-btn')
-    ?.addEventListener(
-      'click',
-      openGalleryForm
-    );
-
-
-  el('close-gallery-form')
-    ?.addEventListener(
-      'click',
-      closeGalleryForm
-    );
-
-
-  el('cancel-gallery-form')
-    ?.addEventListener(
-      'click',
-      closeGalleryForm
-    );
-
-
-  el('gallery-form')
-    ?.addEventListener(
-      'submit',
-      saveGallery
-    );
-
-
-  // CLIENTE
-
-  el('new-client-btn')
-    ?.addEventListener(
-      'click',
-      openClientForm
-    );
-
-
-  el('close-client-form')
-    ?.addEventListener(
-      'click',
-      closeClientForm
-    );
-
-
-  el('cancel-client-form')
-    ?.addEventListener(
-      'click',
-      closeClientForm
-    );
-
-
-  el('client-form')
-    ?.addEventListener(
-      'submit',
-      saveClient
-    );
-
-
-  // LOGIN
-
-  el('login-form')
-    ?.addEventListener(
-      'submit',
-      login
-    );
-
-
+  // ----------------------------------------------------------
   // LOGOUT
+  // ----------------------------------------------------------
 
-  el('logout-btn')
-    ?.addEventListener(
-      'click',
-      logout
+  const btnLogout =
+    document.getElementById(
+      'logout-btn'
+    ) ||
+    document.getElementById(
+      'btn-logout'
     );
 
+  if (btnLogout) {
 
-  // CATEGORIA
+    btnLogout.addEventListener(
+      'click',
+      fazerLogout
+    );
+  }
 
-  el('category-form')
-    ?.addEventListener(
+
+  // ----------------------------------------------------------
+  // NOVO ENSAIO
+  // ----------------------------------------------------------
+
+  const formNovoEnsaio =
+    document.getElementById(
+      'form-novo-ensaio'
+    );
+
+  if (formNovoEnsaio) {
+
+    formNovoEnsaio.addEventListener(
       'submit',
-      saveCategory
+      criarEnsaio
     );
+  }
 
 
-  el('cancel-category')
-    ?.addEventListener(
-      'click',
-      resetCategoryForm
-    );
-
-
+  // ----------------------------------------------------------
   // GERADORES
+  // ----------------------------------------------------------
 
-  el('generate-client-login')
-    ?.addEventListener(
-      'click',
-      () => {
-
-        el('client-login').value =
-          randomLogin();
-
-      }
-    );
-
-
-  el('generate-client-password')
-    ?.addEventListener(
-      'click',
-      () => {
-
-        el('client-password').value =
-          randomPassword();
-
-      }
-    );
-
-
-  // FOTO GALERIA
-
-  el('photo-upload')
-    ?.addEventListener(
-      'change',
-      uploadGalleryPhotos
-    );
-
-
-  // MODAL
-
-  document
-    .querySelectorAll('[data-close-modal]')
-    .forEach(element => {
-
-      element.addEventListener(
-        'click',
-        closeGalleryModal
-      );
-
-    });
-
-
-  // SLUG AUTOMÁTICO
-
-  el('gallery-title')
-    ?.addEventListener(
-      'input',
-      event => {
-
-        const slug =
-          el('gallery-slug');
-
-        if (
-          !el('gallery-id').value &&
-          slug
-        ) {
-
-          slug.value =
-            slugify(
-              event.target.value
-            );
-
-        }
-
-      }
-    );
-
-
-  el('category-name')
-    ?.addEventListener(
-      'input',
-      event => {
-
-        const slug =
-          el('category-slug');
-
-        if (
-          !el('category-id').value &&
-          slug
-        ) {
-
-          slug.value =
-            slugify(
-              event.target.value
-            );
-
-        }
-
-      }
-    );
-
-}
-
-
-// ============================================================
-// NAVEGAÇÃO
-// ============================================================
-
-function configureNavigation() {
-
-  document
-    .querySelectorAll('[data-view]')
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        () => {
-
-          const view =
-            button.dataset.view;
-
-          if (view) {
-
-            showView(view);
-
-          }
-
-        }
-      );
-
-    });
-
+  configurarGeradores();
 }
 
 
@@ -3430,23 +1944,38 @@ function configureNavigation() {
 // INICIALIZAÇÃO
 // ============================================================
 
-async function init() {
+async function iniciarAdmin() {
 
   console.log(
-    'ADMIN V2 iniciado'
+    'ADMIN V2: iniciando painel...'
   );
 
+  configurarEventos();
 
-  configureForms();
+  await verificarSessao();
 
-  configureNavigation();
-
-  await checkSession();
-
+  console.log(
+    'ADMIN V2: painel inicializado.'
+  );
 }
 
 
-document.addEventListener(
-  'DOMContentLoaded',
-  init
-);
+// ============================================================
+// DOM READY
+// ============================================================
+
+if (
+  document.readyState ===
+  'loading'
+) {
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    iniciarAdmin
+  );
+
+} else {
+
+  iniciarAdmin();
+
+}
