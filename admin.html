@@ -313,13 +313,13 @@ async function toggleDetail(ens) {
 
   const linkWhatsSelecao = ens.cliente_telefone
     ? `https://wa.me/${ens.cliente_telefone}?text=${encodeURIComponent(
-        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas 📸\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
+        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
       )}`
     : null;
 
   const linkWhatsEntrega = ens.cliente_telefone
     ? `https://wa.me/${ens.cliente_telefone}?text=${encodeURIComponent(
-        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos finais já estão prontas para download 🤍\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
+        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos finais já estão prontas para download! \n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
       )}`
     : null;
 
