@@ -858,6 +858,20 @@ function renderGalleries() {
     </article>
   `).join('');
 
+  // Abre a galeria ao clicar no cartão inteiro, como já acontece em Ensaios.
+  c.querySelectorAll('.gallery-admin-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (
+        e.target.closest('button') ||
+        e.target.closest('a') ||
+        e.target.closest('.gallery-drag-handle')
+      ) {
+        return;
+      }
+      openGalleryModal(card.dataset.galleryId);
+    });
+  });
+
   c.querySelectorAll('[data-photos]').forEach(b => {
     b.addEventListener('click', e => {
       e.stopPropagation();
@@ -3213,7 +3227,12 @@ async function loadSessions() {
     sessionsCache = sessionsCache.map(s => {
       const photosForSession = bySession.get(s.id) || [];
 
-      const coverPhoto =
+      const explicitlySelectedCover =
+        s.capa_foto_id
+          ? photosForSession.find(p => p.id === s.capa_foto_id)
+          : null;
+
+      const fallbackCover =
         [...photosForSession]
           .sort((a, b) => {
             const ao = Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 999999;
@@ -3224,6 +3243,8 @@ async function loadSessions() {
         photosForSession.find(p => p.tipo === 'final') ||
         photosForSession[0] ||
         null;
+
+      const coverPhoto = explicitlySelectedCover || fallbackCover;
 
       return {
         ...s,
@@ -3393,22 +3414,33 @@ function renderSessionDetail() {
   $('prova-count').textContent = provas.length;
   $('final-count').textContent = finais.length;
 
-  const coverPhotoId = currentSessionPhotos
+  const fallbackCoverPhotoId = currentSessionPhotos
     .slice()
     .sort((a, b) => Number(a.ordem ?? 999999) - Number(b.ordem ?? 999999))[0]?.id || null;
 
+  // A capa agora é independente da ordem das fotografias.
+  // Se a coluna capa_foto_id ainda não existir, usamos a primeira foto como fallback visual.
+  const coverPhotoId = currentSession.capa_foto_id || fallbackCoverPhotoId;
+
   $('prova-grid').innerHTML = provas.length
     ? provas.map((f, i) => `
-        <div class="session-photo ${f.selecionada ? 'selecionada' : ''} ${f.id === coverPhotoId ? 'session-photo-cover' : ''}" data-session-photo-id="${attr(f.id)}">
+        <div
+          class="session-photo ${f.selecionada ? 'selecionada' : ''} ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
+          data-session-photo-id="${attr(f.id)}"
+          draggable="true"
+          title="Arraste para mudar a posição"
+        >
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
           <span class="photo-order">${numero(i)}</span>
-          <button
-            class="small-btn session-cover-btn"
-            data-set-session-cover="${attr(f.id)}"
-            title="Definir esta foto como capa do ensaio"
-            type="button"
-          >${f.id === coverPhotoId ? '✓ CAPA' : 'CAPA'}</button>
+          ${f.id !== coverPhotoId ? `
+            <button
+              class="small-btn session-cover-btn"
+              data-set-session-cover="${attr(f.id)}"
+              title="Usar esta fotografia como capa do ensaio"
+              type="button"
+            >Definir capa</button>
+          ` : ''}
           <button
             class="photo-delete session-photo-delete"
             data-delete-session-photo="${attr(f.id)}"
@@ -3432,22 +3464,32 @@ function renderSessionDetail() {
     });
   });
 
+  configurarOrdenacaoFotosEnsaio($('prova-grid'));
+
   const numerosSelecionados = selecionadas.map(f => numero(provas.indexOf(f))).join(', ');
   $('selecionadas-box').innerHTML = selecionadas.length
     ? `<div class="session-select-box"><p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${selecionadas.length}):</p><p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);">${esc(numerosSelecionados.replaceAll(', ', '.cr3, ') + '.cr3')}</p></div>`
     : '';
 
   $('final-grid').innerHTML = finais.length
-    ? finais.map(f => `
-        <div class="session-photo ${f.id === coverPhotoId ? 'session-photo-cover' : ''}">
+    ? finais.map((f, i) => `
+        <div
+          class="session-photo ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
+          data-session-photo-id="${attr(f.id)}"
+          draggable="true"
+          title="Arraste para mudar a posição"
+        >
           <img src="${attr(f.url)}" alt="" loading="lazy">
           ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
-          <button
-            class="small-btn session-cover-btn"
-            data-set-session-cover="${attr(f.id)}"
-            title="Definir esta foto como capa do ensaio"
-            type="button"
-          >${f.id === coverPhotoId ? '✓ CAPA' : 'CAPA'}</button>
+          <span class="photo-order">${numero(i)}</span>
+          ${f.id !== coverPhotoId ? `
+            <button
+              class="small-btn session-cover-btn"
+              data-set-session-cover="${attr(f.id)}"
+              title="Usar esta fotografia como capa do ensaio"
+              type="button"
+            >Definir capa</button>
+          ` : ''}
         </div>`).join('')
     : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
 
@@ -3457,6 +3499,8 @@ function renderSessionDetail() {
       definirCapaEnsaio(button.dataset.setSessionCover);
     });
   });
+
+  configurarOrdenacaoFotosEnsaio($('final-grid'));
 
   const linkWhatsSelecao = s.cliente_telefone
     ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
@@ -3489,6 +3533,99 @@ function renderSessionDetail() {
   msg($('session-msg'), '');
 }
 
+
+function configurarOrdenacaoFotosEnsaio(grid) {
+  if (!grid) return;
+
+  let dragging = null;
+
+  grid.querySelectorAll('.session-photo[data-session-photo-id]').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      if (
+        e.target.closest('button') ||
+        e.target.closest('a')
+      ) {
+        e.preventDefault();
+        return;
+      }
+
+      dragging = card;
+      card.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.sessionPhotoId);
+    });
+
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragging || dragging === card) return;
+
+      const rect = card.getBoundingClientRect();
+      const after =
+        e.clientY > rect.top + rect.height / 2 ||
+        (
+          Math.abs(e.clientY - (rect.top + rect.height / 2)) < rect.height * .35 &&
+          e.clientX > rect.left + rect.width / 2
+        );
+
+      grid.insertBefore(dragging, after ? card.nextSibling : card);
+      card.classList.add('drag-over');
+    });
+
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+    });
+
+    card.addEventListener('dragend', async () => {
+      card.classList.remove('is-dragging');
+      grid.querySelectorAll('.session-photo').forEach(el => el.classList.remove('drag-over'));
+      dragging = null;
+      await salvarOrdemFotosEnsaio(grid);
+    });
+  });
+}
+
+async function salvarOrdemFotosEnsaio(grid) {
+  if (!currentSession || !grid) return;
+
+  const ids = [...grid.querySelectorAll('.session-photo[data-session-photo-id]')]
+    .map(el => el.dataset.sessionPhotoId);
+
+  if (!ids.length) return;
+
+  const results = await Promise.all(
+    ids.map((id, index) =>
+      supabase
+        .from('fotos')
+        .update({ ordem: index })
+        .eq('id', id)
+        .eq('ensaio_id', currentSession.id)
+    )
+  );
+
+  const failed = results.find(r => r.error);
+
+  if (failed) {
+    flash(`Erro ao salvar a nova ordem: ${failed.error.message}`, 'erro');
+    await loadSessionPhotos();
+    return;
+  }
+
+  // Atualiza os números sem recarregar o modal inteiro.
+  grid.querySelectorAll('.session-photo[data-session-photo-id]').forEach((el, index) => {
+    const order = el.querySelector('.photo-order');
+    if (order) order.textContent = numero(index);
+  });
+
+  await loadSessionPhotos();
+  await loadSessions();
+  flash('Ordem das fotografias atualizada.', 'sucesso');
+}
+
 async function definirCapaEnsaio(id) {
   if (!currentSession) return;
 
@@ -3498,32 +3635,30 @@ async function definirCapaEnsaio(id) {
     return;
   }
 
-  const ordenadas = currentSessionPhotos
-    .slice()
-    .sort((a, b) => {
-      const ao = Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 999999;
-      const bo = Number.isFinite(Number(b.ordem)) ? Number(b.ordem) : 999999;
-      return ao - bo;
-    });
+  const { data, error } = await supabase
+    .from('ensaios')
+    .update({ capa_foto_id: id })
+    .eq('id', currentSession.id)
+    .select('*')
+    .single();
 
-  const resto = ordenadas.filter(f => f.id !== id);
-  const updates = [
-    supabase.from('fotos').update({ ordem: -1 }).eq('id', id),
-    ...resto.map((f, index) =>
-      supabase.from('fotos').update({ ordem: index }).eq('id', f.id)
-    )
-  ];
+  if (error) {
+    const columnMissing =
+      /capa_foto_id|column .* does not exist|schema cache/i.test(error.message || '');
 
-  const results = await Promise.all(updates);
-  const failed = results.find(r => r.error);
+    if (columnMissing) {
+      flash('Falta ativar a coluna de capa dos ensaios no Supabase. Execute o arquivo SQL incluído neste pacote.', 'erro');
+      return;
+    }
 
-  if (failed) {
-    flash(`Erro ao definir capa: ${failed.error.message}`, 'erro');
+    flash(`Erro ao definir capa: ${error.message}`, 'erro');
     return;
   }
 
+  currentSession = data || { ...currentSession, capa_foto_id: id };
+
   flash('Capa do ensaio atualizada.', 'sucesso');
-  await loadSessionPhotos();
+  renderSessionDetail();
   await loadSessions();
 }
 
@@ -3542,6 +3677,18 @@ async function excluirFotoEnsaio(id) {
   if (!confirmado) return;
 
   flash('Excluindo fotografia...', 'erro');
+
+  // Se a fotografia excluída for a capa escolhida, limpa a referência antes de removê-la.
+  if (currentSession.capa_foto_id === id) {
+    const { error: clearCoverError } = await supabase
+      .from('ensaios')
+      .update({ capa_foto_id: null })
+      .eq('id', currentSession.id);
+
+    if (!clearCoverError) {
+      currentSession.capa_foto_id = null;
+    }
+  }
 
   const path = storagePathForBucket(foto.url, SESSIONS_BUCKET);
 
