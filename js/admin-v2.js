@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v4 — sessão expirada/inválida corrigida');
+console.log('[admin-v2] Build v5 — diagnóstico do login');
 
 const $ = id => document.getElementById(id);
 
@@ -90,6 +90,11 @@ async function requireAdmin() {
     data: { session }
   } = await supabase.auth.getSession();
 
+  console.log(
+    '[admin-v2] requireAdmin: sessão',
+    session ? session.user.email + ' (id ' + session.user.id + ')' : 'ausente'
+  );
+
   if (!session) {
     $('login-screen').hidden = false;
     $('app').hidden = true;
@@ -157,16 +162,27 @@ $('login-form').addEventListener(
       'Entrando...'
     );
 
+    const inicio = Date.now();
+
     try {
+      console.log('[admin-v2] login: iniciando signInWithPassword', $('login-email').value.trim());
+
       const resultado = await Promise.race([
         supabase.auth.signInWithPassword({
           email: $('login-email').value.trim(),
           password: $('login-password').value
         }),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 20000)
+          setTimeout(() => reject(new Error('timeout')), 10000)
         )
       ]);
+
+      console.log(
+        '[admin-v2] login: resposta em',
+        Date.now() - inicio,
+        'ms —',
+        resultado.error ? ('ERRO: ' + (resultado.error.message || resultado.error.code)) : (resultado.data && resultado.data.session ? 'SESSÃO OK' : 'SEM SESSÃO')
+      );
 
       if (resultado.error) {
         const msgErro = String(
@@ -214,6 +230,8 @@ $('login-form').addEventListener(
         }
       }
     } catch (err) {
+      console.error('[admin-v2] login: exceção em', Date.now() - inicio, 'ms:', err);
+
       if (err && err.message === 'timeout') {
         msg(
           $('login-msg'),
@@ -221,7 +239,6 @@ $('login-form').addEventListener(
           'erro'
         );
       } else {
-        console.error('Erro no login:', err);
         msg(
           $('login-msg'),
           'Erro inesperado ao entrar. Veja o console do navegador (F12).',
@@ -350,6 +367,8 @@ document
 ========================================================= */
 
 async function loadDashboard() {
+
+  console.log('[admin-v2] loadDashboard: iniciando');
 
   const [
     a,
