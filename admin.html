@@ -42,6 +42,12 @@
     content: '★'; position: absolute; top: 4px; right: 4px; color: var(--accent);
     font-size: 1rem; text-shadow: 0 0 4px #000;
   }
+  .photo-order {
+    position: absolute; bottom: 4px; left: 4px;
+    background: rgba(0,0,0,0.7); color: var(--text);
+    font-family: var(--font-mono); font-size: 0.6rem;
+    padding: 2px 5px;
+  }
   .msg { font-family: var(--font-mono); font-size: 0.75rem; margin-top: 10px; }
   .msg.erro { color: #e0574a; }
   .msg.sucesso { color: var(--accent); }
@@ -103,6 +109,10 @@
       <div class="field">
         <label for="novo-cliente">Nome do cliente</label>
         <input type="text" id="novo-cliente">
+      </div>
+      <div class="field">
+        <label for="novo-telefone">WhatsApp do cliente (opcional, com código do país — ex: 351912345678)</label>
+        <input type="text" id="novo-telefone">
       </div>
       <div class="field">
         <label for="novo-categoria">Categoria</label>
@@ -203,12 +213,13 @@ document.getElementById('form-novo-ensaio').addEventListener('submit', async (e)
   const msg = document.getElementById('novo-ensaio-msg');
   const titulo = document.getElementById('novo-titulo').value;
   const cliente_nome = document.getElementById('novo-cliente').value;
+  const cliente_telefone = document.getElementById('novo-telefone').value.replace(/\D/g, '');
   const categoria = document.getElementById('novo-categoria').value;
   const codigo_acesso = document.getElementById('novo-codigo').value;
   const slug = limparLogin(document.getElementById('novo-login').value);
 
   const { error } = await supabase.from('ensaios').insert({
-    titulo, cliente_nome, categoria, codigo_acesso, slug
+    titulo, cliente_nome, cliente_telefone, categoria, codigo_acesso, slug
   });
 
   if (error) {
@@ -263,7 +274,8 @@ function ensaioCardHTML(ens) {
 function statusLabel(status) {
   if (status === 'entregue') return 'Entregue';
   if (status === 'selecionado') return 'Cliente escolheu';
-  return 'Aguardando seleção';
+  if (status === 'aguardando_selecao') return 'Aguardando seleção';
+  return 'Preparando fotos';
 }
 
 let detalheAberto = null;
@@ -290,13 +302,32 @@ async function toggleDetail(ens) {
 
   const provas = (fotos || []).filter(f => f.tipo === 'prova');
   const finais = (fotos || []).filter(f => f.tipo === 'final');
-  const selecionadas = provas.filter(f => f.selecionada).length;
+  const selecionadas = provas.filter(f => f.selecionada);
+
+  const linkCliente = `${location.origin}/area-cliente`;
+  const numero = (i) => String(i + 1).padStart(4, '0');
+
+  const numerosSelecionados = selecionadas
+    .map((f) => numero(provas.indexOf(f)))
+    .join(', ');
+
+  const linkWhatsSelecao = ens.cliente_telefone
+    ? `https://wa.me/${ens.cliente_telefone}?text=${encodeURIComponent(
+        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas 📸\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
+      )}`
+    : null;
+
+  const linkWhatsEntrega = ens.cliente_telefone
+    ? `https://wa.me/${ens.cliente_telefone}?text=${encodeURIComponent(
+        `Olá${ens.cliente_nome ? ', ' + ens.cliente_nome : ''}! Suas fotos finais já estão prontas para download 🤍\n\nAcesse: ${linkCliente}\nLogin: ${ens.slug}\nSenha: ${ens.codigo_acesso}`
+      )}`
+    : null;
 
   detailEl.innerHTML = `
     <p class="footer-mono">Envie esses dados para a cliente (ela mesma acessa e digita no site):</p>
     <div style="margin:10px 0;">
       <p class="footer-mono" style="margin-bottom:4px;">Link da Área do Cliente</p>
-      <div class="link-box">${location.origin}/area-cliente</div>
+      <div class="link-box">${linkCliente}</div>
     </div>
     <div style="margin:10px 0;">
       <p class="footer-mono" style="margin-bottom:4px;">Login</p>
@@ -306,18 +337,41 @@ async function toggleDetail(ens) {
       <p class="footer-mono" style="margin-bottom:4px;">Senha</p>
       <div class="link-box">${ens.codigo_acesso}</div>
     </div>
-    <button class="small-btn" onclick="navigator.clipboard.writeText('Acesse em: ${location.origin}/area-cliente\\nLogin: ${ens.slug}\\nSenha: ${ens.codigo_acesso}'); this.textContent='Copiado!'">Copiar tudo</button>
+    <button class="small-btn" onclick="navigator.clipboard.writeText('Acesse em: ${linkCliente}\\nLogin: ${ens.slug}\\nSenha: ${ens.codigo_acesso}'); this.textContent='Copiado!'">Copiar tudo</button>
 
-    <p class="footer-mono" style="margin-top:24px;">Fotos para o cliente escolher (provas) — ${provas.length} enviadas, ${selecionadas} selecionadas:</p>
+    <p class="footer-mono" style="margin-top:24px;">Fotos para o cliente escolher (provas) — ${provas.length} enviadas:</p>
     <div class="upload-area">
       <input type="file" id="upload-prova-${ens.id}" multiple accept="image/*">
       <p class="footer-mono" style="margin-top:8px;">Selecione uma ou várias fotos</p>
     </div>
     <div class="photo-mini-grid" id="grid-prova-${ens.id}">
-      ${provas.map(f => `<div class="photo-mini ${f.selecionada ? 'selecionada' : ''}"><img src="${f.url}"></div>`).join('')}
+      ${provas.map((f, i) => `
+        <div class="photo-mini ${f.selecionada ? 'selecionada' : ''}">
+          <img src="${f.url}">
+          <span class="photo-order">${numero(i)}</span>
+        </div>
+      `).join('')}
     </div>
 
-    <p class="footer-mono" style="margin-top:24px;">Fotos finais (tratadas, para entrega) — ${finais.length} enviadas:</p>
+    ${selecionadas.length ? `
+      <div style="margin-top:14px; padding:12px 14px; border:1px solid var(--hairline); background:var(--surface);">
+        <p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${selecionadas.length}):</p>
+        <p style="font-family:var(--font-mono); font-size:0.85rem; color:var(--accent);">${numerosSelecionados}</p>
+      </div>
+    ` : ''}
+
+    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+      ${ens.status === 'preparando' ? `
+        <button class="btn btn-accent" id="btn-enviar-selecao-${ens.id}" ${provas.length === 0 ? 'disabled' : ''}>
+          Enviar fotos para seleção
+        </button>
+      ` : `
+        <span class="ensaio-status ${ens.status}">✓ Já enviado para seleção</span>
+        ${linkWhatsSelecao ? `<a href="${linkWhatsSelecao}" target="_blank" class="small-btn">Notificar por WhatsApp</a>` : ''}
+      `}
+    </div>
+
+    <p class="footer-mono" style="margin-top:32px;">Fotos finais (tratadas, para entrega) — ${finais.length} enviadas:</p>
     <div class="upload-area">
       <input type="file" id="upload-final-${ens.id}" multiple accept="image/*">
       <p class="footer-mono" style="margin-top:8px;">Só o cliente vê essas, e só depois de "Marcar como entregue"</p>
@@ -326,10 +380,11 @@ async function toggleDetail(ens) {
       ${finais.map(f => `<div class="photo-mini"><img src="${f.url}"></div>`).join('')}
     </div>
 
-    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
-      <button class="btn ${ens.status === 'entregue' ? '' : 'btn-accent'}" id="btn-entregar-${ens.id}">
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <button class="btn ${ens.status === 'entregue' ? '' : 'btn-accent'}" id="btn-entregar-${ens.id}" ${finais.length === 0 ? 'disabled' : ''}>
         ${ens.status === 'entregue' ? 'Já entregue ✓' : 'Marcar como entregue'}
       </button>
+      ${ens.status === 'entregue' && linkWhatsEntrega ? `<a href="${linkWhatsEntrega}" target="_blank" class="small-btn">Notificar por WhatsApp</a>` : ''}
       <button class="btn" id="btn-excluir-${ens.id}" style="border-color:#8c877e;">Excluir permanentemente</button>
     </div>
     <p class="msg" id="msg-${ens.id}"></p>
@@ -339,6 +394,21 @@ async function toggleDetail(ens) {
   document.getElementById(`upload-final-${ens.id}`).addEventListener('change', (e) => uploadFotos(e, ens.id, 'final'));
   document.getElementById(`btn-entregar-${ens.id}`).addEventListener('click', () => marcarEntregue(ens.id));
   document.getElementById(`btn-excluir-${ens.id}`).addEventListener('click', () => excluirEnsaio(ens.id, ens.titulo));
+  const btnEnviarSelecao = document.getElementById(`btn-enviar-selecao-${ens.id}`);
+  if (btnEnviarSelecao) btnEnviarSelecao.addEventListener('click', () => enviarParaSelecao(ens.id));
+}
+
+async function enviarParaSelecao(ensaioId) {
+  const { error } = await supabase.from('ensaios').update({ status: 'aguardando_selecao' }).eq('id', ensaioId);
+  const msgEl = document.getElementById(`msg-${ensaioId}`);
+  if (error) {
+    msgEl.textContent = 'Erro: ' + error.message;
+    msgEl.className = 'msg erro';
+  } else {
+    msgEl.textContent = 'Fotos enviadas para seleção! A cliente já pode acessar.';
+    msgEl.className = 'msg sucesso';
+    carregarEnsaios();
+  }
 }
 
 async function uploadFotos(event, ensaioId, tipo) {

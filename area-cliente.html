@@ -203,6 +203,7 @@ function mostrarGaleria() {
   document.getElementById('cliente-titulo').textContent = ensaioAtual.titulo;
 
   const statusTextos = {
+    preparando: 'Suas fotos estão sendo preparadas',
     aguardando_selecao: 'Escolha suas fotos favoritas',
     selecionado: 'Seleção enviada — aguardando edição',
     entregue: 'Suas fotos estão prontas!'
@@ -210,6 +211,21 @@ function mostrarGaleria() {
   document.getElementById('cliente-status').textContent = statusTextos[ensaioAtual.status] || '';
 
   const conteudo = document.getElementById('conteudo-galeria');
+
+  if (ensaioAtual.status === 'preparando') {
+    conteudo.innerHTML = `
+      <div style="text-align:center; padding: 60px 0;">
+        <p style="font-family:var(--font-display); font-style:italic; font-size:1.6rem; color:var(--text); margin-bottom:14px;">
+          Só um instante...
+        </p>
+        <p style="color:var(--text-muted); max-width:48ch; margin:0 auto;">
+          O Rangel ainda está preparando as fotos da sua sessão. Assim que estiverem
+          prontas para você escolher, elas vão aparecer aqui automaticamente.
+        </p>
+      </div>
+    `;
+    return;
+  }
 
   if (ensaioAtual.status === 'entregue') {
     conteudo.innerHTML = `
