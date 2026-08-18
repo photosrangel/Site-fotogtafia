@@ -31,6 +31,9 @@ const slugify = v =>
 
 function emailValido(value) {
   const email = String(value || '').trim().toLowerCase();
+
+  // Validação simples e segura para endereços usados no CMS.
+  // Aceita, por exemplo: rs.dj.rs@gmail.com
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
@@ -1373,21 +1376,63 @@ async function toggleGallery(id) {
 
   if (!g) return;
 
+
+  const novoEstado =
+    !g.published;
+
+
+  /*
+    O estado da galeria é o comando principal:
+    - OCULTAR galeria  => oculta TODAS as fotos;
+    - PUBLICAR galeria => publica TODAS as fotos.
+
+    Depois disso, cada fotografia continua podendo ser
+    ocultada/publicada individualmente pelo botão da foto.
+  */
+
   const {
-    error
+    error: galleryError
   } = await supabase
     .from('galleries')
     .update({
-      published:
-        !g.published
+      published: novoEstado
     })
     .eq('id', id);
 
 
-  if (error) {
+  if (galleryError) {
 
     flash(
-      `Erro: ${error.message}`,
+      `Erro ao alterar a galeria: ${galleryError.message}`,
+      'erro'
+    );
+
+    return;
+  }
+
+
+  const {
+    error: photosError
+  } = await supabase
+    .from('gallery_photos')
+    .update({
+      published: novoEstado
+    })
+    .eq('gallery_id', id);
+
+
+  if (photosError) {
+
+    await supabase
+      .from('galleries')
+      .update({
+        published: g.published
+      })
+      .eq('id', id);
+
+
+    flash(
+      `Não foi possível atualizar todas as fotografias: ${photosError.message}`,
       'erro'
     );
 
@@ -1396,11 +1441,24 @@ async function toggleGallery(id) {
 
 
   flash(
-    g.published
-      ? 'Galeria despublicada.'
-      : 'Galeria publicada.',
+    novoEstado
+      ? 'Galeria publicada. Todas as fotografias foram publicadas.'
+      : 'Galeria ocultada. Todas as fotografias foram ocultadas.',
     'sucesso'
   );
+
+
+  if (
+    currentGallery &&
+    currentGallery.id === id
+  ) {
+    currentGallery = {
+      ...currentGallery,
+      published: novoEstado
+    };
+
+    await loadPhotos();
+  }
 
 
   await loadGalleries();
@@ -2226,7 +2284,7 @@ async function uploadPhotos(files, g) {
             order,
 
           published:
-            true
+            g.published === true
         });
 
 

@@ -725,48 +725,78 @@ async function supabaseBuscarFotos(
   if (!supabase) {
 
     return {
-
       data: null,
-
       error: new Error(
         'Cliente Supabase não encontrado.'
       )
-
     };
 
   }
 
 
+  /*
+    TRABALHOS RECENTES
+    ------------------
+    Uma fotografia só pode aparecer na página inicial quando:
+    1) a galeria inteira está PUBLICADA;
+    2) a fotografia individual também está PUBLICADA.
+
+    Fazemos as consultas separadamente para não depender de uma
+    relação embutida do PostgREST, que já causou erro HTTP 400
+    neste projeto anteriormente.
+  */
+
+  const {
+    data: galleries,
+    error: galleriesError
+  } = await supabase
+    .from('galleries')
+    .select('id')
+    .eq('published', true);
+
+
+  if (galleriesError) {
+    return {
+      data: null,
+      error: galleriesError
+    };
+  }
+
+
+  const galleryIds =
+    (galleries || [])
+      .map(gallery => gallery.id)
+      .filter(Boolean);
+
+
+  if (!galleryIds.length) {
+    return {
+      data: [],
+      error: null
+    };
+  }
+
+
   return await supabase
-
-    .from(
-      'gallery_photos'
-    )
-
+    .from('gallery_photos')
     .select(`
       id,
       image_url,
       alt_text,
       sort_order,
       published,
-      gallery_id
+      gallery_id,
+      created_at
     `)
-
-    .eq(
-      'published',
-      true
-    )
-
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    )
-
-    .limit(
-      limit
-    );
+    .in('gallery_id', galleryIds)
+    .eq('published', true)
+    .order('created_at', {
+      ascending: false
+    })
+    .order('sort_order', {
+      ascending: true
+    })
+    .limit(limit);
 
 }
 
