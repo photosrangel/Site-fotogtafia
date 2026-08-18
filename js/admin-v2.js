@@ -14,6 +14,9 @@ const $ = id => document.getElementById(id);
 let currentGallery = null;
 let categoriesCache = [];
 let galleriesCache = [];
+let sessionsCache = [];
+let currentSession = null;
+let currentSessionPhotos = [];
 
 const slugify = v =>
   String(v)
@@ -62,6 +65,7 @@ function setView(v) {
     dashboard: ['Painel', 'Dashboard'],
     galleries: ['Conteúdo', 'Galerias'],
     categories: ['Organização', 'Categorias'],
+    sessions: ['Clientes', 'Ensaios'],
     settings: ['Site', 'Configurações']
   }[v];
 
@@ -71,6 +75,7 @@ function setView(v) {
   if (v === 'dashboard') loadDashboard();
   if (v === 'galleries') loadGalleries();
   if (v === 'categories') loadCategories();
+  if (v === 'sessions') loadSessions();
   if (v === 'settings') loadSettings();
 }
 
@@ -2769,3 +2774,300 @@ supabase.auth.onAuthStateChange(
 
 
 requireAdmin();
+
+
+/* =========================================================
+   ENSAIOS (SESSÕES DE CLIENTES)
+   ========================================================= */
+
+const SESSIONS_BUCKET = 'fotos';
+const numero = (i) => String(i + 1).padStart(4, '0');
+
+function statusLabel(status) {
+  if (status === 'entregue') return 'Entregue';
+  if (status === 'selecionado') return 'Cliente escolheu';
+  if (status === 'aguardando_selecao') return 'Aguardando seleção';
+  return 'Preparando fotos';
+}
+
+async function loadSessions() {
+  const { data, error } = await supabase.from('ensaios').select('*').order('created_at', { ascending: false });
+  if (error) {
+    flash(`Erro ao carregar ensaios: ${error.message}`, 'erro');
+    return;
+  }
+  sessionsCache = data || [];
+  renderSessions();
+}
+
+function renderSessions() {
+  const c = $('sessions-list');
+  if (!sessionsCache.length) {
+    c.innerHTML = `
+      <div class="panel">
+        <p class="section-eyebrow">Ainda vazio</p>
+        <h2 style="font-family:var(--font-display);font-weight:400;">Nenhum ensaio criado.</h2>
+        <p class="panel-copy" style="margin-top:8px;">Comece criando a primeira sessão de cliente.</p>
+      </div>`;
+    return;
+  }
+  c.innerHTML = sessionsCache.map(s => `
+    <article class="gallery-admin-card" data-session-id="${attr(s.id)}" title="Clique para abrir o ensaio">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div class="gallery-card-title">${esc(s.titulo)}</div>
+          <div class="gallery-meta">${esc(s.cliente_nome || '—')} · /${esc(s.slug)}</div>
+        </div>
+        <span class="status-pill ${s.status === 'preparando' ? 'draft' : 'published'}">${esc(statusLabel(s.status))}</span>
+      </div>
+      <div class="card-actions" style="margin-top:14px;justify-content:flex-start;">
+        <button class="small-btn" data-open-session="${attr(s.id)}" type="button">Abrir</button>
+        <button class="small-btn" data-delete-session="${attr(s.id)}" type="button">Excluir</button>
+      </div>
+    </article>`).join('');
+
+  c.querySelectorAll('.gallery-admin-card').forEach(card => card.addEventListener('click', () => openSessionModal(card.dataset.sessionId)));
+  c.querySelectorAll('[data-open-session]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openSessionModal(b.dataset.openSession); }));
+  c.querySelectorAll('[data-delete-session]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); excluirSession(b.dataset.deleteSession); }));
+}
+
+function openSessionForm() {
+  $('session-form-wrap').hidden = false;
+  $('session-form-title').textContent = 'Novo ensaio';
+  $('session-form').reset();
+  msg($('session-form-msg'), '');
+  $('session-titulo').focus();
+}
+
+function closeSessionForm() {
+  $('session-form-wrap').hidden = true;
+  $('session-form').reset();
+  msg($('session-form-msg'), '');
+}
+
+async function saveSession(e) {
+  e.preventDefault();
+  const msgEl = $('session-form-msg');
+  const p = {
+    titulo: $('session-titulo').value.trim(),
+    cliente_nome: $('session-cliente').value.trim(),
+    cliente_telefone: $('session-telefone').value.replace(/\D/g, ''),
+    categoria: $('session-categoria').value,
+    codigo_acesso: $('session-codigo').value,
+    slug: slugify($('session-login').value)
+  };
+  const { error } = await supabase.from('ensaios').insert(p);
+  if (error) {
+    msgEl.textContent = (error.message.includes('duplicate') || error.message.includes('unique'))
+      ? `O login "${p.slug}" já está em uso por outro ensaio. Escolha outro.`
+      : 'Erro ao criar: ' + error.message;
+    msgEl.className = 'msg erro';
+    return;
+  }
+  msgEl.textContent = 'Ensaio criado!';
+  msgEl.className = 'msg sucesso';
+  $('session-form').reset();
+  $('session-form-wrap').hidden = true;
+  await loadSessions();
+}
+
+async function openSessionModal(id) {
+  const s = sessionsCache.find(x => x.id === id);
+  if (!s) return;
+  currentSession = s;
+  $('session-editor-modal').hidden = false;
+  await loadSessionPhotos();
+}
+
+function closeSessionModal() {
+  $('session-editor-modal').hidden = true;
+  currentSession = null;
+  currentSessionPhotos = [];
+}
+
+async function loadSessionPhotos() {
+  if (!currentSession) return;
+  const { data, error } = await supabase.from('fotos').select('*').eq('ensaio_id', currentSession.id).order('ordem');
+  if (error) {
+    msg($('session-msg'), error.message, 'erro');
+    return;
+  }
+  currentSessionPhotos = data || [];
+  renderSessionDetail();
+}
+
+function renderSessionDetail() {
+  if (!currentSession) return;
+  const s = currentSession;
+  const linkCliente = `${location.origin}/area-cliente`;
+
+  $('modal-session-title').textContent = s.titulo;
+  $('session-link').textContent = linkCliente;
+  $('session-login').textContent = s.slug;
+  $('session-senha').textContent = s.codigo_acesso;
+
+  const provas = currentSessionPhotos.filter(f => f.tipo === 'prova');
+  const finais = currentSessionPhotos.filter(f => f.tipo === 'final');
+  const selecionadas = provas.filter(f => f.selecionada);
+
+  $('prova-count').textContent = provas.length;
+  $('final-count').textContent = finais.length;
+
+  $('prova-grid').innerHTML = provas.length
+    ? provas.map((f, i) => `
+        <div class="session-photo ${f.selecionada ? 'selecionada' : ''}">
+          <img src="${attr(f.url)}" alt="" loading="lazy">
+          <span class="photo-order">${numero(i)}</span>
+        </div>`).join('')
+    : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma prova enviada ainda.</p>';
+
+  const numerosSelecionados = selecionadas.map(f => numero(provas.indexOf(f))).join(', ');
+  $('selecionadas-box').innerHTML = selecionadas.length
+    ? `<div class="session-select-box"><p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${selecionadas.length}):</p><p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);">${esc(numerosSelecionados.replaceAll(', ', '.cr3, ') + '.cr3')}</p></div>`
+    : '';
+
+  $('final-grid').innerHTML = finais.length
+    ? finais.map(f => `<div class="session-photo"><img src="${attr(f.url)}" alt="" loading="lazy"></div>`).join('')
+    : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
+
+  const linkWhatsSelecao = s.cliente_telefone
+    ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
+    : null;
+
+  const acoes = $('selecao-actions');
+  if (s.status === 'preparando') {
+    acoes.innerHTML = `<button class="btn btn-accent" id="btn-enviar-selecao" ${provas.length === 0 ? 'disabled' : ''}>Enviar fotos para seleção</button>`;
+    $('btn-enviar-selecao').addEventListener('click', enviarParaSelecao);
+  } else {
+    acoes.innerHTML = `<span class="status-pill published">✓ Já enviado para seleção</span>` + (linkWhatsSelecao ? `<a href="${attr(linkWhatsSelecao)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : '');
+  }
+
+  const btnEntregar = $('btn-entregar');
+  btnEntregar.textContent = s.status === 'entregue' ? 'Já entregue ✓' : 'Marcar como entregue';
+  btnEntregar.className = s.status === 'entregue' ? 'btn' : 'btn btn-accent';
+  btnEntregar.disabled = s.status === 'entregue' || finais.length === 0;
+
+  const linkWhatsEntrega = s.cliente_telefone
+    ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos finais já estão prontas para download! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
+    : null;
+  const whatsEntrega = $('link-whats-entrega');
+  if (s.status === 'entregue' && linkWhatsEntrega) {
+    whatsEntrega.href = linkWhatsEntrega;
+    whatsEntrega.style.display = '';
+  } else {
+    whatsEntrega.style.display = 'none';
+  }
+
+  msg($('session-msg'), '');
+}
+
+async function uploadSessionPhotos(files, tipo) {
+  if (!currentSession) return;
+  const msgEl = $('session-msg');
+  msgEl.textContent = `Enviando ${files.length} foto(s)...`;
+  msgEl.className = 'msg';
+
+  for (const file of files) {
+    const path = `${currentSession.id}/${tipo}/${Date.now()}-${file.name}`;
+    const { error: upErr } = await supabase.storage.from(SESSIONS_BUCKET).upload(path, file);
+    if (upErr) {
+      msgEl.textContent = 'Erro ao enviar: ' + upErr.message;
+      msgEl.className = 'msg erro';
+      continue;
+    }
+    const { data: urlData } = supabase.storage.from(SESSIONS_BUCKET).getPublicUrl(path);
+    await supabase.from('fotos').insert({ ensaio_id: currentSession.id, url: urlData.publicUrl, tipo });
+  }
+
+  msgEl.textContent = 'Fotos enviadas!';
+  msgEl.className = 'msg sucesso';
+  await loadSessionPhotos();
+}
+
+async function enviarParaSelecao() {
+  if (!currentSession) return;
+  const msgEl = $('session-msg');
+  const { error } = await supabase.from('ensaios').update({ status: 'aguardando_selecao' }).eq('id', currentSession.id);
+  if (error) {
+    msgEl.textContent = 'Erro: ' + error.message;
+    msgEl.className = 'msg erro';
+    return;
+  }
+  currentSession.status = 'aguardando_selecao';
+  msgEl.textContent = 'Fotos enviadas para seleção! A cliente já pode acessar.';
+  msgEl.className = 'msg sucesso';
+  await loadSessions();
+  renderSessionDetail();
+}
+
+async function marcarEntregue() {
+  if (!currentSession) return;
+  const msgEl = $('session-msg');
+  const { error } = await supabase.from('ensaios').update({ status: 'entregue' }).eq('id', currentSession.id);
+  if (error) {
+    msgEl.textContent = 'Erro: ' + error.message;
+    msgEl.className = 'msg erro';
+    return;
+  }
+  currentSession.status = 'entregue';
+  msgEl.textContent = 'Marcado como entregue!';
+  msgEl.className = 'msg sucesso';
+  await loadSessions();
+  renderSessionDetail();
+}
+
+async function excluirSession(id) {
+  const s = sessionsCache.find(x => x.id === id);
+  if (!s) return;
+  const confirmado = confirm(`Tem certeza que quer excluir "${s.titulo}"?\n\nIsso apaga TODAS as fotos e dados desse ensaio para sempre. Não tem como desfazer.`);
+  if (!confirmado) return;
+
+  flash('Excluindo...', 'erro');
+
+  for (const subpasta of ['prova', 'final']) {
+    const { data: arquivos } = await supabase.storage.from(SESSIONS_BUCKET).list(`${id}/${subpasta}`);
+    if (arquivos && arquivos.length) {
+      const caminhos = arquivos.map(a => `${id}/${subpasta}/${a.name}`);
+      await supabase.storage.from(SESSIONS_BUCKET).remove(caminhos);
+    }
+  }
+
+  const { error } = await supabase.from('ensaios').delete().eq('id', id);
+  if (error) {
+    flash(`Erro ao excluir: ${error.message}`, 'erro');
+    return;
+  }
+  flash('Ensaio excluído.', 'sucesso');
+  closeSessionModal();
+  await loadSessions();
+}
+
+function copySession() {
+  if (!currentSession) return;
+  const texto = `Acesse em: ${location.origin}/area-cliente\nLogin: ${currentSession.slug}\nSenha: ${currentSession.codigo_acesso}`;
+  navigator.clipboard.writeText(texto);
+  const btn = $('btn-copy-session');
+  btn.textContent = 'Copiado!';
+  setTimeout(() => { btn.textContent = 'Copiar tudo'; }, 1500);
+}
+
+$('new-session-btn').addEventListener('click', openSessionForm);
+$('close-session-form').addEventListener('click', closeSessionForm);
+$('cancel-session-form').addEventListener('click', closeSessionForm);
+$('session-form').addEventListener('submit', saveSession);
+$('btn-gerar-login').addEventListener('click', () => { $('session-login').value = 'cliente-' + Math.random().toString(36).slice(2, 8); });
+$('btn-gerar-codigo').addEventListener('click', () => { $('session-codigo').value = Math.random().toString(36).slice(2, 8).toUpperCase(); });
+$('btn-copy-session').addEventListener('click', copySession);
+$('btn-entregar').addEventListener('click', marcarEntregue);
+$('btn-excluir-session').addEventListener('click', () => excluirSession(currentSession && currentSession.id));
+$('upload-prova').addEventListener('change', async e => {
+  const f = [...e.target.files];
+  if (f.length && currentSession) await uploadSessionPhotos(f, 'prova');
+  e.target.value = '';
+});
+$('upload-final').addEventListener('change', async e => {
+  const f = [...e.target.files];
+  if (f.length && currentSession) await uploadSessionPhotos(f, 'final');
+  e.target.value = '';
+});
+document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventListener('click', closeSessionModal));
