@@ -2562,3 +2562,348 @@
     flex-direction: column;
   }
 }
+
+
+/* =========================================================
+   ADMIN V2 — EDITORES RESPONSIVOS
+   Galerias + Ensaios + criação/edição
+   ========================================================= */
+
+/*
+   Os editores deixam de trabalhar como caixas estreitas no centro.
+   Eles acompanham a largura real da tela, mantendo margens de segurança
+   e reorganizando o conteúdo conforme o espaço disponível.
+*/
+
+/* ---------- FORMULÁRIOS DE CRIAÇÃO / EDIÇÃO ---------- */
+
+#gallery-form-wrap,
+#session-form-wrap {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#gallery-form-wrap .form-grid,
+#session-form-wrap .form-grid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+}
+
+#gallery-form-wrap .field:not(.field-full),
+#session-form-wrap .field:not(.field-full) {
+  grid-column: span 6;
+}
+
+#gallery-form-wrap .field-full,
+#session-form-wrap .field-full {
+  grid-column: 1 / -1;
+}
+
+#gallery-form-wrap .form-actions,
+#session-form-wrap .form-actions {
+  justify-content: flex-start;
+}
+
+/* ---------- MODAL DE GALERIA ---------- */
+
+#gallery-editor-modal .modal-dialog {
+  width: min(96vw, 1680px);
+  max-width: none;
+  height: min(94vh, 1080px);
+  max-height: 94vh;
+  margin: 3vh auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#gallery-editor-modal .modal-head {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+#gallery-editor-modal .upload-drop {
+  flex: 0 0 auto;
+  margin-top: 22px;
+}
+
+#gallery-editor-modal #upload-msg,
+#gallery-editor-modal .photo-toolbar {
+  flex: 0 0 auto;
+}
+
+#gallery-editor-modal #photo-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 4px 6px 2px;
+  margin-top: 14px;
+  align-content: start;
+}
+
+#gallery-editor-modal .admin-photo-grid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+#gallery-editor-modal .admin-photo {
+  min-width: 0;
+  border-radius: 9px;
+}
+
+/* ---------- MODAL DE ENSAIO ---------- */
+
+#session-editor-modal .modal-dialog {
+  width: min(96vw, 1720px);
+  max-width: none;
+  height: min(94vh, 1120px);
+  max-height: 94vh;
+  margin: 3vh auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 24px;
+}
+
+#session-editor-modal .modal-head {
+  flex: 0 0 auto;
+  margin-bottom: 20px;
+}
+
+#session-editor-modal .session-access-panel {
+  flex: 0 0 auto;
+}
+
+#session-editor-modal .session-workflow {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  align-content: start;
+}
+
+#session-editor-modal .session-footer-actions {
+  flex: 0 0 auto;
+}
+
+#session-editor-modal .session-stage-body .session-grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* Em telas grandes, provas e finais aproveitam melhor a largura. */
+@media (min-width: 1380px) {
+  #session-editor-modal .session-workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  #session-editor-modal .session-stage-card {
+    min-width: 0;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+}
+
+/* ---------- NOTEBOOK / TABLET GRANDE ---------- */
+
+@media (max-width: 1180px) {
+  #gallery-form-wrap .field:not(.field-full),
+  #session-form-wrap .field:not(.field-full) {
+    grid-column: span 6;
+  }
+
+  #gallery-editor-modal .modal-dialog,
+  #session-editor-modal .modal-dialog {
+    width: calc(100vw - 28px);
+    height: calc(100vh - 28px);
+    max-height: calc(100vh - 28px);
+    margin: 14px auto;
+  }
+
+  #gallery-editor-modal .admin-photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+  }
+}
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 760px) {
+  #gallery-form-wrap,
+  #session-form-wrap {
+    padding: 20px;
+  }
+
+  #gallery-form-wrap .form-grid,
+  #session-form-wrap .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  #gallery-form-wrap .field:not(.field-full),
+  #session-form-wrap .field:not(.field-full),
+  #gallery-form-wrap .field-full,
+  #session-form-wrap .field-full {
+    grid-column: 1;
+  }
+
+  #gallery-editor-modal .modal-dialog,
+  #session-editor-modal .modal-dialog {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    margin: 8px auto;
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  #gallery-editor-modal .modal-head,
+  #session-editor-modal .modal-head {
+    top: -18px;
+    margin: -18px -18px 18px;
+    padding: 16px 18px 14px;
+  }
+
+  #gallery-editor-modal .upload-drop {
+    margin-top: 0;
+    padding: 24px 15px;
+  }
+
+  #gallery-editor-modal .photo-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  #gallery-editor-modal .admin-photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  #session-editor-modal .session-workflow {
+    padding-right: 0;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  #session-editor-modal .session-stage-head {
+    align-items: flex-start;
+  }
+
+  #session-editor-modal .session-footer-actions {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* ---------- CELULAR ---------- */
+
+@media (max-width: 480px) {
+  #gallery-form-wrap,
+  #session-form-wrap {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  #gallery-form-wrap .panel-head,
+  #session-form-wrap .panel-head {
+    margin-bottom: 16px;
+  }
+
+  #gallery-form-wrap .form-actions,
+  #session-form-wrap .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #gallery-form-wrap .form-actions .btn,
+  #session-form-wrap .form-actions .btn {
+    width: 100%;
+  }
+
+  #gallery-editor-modal .modal-dialog,
+  #session-editor-modal .modal-dialog {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding: 14px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  #gallery-editor-modal .modal-head,
+  #session-editor-modal .modal-head {
+    top: -14px;
+    margin: -14px -14px 15px;
+    padding: 14px;
+    border-radius: 0;
+  }
+
+  #gallery-editor-modal .modal-head h2,
+  #session-editor-modal .modal-head h2 {
+    font-size: 1.2rem;
+  }
+
+  #gallery-editor-modal .admin-photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  #gallery-editor-modal .admin-photo {
+    border-radius: 6px;
+  }
+
+  #session-editor-modal .session-access-panel {
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+
+  #session-editor-modal .session-stage-head,
+  #session-editor-modal .session-stage-body {
+    padding: 14px;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  #session-editor-modal .session-stage-count {
+    font-size: .48rem;
+  }
+
+  #session-editor-modal .session-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #session-editor-modal .session-actions .btn,
+  #session-editor-modal .session-actions .small-btn {
+    width: 100%;
+  }
+
+  #session-editor-modal .session-footer-actions {
+    padding-top: 14px;
+  }
+}
+
+/* Evita estouro horizontal em qualquer editor. */
+#gallery-form-wrap *,
+#session-form-wrap *,
+#gallery-editor-modal *,
+#session-editor-modal * {
+  min-width: 0;
+  box-sizing: border-box;
+}
