@@ -62,9 +62,41 @@
 <div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow"></div>
 <div class="field"><label for="hero-title">Título</label><input id="hero-title"></div>
 <div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3"></textarea></div>
-<div class="field field-full"><label for="hero-desktop-image">Imagem de fundo (desktop) — URL</label><input id="hero-desktop-image" placeholder="https://..."></div>
-<div class="field field-full"><label for="hero-mobile-image">Imagem de fundo (celular) — URL</label><input id="hero-mobile-image" placeholder="https://..."></div>
+<div class="field field-full hero-mode-field">
+<label>Modo da imagem principal</label>
+<div class="hero-mode-switch" role="radiogroup" aria-label="Modo do herói">
+<label><input type="radio" name="hero-mode" value="static" id="hero-mode-static"> Foto estática</label>
+<label><input type="radio" name="hero-mode" value="slideshow" id="hero-mode-slideshow"> Slideshow</label>
+</div>
+<p class="field-help">Você pode deixar o slideshow configurado e alternar para uma foto estática quando quiser. A foto estática também funciona como proteção/fallback do slideshow.</p>
+</div>
+
+<div id="hero-static-editor" class="field field-full hero-media-editor">
+<div class="panel-head compact"><div><p class="section-eyebrow">Imagem de segurança</p><h3>Foto estática / fallback</h3></div><label class="btn small-btn hero-upload-label">Escolher foto<input id="hero-static-upload" type="file" accept="image/*" hidden></label></div>
+<div class="form-grid">
+<div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" placeholder="https://..."></div>
 <div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt"></div>
+</div>
+<div class="focal-editor">
+<div id="hero-static-preview" class="focal-preview" title="Clique no ponto que deve permanecer em destaque"><span class="focal-marker"></span></div>
+<div class="focal-controls">
+<div class="field"><label for="hero-static-focus-x">Ponto focal horizontal</label><input id="hero-static-focus-x" type="range" min="0" max="100" value="50"><output id="hero-static-focus-x-out">50%</output></div>
+<div class="field"><label for="hero-static-focus-y">Ponto focal vertical</label><input id="hero-static-focus-y" type="range" min="0" max="100" value="50"><output id="hero-static-focus-y-out">50%</output></div>
+<p class="field-help">Clique diretamente na foto para marcar o ponto que deve permanecer visível quando a imagem for recortada em telas diferentes.</p>
+</div>
+</div>
+</div>
+
+<div id="hero-slideshow-editor" class="field field-full hero-media-editor">
+<div class="panel-head compact"><div><p class="section-eyebrow">Slideshow</p><h3>Fotos do slide</h3></div><label class="btn small-btn hero-upload-label">Adicionar fotos<input id="hero-slides-upload" type="file" accept="image/*" multiple hidden></label></div>
+<div class="form-grid hero-timing-grid">
+<div class="field"><label for="hero-slide-interval">Tempo de cada foto (segundos)</label><input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5"></div>
+<div class="field"><label for="hero-slide-transition">Duração do fade (segundos)</label><input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2"></div>
+</div>
+<div id="hero-slides-list" class="hero-slides-admin"></div>
+<p class="field-help">Cada foto possui seu próprio ponto focal. Você pode ordenar, publicar/ocultar e remover fotos sem perder a configuração da foto estática.</p>
+</div>
 <div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text"></div>
 <div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url"></div>
 <div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text"></div>
