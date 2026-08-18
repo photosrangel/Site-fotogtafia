@@ -3046,3 +3046,170 @@
   .session-client-email-row { grid-template-columns: 1fr; }
   .session-client-email-row .small-btn { width: 100%; }
 }
+
+
+/* =========================================================
+   AJUSTE FINAL DE RESPONSIVIDADE — DASHBOARD + ENSAIOS
+   2026-08
+   - corrige sobreposição dos painéis no dashboard mobile
+   - permite rolar todo o editor de ensaio em iPhone/Android
+   - mantém Provas e Fotos finais acessíveis em janelas divididas
+   ========================================================= */
+
+/* ---------- DASHBOARD: impedir cards/painéis sobrepostos ---------- */
+
+.panel-grid,
+.panel-grid > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 760px) {
+  .panel-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 14px !important;
+  }
+
+  .panel-grid > * {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  .panel-grid > .panel {
+    overflow: hidden;
+  }
+}
+
+/* ---------- MODAL DE ENSAIO: uma única rolagem, no modal inteiro ---------- */
+
+/*
+   O CSS anterior criava uma rolagem dentro de .session-workflow.
+   Em telas baixas, janela dividida e navegadores móveis isso podia
+   prender a área inferior do editor. Agora a rolagem fica no overlay.
+*/
+#session-editor-modal {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(10px, env(safe-area-inset-left));
+}
+
+#session-editor-modal .modal-backdrop {
+  position: fixed;
+}
+
+#session-editor-modal .modal-dialog {
+  display: block !important;
+  width: min(96vw, 1720px);
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: clamp(10px, 3vh, 28px) auto !important;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+#session-editor-modal .session-workflow {
+  display: grid;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0 !important;
+}
+
+/* Evita qualquer item interno forçar largura maior que a janela. */
+#session-editor-modal .modal-dialog,
+#session-editor-modal .modal-dialog *,
+#session-editor-modal .session-access-panel,
+#session-editor-modal .session-stage-card,
+#session-editor-modal .session-stage-body,
+#session-editor-modal .session-grid {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#session-editor-modal .link-box,
+#session-editor-modal input,
+#session-editor-modal textarea,
+#session-editor-modal select {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Janela dividida / notebook: mantém as duas etapas visíveis em sequência. */
+@media (max-width: 1379px) {
+  #session-editor-modal .session-workflow {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tablet e celular */
+@media (max-width: 760px) {
+  #session-editor-modal {
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  #session-editor-modal .modal-dialog {
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 18px !important;
+    border-radius: 12px;
+  }
+
+  #session-editor-modal .modal-head {
+    position: sticky;
+    top: -18px;
+    z-index: 20;
+    margin: -18px -18px 18px;
+    padding: 16px 18px 14px;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Android/iPhone estreitos */
+@media (max-width: 480px) {
+  #session-editor-modal {
+    padding: 0;
+  }
+
+  #session-editor-modal .modal-dialog {
+    width: 100% !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 14px 14px max(28px, env(safe-area-inset-bottom)) !important;
+    border: 0;
+    border-radius: 0;
+  }
+
+  #session-editor-modal .modal-head {
+    top: -14px;
+    margin: -14px -14px 15px;
+    padding: 14px;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
