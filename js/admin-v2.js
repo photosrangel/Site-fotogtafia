@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v54 — editor visual: Enter e edição ao vivo corrigidos');
+console.log('[admin-v2] Build v56 — editor visual auditado: quebra em tempo real preservando itálico');
 
 const $ = id => document.getElementById(id);
 
@@ -8466,110 +8466,298 @@ function decorateDesignInlinePreview(doc){
     el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,id);});
   });
 }
-function insertInlineEditorBreak(editable){
-  if(!editable)return false;
+function serializeDesignEditableText(root) {
+  if (!root) return '';
 
-  const doc=
-    editable.ownerDocument ||
-    document;
+  const walk = node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.nodeValue || '';
+    }
 
-  const view=
-    doc.defaultView ||
-    window;
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return '';
+    }
 
-  const sel=
-    view.getSelection?.();
+    if (node.tagName === 'BR') {
+      return '\n';
+    }
 
-  if(
-    !sel ||
-    !sel.rangeCount
-  ){
-    return false;
+    const text =
+      [...node.childNodes]
+        .map(walk)
+        .join('');
+
+    if (
+      node !== root &&
+      /^(DIV|P)$/.test(node.tagName)
+    ) {
+      return `${text}\n`;
+    }
+
+    return text;
+  };
+
+  return walk(root)
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+function getDesignEditableCaretOffset(root) {
+  if (!root) return 0;
+
+  const doc = root.ownerDocument;
+  const view = doc?.defaultView;
+  const sel = view?.getSelection?.();
+
+  if (!sel || !sel.rangeCount) {
+    return serializeDesignEditableText(root).length;
   }
 
-  const range=
-    sel.getRangeAt(0);
+  const range = sel.getRangeAt(0);
 
-  /*
-    A seleção precisa pertencer ao iframe da prévia.
-    Antes a função usava window.getSelection() do painel Admin,
-    então o Enter era bloqueado mas nenhum <br> era inserido.
-  */
-  if(
-    !editable.contains(
-      range.commonAncestorContainer
-    ) &&
-    range.commonAncestorContainer !== editable
-  ){
-    return false;
+  if (
+    !root.contains(range.startContainer) &&
+    range.startContainer !== root
+  ) {
+    return serializeDesignEditableText(root).length;
   }
 
-  range.deleteContents();
+  let total = 0;
+  let found = false;
 
-  const br=
-    doc.createElement('br');
+  function lengthOf(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return (node.nodeValue || '').length;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return 0;
+    if (node.tagName === 'BR') return 1;
+    return [...node.childNodes].reduce((n, child) => n + lengthOf(child), 0);
+  }
 
-  range.insertNode(br);
+  function walk(node) {
+    if (found) return;
 
-  const after=
-    doc.createRange();
+    if (node === range.startContainer) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        total += Math.min(range.startOffset, (node.nodeValue || '').length);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const children = [...node.childNodes];
+        for (let i = 0; i < Math.min(range.startOffset, children.length); i += 1) {
+          total += lengthOf(children[i]);
+        }
+      }
+      found = true;
+      return;
+    }
 
-  after.setStartAfter(br);
-  after.collapse(true);
+    if (node.nodeType === Node.TEXT_NODE) {
+      total += (node.nodeValue || '').length;
+      return;
+    }
 
-  sel.removeAllRanges();
-  sel.addRange(after);
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
 
-  editable.dispatchEvent(
-    new view.Event(
-      'input',
-      {bubbles:true}
-    )
-  );
+    if (node.tagName === 'BR') {
+      total += 1;
+      return;
+    }
 
-  return true;
+    [...node.childNodes].forEach(walk);
+  }
+
+  walk(root);
+  return total;
+}
+
+function setDesignEditableCaretOffset(root, wantedOffset) {
+  if (!root) return;
+
+  const doc = root.ownerDocument;
+  const view = doc?.defaultView;
+  const sel = view?.getSelection?.();
+  if (!sel) return;
+
+  let remaining = Math.max(0, Number(wantedOffset) || 0);
+  let targetNode = root;
+  let targetOffset = root.childNodes.length;
+  let found = false;
+
+  function visit(node) {
+    if (found) return;
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      const len = (node.nodeValue || '').length;
+      if (remaining <= len) {
+        targetNode = node;
+        targetOffset = remaining;
+        found = true;
+      } else {
+        remaining -= len;
+      }
+      return;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+    if (node.tagName === 'BR') {
+      if (remaining <= 1) {
+        targetNode = node.parentNode;
+        targetOffset = [...node.parentNode.childNodes].indexOf(node) + 1;
+        found = true;
+      } else {
+        remaining -= 1;
+      }
+      return;
+    }
+
+    [...node.childNodes].forEach(visit);
+  }
+
+  visit(root);
+
+  try {
+    const range = doc.createRange();
+    range.setStart(targetNode, targetOffset);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (_) {}
+}
+
+function renderHeroTitleForEditing(el, text) {
+  if (!el) return;
+
+  const value = String(text || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n');
+
+  const lines = value.split('\n');
+  let lastContentLine = lines.length - 1;
+
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    if (lines[i].trim()) {
+      lastContentLine = i;
+      break;
+    }
+  }
+
+  el.innerHTML = lines
+    .map((line, index) => {
+      const clean = line;
+
+      if (index !== lastContentLine) {
+        return esc(clean);
+      }
+
+      const match = clean.match(/^(.*?)(\S+)\s*$/);
+      if (!match) return esc(clean);
+
+      const prefix = match[1] || '';
+      const last = match[2] || '';
+
+      return `${esc(prefix)}<em>${esc(last)}</em>`;
+    })
+    .join('<br>');
+}
+
+function syncHeroTitleSourceFromEditable(active = designInlineActive) {
+  if (!active || active.key !== 'hero-title') return '';
+
+  const input = $(active.cfg.input);
+  if (!input) return '';
+
+  const text = serializeDesignEditableText(active.el)
+    .replace(/\n{3,}/g, '\n\n');
+
+  input.value = text;
+  active.textBuffer = text;
+  return text;
 }
 
 function openDesignInlineEditor(el,cfg,key){
   if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
-  designInlineActive={el,cfg,key,originalText:(el.innerText||el.textContent||''),originalHTML:el.innerHTML,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
-  el.contentEditable='true';
-  el.spellcheck=false;
-  el.style.whiteSpace='pre-line';
-  el.classList.add('design-inline-editing');
 
-  el.onkeydown=event=>{
-    if(event.key==='Enter'){
-      event.preventDefault();
+  const input = $(cfg.input);
+  const sourceValue = input ? String(input.value || '') : String(el.innerText || el.textContent || '');
 
-      const inserted=
-        insertInlineEditorBreak(el);
-
-      if(!inserted){
-        console.warn(
-          '[admin-v2] editor visual: não foi possível inserir quebra de linha'
-        );
-      }
-    }
+  designInlineActive={
+    el,
+    cfg,
+    key,
+    originalText:(el.innerText||el.textContent||''),
+    originalHTML:el.innerHTML,
+    originalInputValue:sourceValue,
+    textBuffer:sourceValue,
+    originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))
   };
 
-  /*
-    O próprio contenteditable é a prévia em tempo real.
-    Não chamamos applyDesignContentPreview() a cada tecla porque isso
-    recriaria o título e faria o cursor saltar. Apenas marcamos o
-    Designer como alterado enquanto o usuário digita.
-  */
+  const isHeroTitle = key === 'hero-title';
+
+  el.contentEditable='true';
+  el.spellcheck=false;
+  el.style.whiteSpace='pre-wrap';
+  el.classList.add('design-inline-editing');
+
+  if (isHeroTitle) {
+    /*
+      Editamos a mesma prévia, mas o texto passa a ser guiado pelo valor
+      real do textarea hero-title. O último termo continua em itálico.
+      Só as quebras manuais geram <br> durante a edição.
+    */
+    renderHeroTitleForEditing(el, sourceValue);
+  }
+
+  el.onkeydown=event=>{
+    if(event.key!=='Enter') return;
+
+    event.preventDefault();
+
+    if (isHeroTitle) {
+      const current = serializeDesignEditableText(el);
+      const offset = getDesignEditableCaretOffset(el);
+      const next = `${current.slice(0, offset)}\n${current.slice(offset)}`;
+
+      if (input) input.value = next;
+      designInlineActive.textBuffer = next;
+
+      renderHeroTitleForEditing(el, next);
+      setDesignEditableCaretOffset(el, offset + 1);
+      updateDesignPublicationState();
+      return;
+    }
+
+    const doc=el.ownerDocument||document;
+    const view=doc.defaultView||window;
+    const sel=view.getSelection?.();
+    if(!sel||!sel.rangeCount)return;
+    const range=sel.getRangeAt(0);
+    range.deleteContents();
+    const br=doc.createElement('br');
+    range.insertNode(br);
+    range.setStartAfter(br);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
   el.oninput=()=>{
+    if (isHeroTitle) {
+      syncHeroTitleSourceFromEditable();
+    }
     updateDesignPublicationState();
   };
 
   el.focus();
+
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
   const st=(window.__designInlineStyles||{})[key]||{};
   if($('design-inline-size'))$('design-inline-size').value=st.size||'inherit';
   document.querySelectorAll('[data-inline-command]').forEach(b=>b.classList.toggle('active',!!st[b.dataset.inlineCommand]));
-  document.querySelectorAll('[data-inline-align]').forEach(b=>b.classList.toggle('active',(st.align||'left')===b.dataset.inlineAlign));
+  document.querySelectorAll('[data-inline-align]').forEach(b=>b.addEventListener ? b.classList.toggle('active',(st.align||'left')===b.dataset.inlineAlign) : null);
 }
 function previewInlineStyle(patch){
   if(!designInlineActive)return;
@@ -8581,14 +8769,25 @@ function previewInlineStyle(patch){
 }
 function finishDesignInline(save){
   const a=designInlineActive;if(!a)return;
+  const input=$(a.cfg.input);
+
   if(save){
-    const input=$(a.cfg.input); if(input){input.value=(a.el.textContent||'').trim(); input.dispatchEvent(new Event('input',{bubbles:true}));}
+    if(input){
+      input.value = a.key === 'hero-title'
+        ? (a.textBuffer || input.value || '')
+        : (a.el.textContent||'').trim();
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+    }
   }else{
+    if (input && 'originalInputValue' in a) {
+      input.value = a.originalInputValue;
+    }
     a.el.innerHTML=a.originalHTML;
     window.__designInlineStyles=window.__designInlineStyles||{};
     window.__designInlineStyles[a.key]=a.originalStyle;
     applyInlineStyleToElement(a.el,a.key);
   }
+
   a.el.contentEditable='false';a.el.onkeydown=null;a.el.oninput=null;a.el.removeAttribute('spellcheck');a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
   if($('design-inline-editor'))$('design-inline-editor').hidden=true;
   applyDesignContentPreview();updateDesignPublicationState();
@@ -8612,7 +8811,15 @@ async function saveDesignInline() {
   };
 
   const newText =
-    serializeInlineText(active.el)
+    (
+      active.key === 'hero-title'
+        ? (
+            active.textBuffer ||
+            $(active.cfg.input)?.value ||
+            ''
+          )
+        : serializeInlineText(active.el)
+    )
       .replace(/\u00a0/g, ' ')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
@@ -8703,7 +8910,8 @@ async function saveDesignInline() {
       key: editedKey,
       input: active.cfg.input,
       text: newText,
-      lines: newText.split('\n')
+      lines: newText.split('\n'),
+      sourceField: input.value
     }
   );
 
