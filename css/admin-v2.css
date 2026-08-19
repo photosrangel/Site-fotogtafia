@@ -5772,3 +5772,226 @@
     padding: 3px 12px 12px;
   }
 }
+
+
+/* =========================================================
+   BUILD V30 — DESIGN NO MENU LATERAL
+   ========================================================= */
+
+/* Design deixa de dividir espaço com controles laterais. */
+.design-studio-grid-full {
+  display: block !important;
+  width: 100% !important;
+}
+
+.design-studio-grid-full .design-preview-column {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Grupo expansível na navegação lateral */
+.design-nav-group {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-nav-item-parent {
+  width: 100%;
+}
+
+.admin-nav-item-parent .admin-nav-chevron {
+  margin-left: auto;
+  transition: transform .18s ease;
+}
+
+.design-nav-group.is-open .admin-nav-chevron {
+  transform: rotate(180deg);
+}
+
+.admin-nav-submenu {
+  display: grid;
+  gap: 2px;
+  padding: 3px 0 5px 17px;
+}
+
+.admin-nav-submenu[hidden] {
+  display: none !important;
+}
+
+.admin-nav-subitem {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 7px 10px;
+  border: 0;
+  border-left: 1px solid var(--admin-line-soft);
+
+  background: transparent;
+  color: var(--text-muted);
+
+  font-family: var(--font-mono);
+  font-size: .53rem;
+  letter-spacing: .07em;
+  text-align: left;
+  text-transform: uppercase;
+
+  cursor: pointer;
+  transition:
+    color .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.admin-nav-subitem:hover {
+  color: var(--text);
+  border-left-color: rgba(255,255,255,.32);
+  background: rgba(255,255,255,.025);
+}
+
+.admin-nav-subitem span {
+  color: var(--text-muted);
+}
+
+/* Drawer de configurações.
+   Fica fora da área da prévia, por isso a prévia usa toda a largura. */
+.design-controls-drawer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+
+  z-index: 3400;
+
+  width: min(390px, calc(100vw - 36px));
+
+  overflow-y: auto;
+
+  padding: 14px;
+
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 14px;
+
+  background: rgba(14,14,12,.97);
+  box-shadow:
+    0 28px 80px rgba(0,0,0,.55);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  opacity: 0;
+  transform: translateX(18px);
+  transition:
+    opacity .18s ease,
+    transform .18s ease;
+}
+
+.design-controls-drawer.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+.design-controls-drawer[hidden] {
+  display: none !important;
+}
+
+.design-controls-drawer-head {
+  position: sticky;
+  top: -14px;
+  z-index: 8;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin: -14px -14px 10px;
+  padding: 14px;
+
+  border-bottom: 1px solid var(--admin-line-soft);
+
+  background: rgba(14,14,12,.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.design-controls-drawer-head h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+}
+
+.design-controls-drawer .design-controls {
+  position: static !important;
+  width: 100% !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+@media (max-width: 680px) {
+  .design-controls-drawer {
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+
+    width: calc(100vw - 16px);
+    max-width: none;
+  }
+
+  .admin-nav-submenu {
+    padding-left: 10px;
+  }
+}
+
+
+/* =========================================================
+   BUILD V31 — CONTEÚDO EXPANSÍVEL NO MENU LATERAL
+   ========================================================= */
+
+.content-nav-group {
+  display: grid;
+  gap: 4px;
+}
+
+.content-nav-group.is-open .admin-nav-chevron {
+  transform: rotate(180deg);
+}
+
+/* Pequeno feedback visual quando um subitem leva até o editor. */
+.content-nav-focus {
+  animation: contentNavFocus 1s ease both;
+}
+
+@keyframes contentNavFocus {
+  0% {
+    box-shadow: 0 0 0 1px rgba(255,255,255,.30);
+  }
+
+  100% {
+    box-shadow: 0 0 0 1px rgba(255,255,255,0);
+  }
+}
+
+/* E-mail no topo pode ser maior que "V8": evita corte em telas menores. */
+.admin-version,
+.cms-version,
+[class*="version"] {
+  max-width: min(260px, 32vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  .admin-version,
+  .cms-version,
+  [class*="version"] {
+    max-width: 44vw;
+    font-size: .48rem !important;
+  }
+}
