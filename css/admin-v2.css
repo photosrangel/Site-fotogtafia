@@ -6407,3 +6407,136 @@
     grid-column: 2 / 4 !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V37 — DESIGN FINAL / PUBLICAÇÃO PROTEGIDA
+   ========================================================= */
+
+.design-publication-panel { margin-top: 16px; }
+
+.design-publication-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:22px;
+}
+
+.design-publication-head h3 {
+  margin:4px 0 0;
+  font-family:var(--font-display);
+  font-size:clamp(1.35rem,2vw,1.8rem);
+  font-weight:400;
+}
+
+.design-publication-status {
+  flex:0 0 auto;
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 11px;
+  border:1px solid var(--admin-line-soft);
+  border-radius:999px;
+  font-family:var(--font-mono);
+  font-size:.52rem;
+  letter-spacing:.08em;
+  color:var(--text-muted);
+}
+
+.design-publication-dot {
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#77736c;
+  box-shadow:0 0 0 3px rgba(119,115,108,.12);
+}
+
+.design-publication-status[data-state="published"] {
+  color:#b9d5bd;
+  border-color:rgba(121,174,128,.28);
+}
+.design-publication-status[data-state="published"] .design-publication-dot {
+  background:#79ae80;
+  box-shadow:0 0 0 3px rgba(121,174,128,.12);
+}
+
+.design-publication-status[data-state="draft"] {
+  color:#d7c58b;
+  border-color:rgba(199,171,87,.30);
+}
+.design-publication-status[data-state="draft"] .design-publication-dot {
+  background:#c7ab57;
+  box-shadow:0 0 0 3px rgba(199,171,87,.12);
+}
+
+.design-publication-status[data-state="dirty"] {
+  color:#e0b7a4;
+  border-color:rgba(199,112,82,.32);
+}
+.design-publication-status[data-state="dirty"] .design-publication-dot {
+  background:#c77052;
+  box-shadow:0 0 0 3px rgba(199,112,82,.12);
+}
+
+.design-publication-meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 24px;
+  margin-top:18px;
+  padding-top:15px;
+  border-top:1px solid var(--admin-line-soft);
+  color:var(--text-muted);
+  font-family:var(--font-mono);
+  font-size:.52rem;
+  letter-spacing:.04em;
+}
+
+.design-publication-meta strong {
+  color:var(--text);
+  font-weight:500;
+}
+
+.design-publication-actions {
+  display:flex;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:18px;
+}
+
+.design-publication-actions .btn:disabled {
+  cursor:not-allowed;
+  opacity:.36;
+  filter:grayscale(.35);
+}
+
+.design-publication-hint {
+  margin:11px 0 0;
+  color:var(--text-muted);
+  font-size:.72rem;
+  line-height:1.55;
+}
+
+@media (max-width:760px) {
+  .design-publication-head { flex-direction:column; }
+  .design-publication-status { align-self:flex-start; }
+  .design-publication-actions { flex-direction:column; }
+  .design-publication-actions .btn { width:100%; }
+}
+
+
+/* =========================================================
+   BUILD V38 — ÁREA DO CLIENTE NO DESIGNER
+   ========================================================= */
+
+.design-control-help {
+  margin: 9px 0 2px;
+  color: var(--text-muted);
+  font-size: .69rem;
+  line-height: 1.55;
+}
+
+.admin-nav-subitem[data-design-jump="client_area"] {
+  border-left-color: rgba(255,255,255,.12);
+}
