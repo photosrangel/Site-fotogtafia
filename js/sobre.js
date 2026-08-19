@@ -26,59 +26,232 @@ const DEFAULTS = {
   cta_url: '/contato'
 };
 
-async function carregarSobre() {
-  const { settings } = await initSite();
-  const sections = await getPageContent('sobre');
-  const c = sections.conteudo || {};
+function normalizarTexto(value) {
+  return String(value ?? '').trim();
+}
 
-  const eyebrow = document.getElementById('sobre-eyebrow');
-  if (eyebrow) eyebrow.textContent = c.eyebrow || DEFAULTS.eyebrow;
+function chaveSpec(label) {
+  return normalizarTexto(label)
+    .toLocaleLowerCase('pt-PT')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
 
-  const paragraphs =
-    Array.isArray(c.paragraphs) && c.paragraphs.length
-      ? c.paragraphs
-      : DEFAULTS.paragraphs;
+function mergeSpecs(savedSpecs, settings) {
+  const saved =
+    Array.isArray(savedSpecs)
+      ? savedSpecs.filter(
+          spec =>
+            spec &&
+            typeof spec === 'object'
+        )
+      : [];
 
-  const parasContainer = document.getElementById('sobre-paragraphs');
-  parasContainer.innerHTML = paragraphs
-    .map(p => `<p>${esc(p)}</p>`)
-    .join('');
-
-  let specs =
-    Array.isArray(c.specs) && c.specs.length
-      ? c.specs
-      : DEFAULTS.specs;
+  /*
+    Mantém as linhas padrão que já existiam na página caso um rascunho
+    antigo tenha salvo apenas parte dos specs. Valores salvos continuam
+    tendo prioridade. Specs personalizados extras também são preservados.
+  */
+  const byKey =
+    new Map(
+      saved.map(spec => [
+        chaveSpec(spec.label),
+        {
+          label:
+            normalizarTexto(spec.label),
+          value:
+            normalizarTexto(spec.value)
+        }
+      ])
+    );
 
   const fallbacks = {
-    'Baseado em': settings.location,
-    'Especialidade': settings.specialty,
-    'Atende': settings.availability
+    'baseado em':
+      normalizarTexto(settings?.location),
+    'especialidade':
+      normalizarTexto(settings?.specialty),
+    'atende':
+      normalizarTexto(settings?.availability)
   };
 
-  specs = specs.map(spec => {
-    const valorSalvo = String(spec.value ?? '').trim();
-    const fallback = fallbacks[spec.label];
+  const merged =
+    DEFAULTS.specs.map(defaultSpec => {
+      const key =
+        chaveSpec(defaultSpec.label);
 
-    return !valorSalvo && fallback
-      ? { ...spec, value: fallback }
-      : spec;
+      const savedSpec =
+        byKey.get(key);
+
+      byKey.delete(key);
+
+      const savedValue =
+        normalizarTexto(
+          savedSpec?.value
+        );
+
+      return {
+        label:
+          savedSpec?.label ||
+          defaultSpec.label,
+
+        value:
+          savedValue ||
+          fallbacks[key] ||
+          defaultSpec.value
+      };
+    });
+
+  /*
+    Se você criar uma informação nova no Admin, ela não é perdida:
+    entra depois das linhas padrão.
+  */
+  byKey.forEach(spec => {
+    if (
+      spec.label &&
+      spec.value
+    ) {
+      merged.push(spec);
+    }
   });
 
-  const specsEl = document.getElementById('sobre-specs');
-  specsEl.innerHTML = specs
-    .map(
-      spec =>
-        `<div><dt>${esc(spec.label)}</dt><dd>${esc(spec.value)}</dd></div>`
-    )
-    .join('');
+  return merged;
+}
 
-  const portrait = document.getElementById('sobre-portrait');
-  portrait.src = c.portrait_url || DEFAULTS.portrait_url;
-  portrait.alt = c.portrait_alt || DEFAULTS.portrait_alt;
+function mostrarPaginaSobre() {
+  document.documentElement.classList.remove(
+    'sobre-cms-loading'
+  );
 
-  const cta = document.getElementById('sobre-cta');
-  cta.href = c.cta_url || DEFAULTS.cta_url;
-  cta.textContent = c.cta_text || DEFAULTS.cta_text;
+  document.documentElement.classList.add(
+    'sobre-cms-ready'
+  );
+}
+
+async function carregarSobre() {
+  try {
+    /*
+      initSite já carrega/aplica as configurações globais.
+      Depois buscamos somente o conteúdo específico da página.
+      A tela principal continua oculta até este primeiro render terminar.
+    */
+    const { settings } =
+      await initSite();
+
+    const sections =
+      await getPageContent('sobre');
+
+    const c =
+      sections.conteudo || {};
+
+    const eyebrow =
+      document.getElementById(
+        'sobre-eyebrow'
+      );
+
+    if (eyebrow) {
+      eyebrow.textContent =
+        normalizarTexto(c.eyebrow) ||
+        DEFAULTS.eyebrow;
+    }
+
+    const paragraphs =
+      Array.isArray(c.paragraphs) &&
+      c.paragraphs.length
+        ? c.paragraphs
+            .map(normalizarTexto)
+            .filter(Boolean)
+        : DEFAULTS.paragraphs;
+
+    const parasContainer =
+      document.getElementById(
+        'sobre-paragraphs'
+      );
+
+    if (parasContainer) {
+      parasContainer.innerHTML =
+        paragraphs
+          .map(
+            p =>
+              `<p>${esc(p)}</p>`
+          )
+          .join('');
+    }
+
+    const specs =
+      mergeSpecs(
+        c.specs,
+        settings
+      );
+
+    const specsEl =
+      document.getElementById(
+        'sobre-specs'
+      );
+
+    if (specsEl) {
+      specsEl.innerHTML =
+        specs
+          .map(
+            spec => `
+              <div>
+                <dt>${esc(spec.label)}</dt>
+                <dd>${esc(spec.value)}</dd>
+              </div>
+            `
+          )
+          .join('');
+    }
+
+    const portrait =
+      document.getElementById(
+        'sobre-portrait'
+      );
+
+    if (portrait) {
+      portrait.src =
+        normalizarTexto(
+          c.portrait_url
+        ) ||
+        DEFAULTS.portrait_url;
+
+      portrait.alt =
+        normalizarTexto(
+          c.portrait_alt
+        ) ||
+        DEFAULTS.portrait_alt;
+    }
+
+    const cta =
+      document.getElementById(
+        'sobre-cta'
+      );
+
+    if (cta) {
+      cta.href =
+        normalizarTexto(
+          c.cta_url
+        ) ||
+        DEFAULTS.cta_url;
+
+      cta.textContent =
+        normalizarTexto(
+          c.cta_text
+        ) ||
+        DEFAULTS.cta_text;
+    }
+  } catch (error) {
+    /*
+      Em falha de rede, não deixamos a página invisível.
+      O HTML inicial serve como fallback.
+    */
+    console.error(
+      'CMS Sobre: erro ao carregar:',
+      error
+    );
+  } finally {
+    mostrarPaginaSobre();
+  }
 }
 
 document.addEventListener('DOMContentLoaded', carregarSobre);
+

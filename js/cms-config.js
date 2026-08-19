@@ -96,32 +96,99 @@ export function applySettings(settings) {
   const footerText = document.querySelector('[data-setting="footer_text"]');
   if (footerText && s.footer_text) footerText.textContent = s.footer_text;
 
-  const siteName = document.querySelector('[data-setting="site_name"]');
-  if (siteName) {
+  const siteName =
+    document.querySelector(
+      '[data-setting="site_name"]'
+    );
+
+  if (
+    siteName &&
+    s.site_name
+  ) {
     /*
-      A marca visual do site tem estrutura própria:
+      A marca possui estrutura própria:
       Rangel <em>Santos</em> <span>Fotografia</span>
 
-      O CMS pode guardar valores como:
-      "Rangel Santos Fotografia"
-      "Rangel Santos — Fotografia"
-      "Rangel Santos"
-
-      Antes, o script alterava apenas parte do HTML e deixava o
-      <span>Fotografia</span> existente, causando "Fotografia Fotografia"
-      depois que as configurações terminavam de carregar.
+      O código antigo tratava o nome como uma string com hífen e podia
+      reescrever o <em> durante o carregamento do Supabase, causando
+      o “Fotografia” piscar na troca de páginas.
     */
-    const valorCMS = String(s.site_name || 'Rangel Santos')
-      .replace(/\s*[-–—]?\s*Fotografia\s*$/i, '')
-      .trim() || 'Rangel Santos';
+    const raw =
+      String(s.site_name)
+        .replace(
+          /\bfotografia\b/gi,
+          ''
+        )
+        .replace(/[–—-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-    const palavras = valorCMS.split(/\s+/);
-    const primeiroNome = palavras.shift() || 'Rangel';
-    const restanteNome = palavras.join(' ') || 'Santos';
+    const words =
+      raw.split(' ')
+        .filter(Boolean);
 
-    siteName.innerHTML =
-      `${esc(primeiroNome)} <em>${esc(restanteNome)}</em> ` +
-      '<span class="nav-logo-photo">Fotografia</span>';
+    const surname =
+      words.length > 1
+        ? words.pop()
+        : '';
+
+    const firstPart =
+      words.join(' ') ||
+      raw ||
+      'Rangel';
+
+    const em =
+      siteName.querySelector('em');
+
+    let photo =
+      siteName.querySelector(
+        '.nav-logo-photo'
+      );
+
+    if (!photo) {
+      photo =
+        document.createElement(
+          'span'
+        );
+
+      photo.className =
+        'nav-logo-photo';
+
+      siteName.appendChild(
+        photo
+      );
+    }
+
+    /*
+      Mantém os mesmos nós, evitando reconstruir a marca toda.
+    */
+    const firstTextNode =
+      [...siteName.childNodes]
+        .find(
+          node =>
+            node.nodeType ===
+            Node.TEXT_NODE
+        );
+
+    if (firstTextNode) {
+      firstTextNode.textContent =
+        `${firstPart} `;
+    } else {
+      siteName.insertBefore(
+        document.createTextNode(
+          `${firstPart} `
+        ),
+        siteName.firstChild
+      );
+    }
+
+    if (em) {
+      em.textContent =
+        surname || 'Santos';
+    }
+
+    photo.textContent =
+      'Fotografia';
   }
 
   const insta = document.querySelector('[data-setting="instagram_url"]');
