@@ -40,10 +40,75 @@
         Conteúdo <span class="admin-nav-chevron" aria-hidden="true">⌄</span>
       </button>
       <div class="admin-nav-nested" id="design-content-submenu" hidden>
-        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="inicio">Início <span>⌄</span></button>
-        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="sobre">Sobre <span>⌄</span></button>
-        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="contato">Contato <span>⌄</span></button>
-      </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="inicio">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Início"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="inicio"
+          >
+            Início <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="sobre">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Sobre"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="sobre"
+          >
+            Sobre <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="contato">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Contato"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="contato"
+          >
+            Contato <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="client_area">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Área do Cliente"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="client_area"
+          >
+            Área do Cliente <span>⌄</span>
+          </button>
+        </div>
+</div>
     </div>
 
     <button class="admin-nav-subitem" type="button" data-design-jump="menu">
@@ -63,11 +128,6 @@
 
     <button class="admin-nav-subitem" type="button" data-design-jump="galleries">
       Galerias
-      <span>⌄</span>
-    </button>
-
-    <button class="admin-nav-subitem" type="button" data-design-jump="client_area">
-      Área do Cliente
       <span>⌄</span>
     </button>
   </div>
@@ -613,6 +673,42 @@ Um espaço reservado só para você.</textarea>
                   <input id="admin-ui-version" maxlength="40" value="CMS V2">
                 </div>
               </div>
+            </fieldset>
+
+
+            <fieldset class="admin-settings-group">
+              <legend>Ordem do Conteúdo no Designer</legend>
+
+              <p class="panel-copy">
+                Arraste os itens abaixo para definir a ordem em que aparecem dentro de
+                Design → Conteúdo. A alteração afeta somente o painel administrativo.
+              </p>
+
+              <div class="admin-content-order-list" id="admin-content-order-list">
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="inicio">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Início">⋮⋮</button>
+                  <span>Início</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="sobre">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Sobre">⋮⋮</button>
+                  <span>Sobre</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="contato">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Contato">⋮⋮</button>
+                  <span>Contato</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="client_area">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Área do Cliente">⋮⋮</button>
+                  <span>Área do Cliente</span>
+                </div>
+              </div>
+
+              <p class="design-control-help">
+                A ordem é salva junto com as configurações internas do painel.
+              </p>
             </fieldset>
 
             <fieldset class="admin-settings-group">
