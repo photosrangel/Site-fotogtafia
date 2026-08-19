@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v13 — badges alinhados + anexos + resposta pronta');
+console.log('[admin-v2] Build v14 — ensaios recolhíveis + hero compacto');
 
 const $ = id => document.getElementById(id);
 
@@ -24,6 +24,11 @@ let messagesCache = [];
 let activeView = 'dashboard';
 let adminRealtimeChannel = null;
 let replyAttachmentsDraft = [];
+let heroAdminPreviewTimer = null;
+const sessionStageOpen = {
+  provas: false,
+  finais: false
+};
 
 
 const slugify = v =>
@@ -3662,7 +3667,9 @@ async function loadContent() {
     : [];
   updateHeroModeUI();
   updateStaticFocalPreview();
+  updateStaticMobilePreview();
   renderHeroSlidesAdmin();
+  renderHeroSlideshowOverview();
   $('hero-primary-text').value = h.primary_button?.text || '';
   $('hero-primary-url').value = h.primary_button?.url || '';
   $('hero-secondary-text').value = h.secondary_button?.text || '';
@@ -3767,6 +3774,108 @@ function focalStyle(x, y) {
   return `${Number(x ?? 50)}% ${Number(y ?? 50)}%`;
 }
 
+
+function updateStaticMobilePreview() {
+  const preview = $('hero-static-mobile-preview');
+  if (!preview) return;
+
+  const desktopUrl = safeText($('hero-desktop-image')?.value, 2048);
+  const mobileUrl = safeText($('hero-mobile-image')?.value, 2048);
+  const activeUrl = mobileUrl || desktopUrl;
+
+  preview.style.backgroundImage = activeUrl
+    ? `url("${activeUrl.replace(/"/g, '%22')}")`
+    : '';
+
+  preview.style.backgroundPosition = focalStyle(
+    Number($('hero-static-focus-x')?.value) || 50,
+    Number($('hero-static-focus-y')?.value) || 50
+  );
+
+  preview.classList.toggle('empty', !activeUrl);
+  preview.classList.toggle('uses-desktop-fallback', !mobileUrl && Boolean(desktopUrl));
+}
+
+function stopHeroAdminPreview() {
+  if (heroAdminPreviewTimer) {
+    clearInterval(heroAdminPreviewTimer);
+    heroAdminPreviewTimer = null;
+  }
+}
+
+function renderHeroSlideshowOverview() {
+  const preview = $('hero-slideshow-admin-preview');
+  const summary = $('hero-slideshow-summary');
+
+  if (!preview || !summary) return;
+
+  stopHeroAdminPreview();
+
+  const slides = heroSlidesDraft
+    .filter(slide => slide?.url && slide.published !== false);
+
+  const total = heroSlidesDraft.length;
+  const published = slides.length;
+
+  summary.textContent =
+    `${total} ${total === 1 ? 'imagem' : 'imagens'} · ${published} ${published === 1 ? 'publicada' : 'publicadas'}`;
+
+  if (!slides.length) {
+    preview.innerHTML =
+      '<div class="hero-slideshow-admin-empty">Nenhuma imagem publicada no slideshow.</div>';
+    return;
+  }
+
+  preview.innerHTML = slides.map((slide, index) => `
+    <div
+      class="hero-slideshow-admin-frame ${index === 0 ? 'is-visible' : ''}"
+      style="
+        background-image:url('${attr(slide.url)}');
+        background-position:${focalStyle(slide.focus_x, slide.focus_y)};
+      "
+      aria-hidden="${index === 0 ? 'false' : 'true'}"
+    ></div>
+  `).join('');
+
+  if (slides.length < 2) return;
+
+  const frames = [...preview.querySelectorAll('.hero-slideshow-admin-frame')];
+  let current = 0;
+
+  const intervalMs = Math.max(
+    1800,
+    (Number($('hero-slide-interval')?.value) || 5) * 1000
+  );
+
+  heroAdminPreviewTimer = setInterval(() => {
+    const next = (current + 1) % frames.length;
+
+    frames[current].classList.remove('is-visible');
+    frames[current].setAttribute('aria-hidden', 'true');
+
+    frames[next].classList.add('is-visible');
+    frames[next].setAttribute('aria-hidden', 'false');
+
+    current = next;
+  }, intervalMs);
+}
+
+function openHeroSlidesManager() {
+  const modal = $('hero-slides-manager-modal');
+  if (!modal) return;
+
+  modal.hidden = false;
+  renderHeroSlidesAdmin();
+}
+
+function closeHeroSlidesManager() {
+  const modal = $('hero-slides-manager-modal');
+  if (!modal) return;
+
+  modal.hidden = true;
+  renderHeroSlideshowOverview();
+}
+
 function updateStaticFocalPreview() {
   const preview = $('hero-static-preview');
   const url = $('hero-desktop-image').value.trim();
@@ -3780,6 +3889,7 @@ function updateStaticFocalPreview() {
   marker.style.top = y + '%';
   $('hero-static-focus-x-out').textContent = x + '%';
   $('hero-static-focus-y-out').textContent = y + '%';
+  updateStaticMobilePreview();
 }
 
 function setFocalFromClick(preview, event, onChange) {
@@ -3811,6 +3921,7 @@ function renderHeroSlidesAdmin() {
 
   if (!heroSlidesDraft.length) {
     c.innerHTML = '<div class="hero-slides-empty">Nenhuma foto adicionada ao slideshow.</div>';
+    renderHeroSlideshowOverview();
     return;
   }
 
@@ -3872,10 +3983,25 @@ function renderHeroSlidesAdmin() {
       renderHeroSlidesAdmin();
     });
   });
+
+  renderHeroSlideshowOverview();
 }
 
 document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
-  r.addEventListener('change', updateHeroModeUI)
+  r.addEventListener('change', () => {
+    updateHeroModeUI();
+    renderHeroSlideshowOverview();
+  })
+);
+
+$('btn-manage-hero-slides')?.addEventListener('click', openHeroSlidesManager);
+
+document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
+  element.addEventListener('click', closeHeroSlidesManager)
+);
+
+['hero-slide-interval', 'hero-slide-transition'].forEach(id =>
+  $(id)?.addEventListener('input', renderHeroSlideshowOverview)
 );
 
 ['hero-static-focus-x', 'hero-static-focus-y'].forEach(id =>
@@ -3883,6 +4009,7 @@ document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
 );
 
 $('hero-desktop-image').addEventListener('input', updateStaticFocalPreview);
+$('hero-mobile-image').addEventListener('input', updateStaticMobilePreview);
 
 $('hero-static-preview').addEventListener('click', e => {
   setFocalFromClick($('hero-static-preview'), e, (x, y) => {
@@ -3910,6 +4037,56 @@ $('hero-static-upload').addEventListener('change', async e => {
   } catch (error) {
     msg($('hero-msg'), 'Erro no upload: ' + error.message, 'erro');
   }
+  e.target.value = '';
+});
+
+
+$('hero-static-mobile-upload').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+
+  const { validos, rejeitados } = validarImagens(files.slice(0, 1));
+
+  if (rejeitados.length) {
+    msg($('hero-msg'), rejeitados.join(' · '), 'erro');
+  }
+
+  if (!validos.length) {
+    e.target.value = '';
+    return;
+  }
+
+  try {
+    msg($('hero-msg'), 'Enviando foto para celular...');
+
+    const urls = await withOperationLock(
+      'hero-static-mobile-upload',
+      () => uploadHeroFiles(validos)
+    );
+
+    if (urls?.skipped) {
+      e.target.value = '';
+      return;
+    }
+
+    if (urls[0]) {
+      $('hero-mobile-image').value = urls[0];
+      updateStaticMobilePreview();
+
+      msg(
+        $('hero-msg'),
+        'Foto de celular enviada. Clique em “Salvar herói” para aplicar.',
+        'sucesso'
+      );
+    }
+  } catch (error) {
+    msg(
+      $('hero-msg'),
+      'Erro no upload da foto de celular: ' + error.message,
+      'erro'
+    );
+  }
+
   e.target.value = '';
 });
 
@@ -4484,13 +4661,24 @@ async function saveSession(e) {
 async function openSessionModal(id) {
   const s = sessionsCache.find(x => x.id === id);
   if (!s) return;
+
   currentSession = s;
+
+  sessionStageOpen.provas = false;
+  sessionStageOpen.finais = false;
+
   $('session-editor-modal').hidden = false;
+  syncSessionStageAccordions();
+
   await loadSessionPhotos();
 }
 
 function closeSessionModal() {
   $('session-editor-modal').hidden = true;
+
+  sessionStageOpen.provas = false;
+  sessionStageOpen.finais = false;
+
   currentSession = null;
   currentSessionPhotos = [];
 }
@@ -4656,6 +4844,51 @@ async function reenviarNotificacoesSelecao() {
   }
 }
 
+
+function setSessionStageOpen(stage, open) {
+  if (!(stage in sessionStageOpen)) return;
+
+  sessionStageOpen[stage] = Boolean(open);
+
+  const section = document.querySelector(
+    `.session-stage-accordion[data-session-stage="${stage}"]`
+  );
+
+  if (!section) return;
+
+  const toggle = section.querySelector('.session-stage-toggle');
+  const body = section.querySelector('.session-stage-body');
+
+  section.classList.toggle('is-open', Boolean(open));
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  if (body) {
+    body.hidden = !open;
+  }
+}
+
+function toggleSessionStage(stage) {
+  setSessionStageOpen(stage, !sessionStageOpen[stage]);
+}
+
+function syncSessionStageAccordions() {
+  setSessionStageOpen('provas', sessionStageOpen.provas);
+  setSessionStageOpen('finais', sessionStageOpen.finais);
+}
+
+document.querySelectorAll('.session-stage-toggle').forEach(toggle => {
+  toggle.addEventListener('click', () => {
+    const section = toggle.closest('[data-session-stage]');
+    const stage = section?.dataset.sessionStage;
+
+    if (stage) toggleSessionStage(stage);
+  });
+});
+
+
 function renderSessionDetail() {
   if (!currentSession) return;
   const s = currentSession;
@@ -4675,6 +4908,7 @@ function renderSessionDetail() {
 
   $('prova-count').textContent = provas.length;
   $('final-count').textContent = finais.length;
+  syncSessionStageAccordions();
 
   const fallbackCoverPhotoId = currentSessionPhotos
     .slice()
@@ -4997,30 +5231,127 @@ async function excluirFotoEnsaio(id) {
 
 async function uploadSessionPhotos(files, tipo) {
   if (!currentSession) return;
+
   const msgEl = $('session-msg');
   const { validos, rejeitados } = validarImagens(files);
-  if (rejeitados.length) msg(msgEl, rejeitados.join(' · '), 'erro');
+
+  if (rejeitados.length) {
+    msg(msgEl, rejeitados.join(' · '), 'erro');
+  }
+
   if (!validos.length) return;
 
-  return withOperationLock(`session-upload:${currentSession.id}:${tipo}`, async () => {
-    msg(msgEl, `Enviando ${validos.length} foto(s)...`);
+  return withOperationLock(
+    `session-upload:${currentSession.id}:${tipo}`,
+    async () => {
+      msg(
+        msgEl,
+        `Enviando ${validos.length} foto(s) e numerando automaticamente...`
+      );
 
-    for (const file of validos) {
-      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-      const path = `${currentSession.id}/${tipo}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from(SESSIONS_BUCKET).upload(path, file, { upsert:false });
-      if (upErr) { msg(msgEl, 'Erro ao enviar: ' + upErr.message, 'erro'); continue; }
-      const { data: urlData } = supabase.storage.from(SESSIONS_BUCKET).getPublicUrl(path);
-      const { error: dbErr } = await supabase.from('fotos').insert({ ensaio_id: currentSession.id, url: urlData.publicUrl, tipo });
-      if (dbErr) {
-        await supabase.storage.from(SESSIONS_BUCKET).remove([path]).catch(()=>{});
-        msg(msgEl, 'Erro ao registrar a foto: ' + dbErr.message, 'erro');
+      const existentes = currentSessionPhotos
+        .filter(f => f.tipo === tipo)
+        .slice()
+        .sort(
+          (a, b) =>
+            Number(a.ordem ?? 999999) -
+            Number(b.ordem ?? 999999)
+        );
+
+      // O número exibido independe completamente do nome original do arquivo.
+      // Pedro.jpg, IMG_1234.jpg ou qualquer outro nome vira 0001, 0002...
+      let nextOrder = existentes.length
+        ? Math.max(
+            ...existentes.map(
+              (foto, index) =>
+                Number.isFinite(Number(foto.ordem))
+                  ? Number(foto.ordem)
+                  : index
+            )
+          ) + 1
+        : 0;
+
+      let enviados = 0;
+
+      for (const file of validos) {
+        const ext =
+          file.type === 'image/png'
+            ? 'png'
+            : file.type === 'image/webp'
+              ? 'webp'
+              : 'jpg';
+
+        const displayNumber =
+          String(nextOrder + 1).padStart(4, '0');
+
+        // Até o nome interno no Storage passa a começar pelo número lógico.
+        // O UUID evita colisões caso uma fotografia seja excluída e reenviada.
+        const path =
+          `${currentSession.id}/${tipo}/${displayNumber}-${crypto.randomUUID()}.${ext}`;
+
+        const { error: upErr } = await supabase
+          .storage
+          .from(SESSIONS_BUCKET)
+          .upload(
+            path,
+            file,
+            { upsert: false }
+          );
+
+        if (upErr) {
+          msg(
+            msgEl,
+            `Erro ao enviar ${displayNumber}: ${upErr.message}`,
+            'erro'
+          );
+          continue;
+        }
+
+        const { data: urlData } = supabase
+          .storage
+          .from(SESSIONS_BUCKET)
+          .getPublicUrl(path);
+
+        const { error: dbErr } = await supabase
+          .from('fotos')
+          .insert({
+            ensaio_id: currentSession.id,
+            url: urlData.publicUrl,
+            tipo,
+            ordem: nextOrder
+          });
+
+        if (dbErr) {
+          await supabase
+            .storage
+            .from(SESSIONS_BUCKET)
+            .remove([path])
+            .catch(() => {});
+
+          msg(
+            msgEl,
+            `Erro ao registrar ${displayNumber}: ${dbErr.message}`,
+            'erro'
+          );
+
+          continue;
+        }
+
+        nextOrder += 1;
+        enviados += 1;
       }
-    }
 
-    msg(msgEl, 'Fotos enviadas!', 'sucesso');
-    await loadSessionPhotos();
-  });
+      if (enviados) {
+        msg(
+          msgEl,
+          `${enviados} foto(s) enviada(s). Numeração automática aplicada.`,
+          'sucesso'
+        );
+      }
+
+      await loadSessionPhotos();
+    }
+  );
 }
 
 async function enviarParaSelecao() {
