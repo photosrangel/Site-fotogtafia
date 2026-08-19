@@ -68,7 +68,7 @@ const PUBLIC_DESIGN_DEFAULTS = {
   content_width:1200,
   section_space:120,
   hero_overlay:40,
-  whatsapp_enabled:true, whatsapp_number:'', whatsapp_message:'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.', whatsapp_position:'right', whatsapp_pages:['inicio','galeria','sobre','contato'], inline_styles:{},
+  whatsapp_enabled:true, whatsapp_number:'', whatsapp_message:'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.', whatsapp_position:'right', whatsapp_style:'editorial', whatsapp_pages:['inicio','galeria','sobre','contato'], inline_styles:{},
   gallery_gap:2,
   image_radius:0,
   client_layout:'editorial-split',
@@ -122,6 +122,7 @@ function normalizePublicDesign(config={}){
     whatsapp_number:typeof c.whatsapp_number==='string'?c.whatsapp_number.replace(/\D/g,''):'',
     whatsapp_message:typeof c.whatsapp_message==='string'?c.whatsapp_message:PUBLIC_DESIGN_DEFAULTS.whatsapp_message,
     whatsapp_position:c.whatsapp_position==='left'?'left':'right',
+    whatsapp_style:['editorial','minimal','classic'].includes(c.whatsapp_style)?c.whatsapp_style:'editorial',
     whatsapp_pages:Array.isArray(c.whatsapp_pages)?c.whatsapp_pages.filter(x=>['inicio','galeria','sobre','contato'].includes(x)):PUBLIC_DESIGN_DEFAULTS.whatsapp_pages,
     inline_styles:c.inline_styles&&typeof c.inline_styles==='object'?c.inline_styles:{},
     gallery_gap:publicDesignClamp(c.gallery_gap,0,16,2),
@@ -201,7 +202,7 @@ function applyPublishedWhatsapp(c){
   if(!c.whatsapp_enabled||!c.whatsapp_number)return;
   let page='inicio';const p=location.pathname;if(p.includes('galeria'))page='galeria';else if(p.includes('sobre'))page='sobre';else if(p.includes('contato'))page='contato';else if(p.includes('area-cliente'))page='area-cliente';
   if(!(c.whatsapp_pages||[]).includes(page))return;
-  const a=document.createElement('a');a.id='rs-whatsapp-float';a.className='rs-whatsapp-float'+(c.whatsapp_position==='left'?' is-left':'');a.href='https://wa.me/'+c.whatsapp_number+(c.whatsapp_message?'?text='+encodeURIComponent(c.whatsapp_message):'');a.target='_blank';a.rel='noopener';a.setAttribute('aria-label','Conversar pelo WhatsApp');a.innerHTML='<span aria-hidden="true">◔</span><b>WhatsApp</b>';document.body.appendChild(a);
+  const a=document.createElement('a');a.id='rs-whatsapp-float';a.className='rs-whatsapp-float is-'+(c.whatsapp_style||'editorial')+(c.whatsapp_position==='left'?' is-left':'');a.href='https://wa.me/'+c.whatsapp_number+(c.whatsapp_message?'?text='+encodeURIComponent(c.whatsapp_message):'');a.target='_blank';a.rel='noopener';a.setAttribute('aria-label','Fale comigo pelo WhatsApp');a.innerHTML='<span class="rs-wa-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.04 3.2A12.73 12.73 0 0 0 5.1 22.43L3.4 28.8l6.52-1.7A12.8 12.8 0 1 0 16.04 3.2Zm0 23.32c-2.04 0-4.03-.55-5.77-1.58l-.41-.24-3.87 1.01 1.03-3.76-.27-.43a10.5 10.5 0 1 1 9.29 5Zm5.76-7.87c-.32-.16-1.87-.92-2.16-1.03-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.33-.49-2.54-1.57a9.5 9.5 0 0 1-1.76-2.19c-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.35-.26-.61-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63s1.13 3.05 1.29 3.26c.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.67.76.24 1.44.21 1.99.13.61-.09 1.87-.77 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.14-.29-.21-.61-.37Z"/></svg></span><b>Fale comigo</b>';document.body.appendChild(a);
 }
 function applyPublishedDesign(config={}){
   const c=normalizePublicDesign(config);
