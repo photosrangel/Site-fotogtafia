@@ -5387,3 +5387,138 @@
     margin-top: 8px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V22 — HERO PREENCHENDO O RETÂNGULO
+   Principal encostada à esquerda, controles no centro e
+   prévia celular alinhada à borda direita.
+   ========================================================= */
+
+/* Desktop 1920x1080 e telas intermediárias */
+@media (min-width: 1200px) {
+  #hero-static-editor .hero-static-preview-row {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      minmax(300px, .88fr)
+      minmax(145px, 180px) !important;
+
+    column-gap: clamp(18px, 1.8vw, 34px) !important;
+    align-items: center !important;
+
+    /* pequeno respiro apenas na extremidade direita para
+       a prévia mobile nunca parecer cortada */
+    padding-right: 10px;
+    box-sizing: border-box;
+  }
+
+  #hero-static-editor .hero-static-desktop-column {
+    width: 100%;
+    justify-self: stretch !important;
+    align-self: center !important;
+  }
+
+  #hero-static-editor .hero-static-desktop-column .focal-preview {
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch !important;
+  }
+
+  #hero-static-editor .hero-static-focal-column {
+    width: 100%;
+    max-width: none !important;
+    justify-self: stretch !important;
+    align-self: center !important;
+    padding-top: 18px !important;
+  }
+
+  #hero-static-editor .hero-static-focal-column .field,
+  #hero-static-editor .hero-static-focal-column input[type="range"] {
+    width: 100% !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-column {
+    width: 100% !important;
+    max-width: 180px !important;
+    justify-self: end !important;
+    align-self: center !important;
+    justify-items: end !important;
+    overflow: visible !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-column .hero-preview-label {
+    width: 100% !important;
+    justify-self: stretch !important;
+    text-align: center;
+  }
+
+  #hero-static-editor .hero-static-mobile-preview {
+    width: clamp(140px, 8.1vw, 168px) !important;
+    max-width: 100% !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    flex: none !important;
+  }
+
+  #hero-static-editor .hero-mobile-preview-help {
+    width: 100%;
+    max-width: 170px !important;
+    margin: 7px 0 0 auto !important;
+    text-align: center !important;
+  }
+}
+
+/* Ultrawide: usa toda a largura útil do retângulo.
+   A foto principal ocupa a borda esquerda e a prévia mobile
+   termina na borda direita; os sliders absorvem o espaço central. */
+@media (min-width: 1900px) {
+  #hero-static-editor .hero-static-preview-row {
+    width: 100% !important;
+    max-width: none !important;
+
+    grid-template-columns:
+      minmax(720px, 1.7fr)
+      minmax(360px, .92fr)
+      minmax(165px, 205px) !important;
+
+    column-gap: clamp(24px, 1.7vw, 42px) !important;
+    padding-right: 8px;
+  }
+
+  #hero-static-editor .hero-static-mobile-column {
+    max-width: 205px !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-preview {
+    width: clamp(160px, 7.4vw, 190px) !important;
+  }
+
+  #hero-static-editor .hero-mobile-preview-help {
+    max-width: 190px !important;
+  }
+}
+
+/* Ultrawide muito largo: evita que a coluna central fique vazia.
+   Os sliders crescem junto com o espaço disponível. */
+@media (min-width: 2560px) {
+  #hero-static-editor .hero-static-preview-row {
+    grid-template-columns:
+      minmax(880px, 1.9fr)
+      minmax(440px, 1fr)
+      210px !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-column {
+    width: 210px !important;
+    max-width: 210px !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-preview {
+    width: 195px !important;
+  }
+}
