@@ -1017,3 +1017,14 @@ html, body {
     font-size: .5rem !important;
   }
 }
+
+
+/* QA V11 — conteúdo público resistente a textos longos */
+.hero-title, .hero-sub, .hero-meta, .hero-meta > div,
+.section-title, .about-text, .contact-info, .footer {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 390px) {
+  .hero-meta { width:100%; min-width:0; }
+  .hero-meta > div { min-width:0; }
+}

@@ -3702,3 +3702,96 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+
+/* =========================================================
+   QA V11 — MOBILE 390px / TOUCH / OVERFLOW
+   ========================================================= */
+@media (max-width: 680px) {
+  html, body, .admin-v2-app, .admin-main, .admin-view, .panel,
+  .hero-media-editor, .hero-slide-card, .form-grid, .inline-form {
+    max-width: 100%; min-width: 0; overflow-wrap: anywhere;
+  }
+
+  /* toque confortável sem voltar a deixar o painel enorme */
+  .admin-v2-app .btn,
+  .admin-v2-app .small-btn,
+  .admin-v2-app .icon-btn,
+  .admin-v2-app .sidebar-link,
+  .hero-upload-label {
+    min-height: 44px !important;
+  }
+
+  .admin-v2-app .icon-btn { min-width: 44px !important; width: 44px !important; }
+
+  .hero-slide-actions {
+    grid-template-columns: 44px 44px minmax(72px, 1fr) minmax(72px, 1fr) !important;
+    gap: 5px !important;
+  }
+  .hero-slide-actions .small-btn {
+    min-height: 44px !important;
+    font-size: .52rem !important;
+    padding: 5px 4px !important;
+  }
+
+  #hero-static-preview {
+    width: 100% !important;
+    aspect-ratio: 16 / 10 !important;
+    min-height: 190px !important;
+    background-size: cover !important;
+  }
+
+  .hero-slide-preview {
+    width: 118px !important;
+    min-width: 118px !important;
+    height: 96px !important;
+    min-height: 96px !important;
+    background-size: cover !important;
+  }
+
+  input, textarea, select { max-width: 100%; min-width: 0; }
+  .link-box { overflow-wrap: anywhere; word-break: break-word; }
+}
+
+@media (max-width: 390px) {
+  .admin-main { padding-left: 10px !important; padding-right: 10px !important; }
+  .hero-media-editor { padding: 9px !important; }
+  .hero-slide-card { grid-template-columns: 104px minmax(0,1fr) !important; gap: 7px !important; }
+  .hero-slide-preview { width: 104px !important; min-width:104px !important; height: 90px !important; min-height:90px !important; }
+  .hero-slide-actions { grid-template-columns: 44px 44px minmax(64px,1fr) minmax(64px,1fr) !important; }
+}
+
+
+/* QA V11.1 — slideshow mobile: miniatura ampla + 4 ações na mesma linha */
+@media (max-width: 480px) {
+  .hero-slide-card {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+  .hero-slide-preview {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 16 / 9 !important;
+    background-size: cover !important;
+    background-position: center center;
+  }
+  .hero-slide-actions {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    width: 100% !important;
+  }
+  .hero-slide-actions .small-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+    padding: 5px 3px !important;
+    font-size: .5rem !important;
+    white-space: normal !important;
+    line-height: 1.15 !important;
+  }
+}
