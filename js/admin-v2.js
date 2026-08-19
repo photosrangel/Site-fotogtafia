@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v31 — Conteúdo expansível + e-mail no topo');
+console.log('[admin-v2] Build v32 — menus expansíveis corrigidos + header alinhado');
 
 const $ = id => document.getElementById(id);
 
@@ -163,6 +163,16 @@ function setView(v) {
         b.dataset.view === v
       );
     });
+
+  $('content-nav-toggle')?.classList.toggle(
+    'active',
+    v === 'content'
+  );
+
+  $('design-nav-toggle')?.classList.toggle(
+    'active',
+    v === 'design'
+  );
 
   const l = {
     dashboard: ['Painel', 'Dashboard'],
@@ -1060,6 +1070,15 @@ document
       () => setView(b.dataset.view)
     );
   });
+
+
+/*
+  Conteúdo e Design fazem parte da navegação principal.
+  Eles precisam estar ativos desde a abertura do Admin,
+  e não somente depois que a view Design for carregada.
+*/
+initContentSidebarNavigation();
+initDesignSidebarNavigation();
 
 
 $('dashboard-new-gallery').addEventListener(
