@@ -569,6 +569,11 @@
       font-size: .62em;
     }
   }
+
+  #client-visual-text {
+    white-space: pre-line;
+  }
+
 </style>
 </head>
 <body class="client-area-premium">
@@ -592,17 +597,17 @@
   <div class="client-access-shell">
     <div class="client-access-visual" aria-hidden="true">
       <div class="client-access-visual-copy">
-        <p>Retratos guardados com cuidado.<br>Um espaço reservado só para você.</p>
+        <p id="client-visual-text">Retratos guardados com cuidado.<br>Um espaço reservado só para você.</p>
       </div>
     </div>
 
     <section class="acesso-box client-access-panel">
 <div class="client-access-copy">
-        <p class="section-eyebrow">Área privada</p>
+        <p class="section-eyebrow" id="client-access-eyebrow">Área privada</p>
         <h1 class="client-access-title">
-          Sua sessão,<br><em>em um espaço só seu.</em>
+          <span id="client-access-title-main">Sua sessão,</span><br><em id="client-access-title-emphasis">em um espaço só seu.</em>
         </h1>
-        <p class="client-access-description">
+        <p class="client-access-description" id="client-access-description">
           Acesse sua galeria para selecionar fotografias, acompanhar a edição
           e receber seus arquivos finais.
         </p>
@@ -610,12 +615,12 @@
 
       <form id="acesso-form" class="client-access-form">
         <div class="field">
-          <label for="input-slug">Login</label>
+          <label for="input-slug" id="client-login-label">Login</label>
           <input type="text" id="input-slug" required autocomplete="username">
         </div>
 
         <div class="field">
-          <label for="input-codigo">Senha</label>
+          <label for="input-codigo" id="client-password-label">Senha</label>
           <div class="client-password-field">
             <input
               type="password"
@@ -632,7 +637,7 @@
           </div>
         </div>
 
-        <button type="submit" class="btn btn-accent client-access-submit">
+        <button type="submit" class="btn btn-accent client-access-submit" id="client-access-submit">
           Acessar minha galeria
         </button>
 
@@ -640,7 +645,7 @@
 
         <div class="client-access-secure">
           <span aria-hidden="true">◦</span>
-          Acesso privado e protegido
+          <span id="client-access-secure-text">Acesso privado e protegido</span>
         </div>
       </form>
     </section>
@@ -651,7 +656,7 @@
 <div id="galeria-screen" class="cliente-wrap client-gallery-wrap" style="display:none;">
   <header class="client-gallery-header">
     <div>
-      <p class="section-eyebrow">Sua experiência</p>
+      <p class="section-eyebrow" id="client-gallery-eyebrow">Sua experiência</p>
       <h1 class="section-title" id="cliente-titulo"></h1>
       <p class="client-gallery-status" id="cliente-status"></p>
     </div>
@@ -659,20 +664,20 @@
     <div class="client-journey" id="client-journey" aria-label="Etapas do ensaio">
       <div class="client-stage-card" data-client-stage="selection">
         <span>01</span>
-        <strong>Seleção</strong>
-        <small>Escolha</small>
+        <strong id="client-stage-selection">Seleção</strong>
+        <small id="client-stage-selection-sub">Escolha</small>
       </div>
       <div class="client-stage-line"></div>
       <div class="client-stage-card" data-client-stage="editing">
         <span>02</span>
-        <strong>Edição</strong>
-        <small>Tratamento</small>
+        <strong id="client-stage-editing">Edição</strong>
+        <small id="client-stage-editing-sub">Tratamento</small>
       </div>
       <div class="client-stage-line"></div>
       <div class="client-stage-card" data-client-stage="delivery">
         <span>03</span>
-        <strong>Entrega</strong>
-        <small>Final</small>
+        <strong id="client-stage-delivery">Entrega</strong>
+        <small id="client-stage-delivery-sub">Final</small>
       </div>
     </div>
   </header>
@@ -846,12 +851,29 @@ function mostrarGaleria() {
   const statusAtual = statusEnsaioNormalizado(ensaioAtual.status);
   atualizarJornadaCliente(statusAtual);
 
+  const clientTexts =
+    window.__CLIENT_DESIGN_TEXTS__ || {};
+
   const statusTextos = {
-    preparando: 'Suas fotos estão sendo preparadas',
-    aguardando_selecao: 'Escolha suas fotos favoritas',
-    selecao_finalizada: 'Seleção enviada — aguardando edição',
-    em_edicao: 'Suas fotografias estão em edição',
-    fotos_disponiveis: 'Suas fotos estão prontas!'
+    preparando:
+      clientTexts.status_preparing ||
+      'Suas fotos estão sendo preparadas',
+
+    aguardando_selecao:
+      clientTexts.status_awaiting ||
+      'Escolha suas fotos favoritas',
+
+    selecao_finalizada:
+      clientTexts.status_selected ||
+      'Seleção enviada — aguardando edição',
+
+    em_edicao:
+      clientTexts.status_editing ||
+      'Suas fotografias estão em edição',
+
+    fotos_disponiveis:
+      clientTexts.status_ready ||
+      'Suas fotos estão prontas!'
   };
   document.getElementById('cliente-status').textContent = statusTextos[statusAtual] || '';
 

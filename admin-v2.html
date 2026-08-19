@@ -336,18 +336,21 @@
   </div>
 
   <input id="design-client-access-image" type="hidden" value="">
+  <input id="design-client-focus-x" type="hidden" value="50">
+  <input id="design-client-focus-y" type="hidden" value="50">
 
   <div
-    class="design-client-image-preview empty"
+    class="design-client-image-preview focal-preview empty"
     id="design-client-access-image-preview"
-    title="Clique no ponto que deve permanecer em destaque"
+    title="Clique na fotografia para alterar o ponto focal"
   >
-    <span>Nenhuma imagem adicionada</span>
-    <i
-      class="design-client-focal-marker"
+    <span class="design-client-image-empty">Nenhuma imagem adicionada</span>
+    <span
+      class="focal-marker"
       id="design-client-focal-marker"
+      style="left:50%;top:50%"
       aria-hidden="true"
-    ></i>
+    ></span>
   </div>
 
   <div class="design-client-image-actions">
@@ -370,44 +373,131 @@
     </button>
   </div>
 
-  <div class="design-client-focal-controls">
-    <div class="design-client-focal-head">
-      <span>Ponto focal da imagem</span>
-      <strong id="design-client-focal-summary">50% × 50%</strong>
-    </div>
-
-    <label class="design-control-row design-client-focal-row">
-      Horizontal
-      <output id="design-client-focus-x-out">50%</output>
-      <input
-        id="design-client-focus-x"
-        type="range"
-        min="0"
-        max="100"
-        value="50"
-      >
-    </label>
-
-    <label class="design-control-row design-client-focal-row">
-      Vertical
-      <output id="design-client-focus-y-out">50%</output>
-      <input
-        id="design-client-focus-y"
-        type="range"
-        min="0"
-        max="100"
-        value="50"
-      >
-    </label>
-
-    <p class="design-control-help">
-      Clique diretamente na fotografia ou use os controles para escolher o ponto que deve permanecer em destaque no recorte.
-    </p>
-  </div>
+  <p class="field-help design-client-focal-help" id="design-client-focal-summary">
+    Ponto focal: 50% × 50% — clique na foto para alterar.
+  </p>
 
   <p class="design-control-help" id="design-client-access-image-msg">
     JPG, PNG ou WebP. A fotografia será enviada para o storage do site.
   </p>
+
+  <details class="design-client-texts-section">
+    <summary>Textos da Área do Cliente</summary>
+
+    <div class="design-client-texts-body">
+      <label class="design-control-row">
+        Texto sobre a fotografia
+        <textarea id="design-client-text-visual" rows="3" maxlength="240">Retratos guardados com cuidado.
+Um espaço reservado só para você.</textarea>
+      </label>
+
+      <label class="design-control-row">
+        Identificação
+        <input id="design-client-text-eyebrow" type="text" maxlength="80" value="Área privada">
+      </label>
+
+      <label class="design-control-row">
+        Título principal
+        <input id="design-client-text-title" type="text" maxlength="120" value="Sua sessão,">
+      </label>
+
+      <label class="design-control-row">
+        Título em destaque
+        <input id="design-client-text-title-emphasis" type="text" maxlength="120" value="em um espaço só seu.">
+      </label>
+
+      <label class="design-control-row">
+        Texto de apoio
+        <textarea id="design-client-text-description" rows="4" maxlength="600">Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.</textarea>
+      </label>
+
+      <label class="design-control-row">
+        Nome do campo Login
+        <input id="design-client-text-login" type="text" maxlength="60" value="Login">
+      </label>
+
+      <label class="design-control-row">
+        Nome do campo Senha
+        <input id="design-client-text-password" type="text" maxlength="60" value="Senha">
+      </label>
+
+      <label class="design-control-row">
+        Texto do botão
+        <input id="design-client-text-button" type="text" maxlength="80" value="Acessar minha galeria">
+      </label>
+
+      <label class="design-control-row">
+        Texto de segurança
+        <input id="design-client-text-secure" type="text" maxlength="120" value="Acesso privado e protegido">
+      </label>
+
+      <label class="design-control-row">
+        Título da área após o login
+        <input id="design-client-text-gallery-eyebrow" type="text" maxlength="100" value="Sua experiência">
+      </label>
+
+      <div class="design-client-stage-text-grid">
+        <label class="design-control-row">
+          Etapa 01
+          <input id="design-client-stage-selection" type="text" maxlength="60" value="Seleção">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 01
+          <input id="design-client-stage-selection-sub" type="text" maxlength="60" value="Escolha">
+        </label>
+
+        <label class="design-control-row">
+          Etapa 02
+          <input id="design-client-stage-editing" type="text" maxlength="60" value="Edição">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 02
+          <input id="design-client-stage-editing-sub" type="text" maxlength="60" value="Tratamento">
+        </label>
+
+        <label class="design-control-row">
+          Etapa 03
+          <input id="design-client-stage-delivery" type="text" maxlength="60" value="Entrega">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 03
+          <input id="design-client-stage-delivery-sub" type="text" maxlength="60" value="Final">
+        </label>
+      </div>
+
+      <div class="design-client-status-texts">
+        <p class="design-control-help">Mensagens automáticas do ensaio</p>
+
+        <label class="design-control-row">
+          Preparando
+          <input id="design-client-status-preparing" type="text" maxlength="140" value="Suas fotos estão sendo preparadas">
+        </label>
+
+        <label class="design-control-row">
+          Aguardando seleção
+          <input id="design-client-status-awaiting" type="text" maxlength="140" value="Escolha suas fotos favoritas">
+        </label>
+
+        <label class="design-control-row">
+          Seleção enviada
+          <input id="design-client-status-selected" type="text" maxlength="160" value="Seleção enviada — aguardando edição">
+        </label>
+
+        <label class="design-control-row">
+          Em edição
+          <input id="design-client-status-editing" type="text" maxlength="140" value="Suas fotografias estão em edição">
+        </label>
+
+        <label class="design-control-row">
+          Fotos prontas
+          <input id="design-client-status-ready" type="text" maxlength="140" value="Suas fotos estão prontas!">
+        </label>
+      </div>
+    </div>
+  </details>
 </div>
         </div>
       </section>
