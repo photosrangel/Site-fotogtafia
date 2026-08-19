@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v46 — Conteúdo reordenável + Área do Cliente movida');
+console.log('[admin-v2] Build v48 — editor visual: salvar e prévia corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -7125,12 +7125,32 @@ async function saveDesignDraft() {
   }
 
   try {
-    designDraftSaved = await upsertDesignRow('draft', collectDesignConfig());
-    designDraftUpdatedAt = new Date().toISOString();
-    flash('Rascunho de Design salvo.', 'sucesso');
+    designDraftSaved = await upsertDesignRow(
+      'draft',
+      collectDesignConfig()
+    );
+
+    designDraftUpdatedAt =
+      new Date().toISOString();
+
+    flash(
+      'Rascunho de Design salvo.',
+      'sucesso'
+    );
+
+    return true;
   } catch (error) {
-    console.error('[admin-v2] saveDesignDraft:', error);
-    flash(`Erro ao salvar rascunho: ${error.message}`, 'erro');
+    console.error(
+      '[admin-v2] saveDesignDraft:',
+      error
+    );
+
+    flash(
+      `Erro ao salvar rascunho: ${error.message}`,
+      'erro'
+    );
+
+    throw error;
   } finally {
     if (button) {
       button.dataset.busy = '0';
@@ -8321,6 +8341,58 @@ function applyInlineStyleToElement(el,key){
   el.style.textAlign=st.align||'';
   el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';
 }
+
+function ensureDesignPreviewRenderObserver(doc) {
+  if (
+    !doc ||
+    doc.documentElement?.dataset
+      ?.designPreviewObserver === '1'
+  ) {
+    return;
+  }
+
+  if (!doc.documentElement) return;
+
+  doc.documentElement.dataset
+    .designPreviewObserver = '1';
+
+  let scheduled = false;
+
+  const observer =
+    new MutationObserver(() => {
+      if (
+        activeView !== 'design' ||
+        scheduled ||
+        designInlineActive
+      ) {
+        return;
+      }
+
+      scheduled = true;
+
+      setTimeout(
+        () => {
+          scheduled = false;
+
+          if (
+            activeView === 'design'
+          ) {
+            applyDesignContentPreview();
+          }
+        },
+        30
+      );
+    });
+
+  observer.observe(
+    doc.body || doc.documentElement,
+    {
+      childList: true,
+      subtree: true
+    }
+  );
+}
+
 function decorateDesignInlinePreview(doc){
   if(!doc||activeView!=='design')return;
   Object.entries(DESIGN_INLINE_FIELDS).forEach(([id,cfg])=>{
@@ -8366,12 +8438,154 @@ function finishDesignInline(save){
   if($('design-inline-editor'))$('design-inline-editor').hidden=true;
   applyDesignContentPreview();updateDesignPublicationState();
 }
-async function saveDesignInline(){
-  if(!designInlineActive)return;
-  const a=designInlineActive; const input=$(a.cfg.input); if(input)input.value=(a.el.textContent||'').trim();
-  a.el.contentEditable='false';a.el.classList.remove('design-inline-editing');designInlineActive=null;
-  if($('design-inline-editor'))$('design-inline-editor').hidden=true;
-  await saveDesignDraft(); applyDesignContentPreview(); flash('Texto salvo no rascunho. O site público não foi alterado.','sucesso');
+async function saveDesignInline() {
+  if (!designInlineActive) return;
+
+  const active =
+    designInlineActive;
+
+  const newText =
+    (active.el.textContent || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+\n/g, '\n')
+      .trim();
+
+  const input =
+    $(active.cfg.input);
+
+  if (!input) {
+    console.error(
+      '[admin-v2] editor visual: campo de origem não encontrado',
+      active.cfg.input
+    );
+
+    flash(
+      'Não foi possível localizar o campo deste texto.',
+      'erro'
+    );
+
+    return;
+  }
+
+  /*
+    O input do CMS é a fonte do rascunho.
+    É importante atualizá-lo ANTES de fechar a edição e
+    antes de coletar collectDesignConfig().
+  */
+  input.value =
+    newText;
+
+  input.dispatchEvent(
+    new Event(
+      'input',
+      { bubbles: true }
+    )
+  );
+
+  input.dispatchEvent(
+    new Event(
+      'change',
+      { bubbles: true }
+    )
+  );
+
+  const editedKey =
+    active.key;
+
+  active.el.contentEditable =
+    'false';
+
+  active.el.classList.remove(
+    'design-inline-editing'
+  );
+
+  designInlineActive =
+    null;
+
+  if ($('design-inline-editor')) {
+    $('design-inline-editor').hidden =
+      true;
+  }
+
+  /*
+    Atualiza primeiro a prévia local. Dessa forma o usuário
+    vê o resultado mesmo enquanto o rascunho está sendo salvo.
+  */
+  applyDesignContentPreview();
+
+  console.log(
+    '[admin-v2] editor visual: salvando',
+    {
+      key: editedKey,
+      input: active.cfg.input,
+      text: newText
+    }
+  );
+
+  try {
+    await saveDesignDraft();
+
+    /*
+      A página /inicio possui o próprio carregador CMS.
+      Em algumas condições ele pode terminar um render logo
+      depois do clique. Reaplicamos o rascunho em alguns
+      frames curtos para garantir que a prévia do Designer
+      permaneça como fonte visual.
+    */
+    applyDesignContentPreview();
+
+    requestAnimationFrame(
+      () => {
+        applyDesignContentPreview();
+      }
+    );
+
+    setTimeout(
+      () => {
+        applyDesignContentPreview();
+      },
+      80
+    );
+
+    setTimeout(
+      () => {
+        applyDesignContentPreview();
+
+        const doc =
+          getDesignPreviewDocument();
+
+        const target =
+          doc?.getElementById(
+            editedKey
+          );
+
+        console.log(
+          '[admin-v2] editor visual: prévia confirmada',
+          {
+            key: editedKey,
+            renderedText:
+              target?.textContent?.trim() || ''
+          }
+        );
+      },
+      260
+    );
+
+    flash(
+      'Texto salvo no rascunho. A prévia foi atualizada; o site público ainda não foi alterado.',
+      'sucesso'
+    );
+  } catch (error) {
+    console.error(
+      '[admin-v2] editor visual: erro ao salvar',
+      error
+    );
+
+    flash(
+      `Erro ao salvar o texto: ${error.message}`,
+      'erro'
+    );
+  }
 }
 function bindDesignInlineToolbar(){
   if(document.body.dataset.inlineToolbarBound==='1')return;document.body.dataset.inlineToolbarBound='1';
@@ -8390,7 +8604,7 @@ function applyDesignWhatsappPreview(doc){
   if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.className='rs-whatsapp-float';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Conversar pelo WhatsApp');btn.innerHTML='<span aria-hidden="true">◔</span><b>WhatsApp</b>';doc.body.appendChild(btn);}
   btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.classList.toggle('is-left',pos==='left');
 }
-function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
+function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);ensureDesignPreviewRenderObserver(doc);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
 function openDesignContentSection(page, trigger) {
   if (page === 'client_area') {
     openDesignDrawer(
@@ -9115,6 +9329,17 @@ function initDesignStudio() {
 
       applyDesignPreview();
       applyDesignContentPreview();
+
+      setTimeout(
+        applyDesignContentPreview,
+        180
+      );
+
+      setTimeout(
+        applyDesignContentPreview,
+        420
+      );
+
       sizeDesignPreview();
       installDesignPreviewNavigationGuard();
       runDesignPageTransition();
