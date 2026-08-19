@@ -5571,3 +5571,33 @@
     padding:10px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V26 — PRÉVIA INTEIRA DO DISPOSITIVO
+   O iframe mantém o viewport real; só a representação visual
+   é reduzida para caber por largura E por altura.
+   ========================================================= */
+
+.design-preview-stage {
+  overflow: hidden !important;
+}
+
+.design-preview-stage .design-browser-frame {
+  flex: 0 0 auto !important;
+  margin: 0 auto !important;
+}
+
+/* Evita scrollbar visual no iframe causada pelo próprio CMS.
+   A rolagem que existir dentro da página é exatamente a do site. */
+#design-preview-frame {
+  overflow: auto;
+}
+
+/* Em monitores mais baixos, reduz o respiro sem alterar o viewport interno. */
+@media (max-height: 800px) and (min-width: 900px) {
+  .design-preview-stage {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
+}
