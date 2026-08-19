@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v28 — design avançado seguro');
+console.log('[admin-v2] Build v29 — design accordions + transição única');
 
 const $ = id => document.getElementById(id);
 
@@ -6224,38 +6224,7 @@ function applyDesignPreview() {
           `
           : '';
 
-  const pageAnimationRules =
-    pageAnimation === 'fade'
-      ? `
-        @keyframes adminDesignPageIn{
-          from{opacity:0}
-          to{opacity:1}
-        }
-        body.design-preview-animate-page{
-          animation:adminDesignPageIn ${motionMs}ms ease both !important;
-        }
-      `
-      : pageAnimation === 'fade-up'
-        ? `
-          @keyframes adminDesignPageIn{
-            from{opacity:0;transform:translateY(18px)}
-            to{opacity:1;transform:none}
-          }
-          body.design-preview-animate-page{
-            animation:adminDesignPageIn ${motionMs}ms cubic-bezier(.22,.61,.36,1) both !important;
-          }
-        `
-        : pageAnimation === 'soft'
-          ? `
-          @keyframes adminDesignPageIn{
-            from{opacity:0;filter:blur(4px);transform:scale(.992)}
-            to{opacity:1;filter:none;transform:none}
-          }
-          body.design-preview-animate-page{
-            animation:adminDesignPageIn ${Math.round(motionMs * 1.25)}ms ease both !important;
-          }
-        `
-          : '';
+  const pageAnimationRules = '';
 
   const sectionAnimationRules =
     sectionAnimation === 'fade'
@@ -6336,10 +6305,7 @@ function applyDesignPreview() {
     }
   `;
 
-  doc.body.classList.toggle(
-    'design-preview-animate-page',
-    pageAnimation !== 'none'
-  );
+  doc.body.classList.remove('design-preview-animate-page');
 
   doc.body.classList.toggle(
     'design-preview-animate-sections',
@@ -6387,23 +6353,158 @@ function applyDesignPreview() {
   sizeDesignPreview();
 }
 
-function replayDesignAnimations() {
-  const doc = getDesignPreviewDocument();
-  if (!doc?.body) return;
-
-  doc.body.classList.remove(
-    'design-preview-animate-page',
-    'design-preview-animate-sections'
+function runDesignPageTransition() {
+  const browser = document.querySelector(
+    '#design-preview-stage .design-browser-frame'
   );
 
-  // força reflow para reiniciar as keyframes
-  void doc.body.offsetWidth;
+  if (!browser) return;
 
-  applyDesignPreview();
+  const mode = $('design-page-animation')?.value || 'none';
+  const speed = $('design-motion-speed')?.value || 'normal';
+
+  if (mode === 'none') {
+    browser.style.opacity = '1';
+    browser.style.transform = browser.style.transform || '';
+    browser.style.filter = '';
+    return;
+  }
+
+  const duration =
+    speed === 'fast'
+      ? 260
+      : speed === 'slow'
+        ? 820
+        : 480;
+
+  let keyframes;
+
+  if (mode === 'fade-up') {
+    keyframes = [
+      { opacity: 0, transform: `${browser.style.transform} translateY(10px)` },
+      { opacity: 1, transform: browser.style.transform }
+    ];
+  } else if (mode === 'soft') {
+    keyframes = [
+      { opacity: 0, filter: 'blur(3px)' },
+      { opacity: 1, filter: 'blur(0px)' }
+    ];
+  } else {
+    keyframes = [
+      { opacity: 0 },
+      { opacity: 1 }
+    ];
+  }
+
+  browser.getAnimations?.().forEach(animation => {
+    if (animation.id === 'design-page-entry') {
+      animation.cancel();
+    }
+  });
+
+  const animation = browser.animate(
+    keyframes,
+    {
+      duration,
+      easing: 'cubic-bezier(.22,.61,.36,1)',
+      fill: 'both'
+    }
+  );
+
+  animation.id = 'design-page-entry';
+}
+
+function replayDesignAnimations() {
+  const doc = getDesignPreviewDocument();
+
+  if (doc?.body) {
+    const sectionAnimation =
+      $('design-section-animation')?.value || 'none';
+
+    doc.body.classList.remove(
+      'design-preview-animate-sections'
+    );
+
+    void doc.body.offsetWidth;
+
+    if (sectionAnimation !== 'none') {
+      doc.body.classList.add(
+        'design-preview-animate-sections'
+      );
+    }
+  }
+
+  runDesignPageTransition();
 
   try {
     $('design-preview-frame')?.contentWindow?.scrollTo(0, 0);
   } catch (_) {}
+}
+
+function installDesignPreviewNavigationGuard() {
+  const doc = getDesignPreviewDocument();
+  const frame = $('design-preview-frame');
+
+  if (!doc || !frame || doc.__designNavigationGuardInstalled) return;
+
+  doc.__designNavigationGuardInstalled = true;
+
+  doc.addEventListener('click', event => {
+    const link = event.target.closest?.('a[href]');
+
+    if (!link) return;
+    if (link.target && link.target !== '_self') return;
+    if (link.hasAttribute('download')) return;
+
+    let url;
+
+    try {
+      url = new URL(link.href, doc.location.href);
+    } catch (_) {
+      return;
+    }
+
+    if (url.origin !== doc.location.origin) return;
+
+    const mode = $('design-page-animation')?.value || 'none';
+
+    if (mode === 'none') return;
+
+    event.preventDefault();
+
+    const browser = document.querySelector(
+      '#design-preview-stage .design-browser-frame'
+    );
+
+    if (!browser) {
+      frame.src = url.href;
+      return;
+    }
+
+    const speed = $('design-motion-speed')?.value || 'normal';
+
+    const duration =
+      speed === 'fast'
+        ? 120
+        : speed === 'slow'
+          ? 220
+          : 160;
+
+    browser
+      .animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        {
+          duration,
+          easing: 'ease-out',
+          fill: 'forwards'
+        }
+      )
+      .finished
+      .catch(() => {})
+      .finally(() => {
+        frame.src = url.href;
+      });
+  });
 }
 
 function setDesignDevice(device) {
@@ -6463,7 +6564,42 @@ function resetDesignPreview() {
   );
 }
 
+
+function setDesignAccordionOpen(section, open) {
+  if (!section) return;
+
+  const toggle = section.querySelector('.design-accordion-toggle');
+  const body = section.querySelector('.design-accordion-body');
+
+  section.classList.toggle('is-open', Boolean(open));
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  if (body) {
+    body.hidden = !open;
+  }
+}
+
+function initDesignAccordions() {
+  document.querySelectorAll('.design-accordion').forEach(section => {
+    const toggle = section.querySelector('.design-accordion-toggle');
+
+    if (!toggle || toggle.dataset.bound === '1') return;
+
+    toggle.dataset.bound = '1';
+
+    toggle.addEventListener('click', () => {
+      const isOpen = section.classList.contains('is-open');
+      setDesignAccordionOpen(section, !isOpen);
+    });
+  });
+}
+
 function initDesignStudio() {
+  initDesignAccordions();
+
   if (designStudioReady) {
     setTimeout(() => {
       applyDesignPreview();
@@ -6513,6 +6649,8 @@ function initDesignStudio() {
 
       applyDesignPreview();
       sizeDesignPreview();
+      installDesignPreviewNavigationGuard();
+      runDesignPageTransition();
     }, 100);
   });
 
