@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v25 — fundo público das galerias integrado');
+console.log('[admin-v2] Build v26 — prévia inteira fiel ao viewport real');
 
 const $ = id => document.getElementById(id);
 
@@ -6035,14 +6035,15 @@ function sizeDesignPreview() {
   const stage = $('design-preview-stage');
   const browser = stage?.querySelector('.design-browser-frame');
   const frame = $('design-preview-frame');
+
   if (!stage || !browser || !frame) return;
 
   const viewport = getDesignPreviewViewport();
   const browserBar = browser.querySelector('.design-browser-bar');
   const barHeight = browserBar?.offsetHeight || 34;
 
-  // Espaço realmente disponível dentro do palco.
   const styles = getComputedStyle(stage);
+
   const availableWidth = Math.max(
     260,
     stage.clientWidth -
@@ -6050,9 +6051,32 @@ function sizeDesignPreview() {
       (parseFloat(styles.paddingRight) || 0)
   );
 
-  // Desktop é reduzido apenas visualmente. Mobile não é ampliado acima de 100%.
-  const maxScale = designPreviewDevice === 'mobile' ? 1 : 1;
-  const scale = Math.min(maxScale, availableWidth / viewport.width);
+  /*
+    O viewport interno continua REAL:
+    Desktop = 1920×1080
+    Mobile  = 390×844
+
+    A diferença da V26 é que a escala visual considera tanto a
+    largura quanto a altura disponível no monitor. Assim o usuário
+    vê o dispositivo inteiro dentro do painel sem alterar nenhum
+    breakpoint, clamp(), vw, vh ou object-fit do site público.
+  */
+  const visualHeightLimit =
+    designPreviewDevice === 'mobile'
+      ? Math.max(430, Math.min(window.innerHeight * 0.72, 760))
+      : Math.max(460, Math.min(window.innerHeight * 0.68, 760));
+
+  const scaleByWidth =
+    availableWidth / viewport.width;
+
+  const scaleByHeight =
+    visualHeightLimit / (viewport.height + barHeight);
+
+  const scale = Math.min(
+    1,
+    scaleByWidth,
+    scaleByHeight
+  );
 
   browser.style.width = `${viewport.width}px`;
   browser.style.height = `${viewport.height + barHeight}px`;
@@ -6062,13 +6086,30 @@ function sizeDesignPreview() {
   frame.style.width = `${viewport.width}px`;
   frame.style.height = `${viewport.height}px`;
 
-  // O elemento transformado mantém seu tamanho de layout original.
-  // O stage recebe a altura visual real para não criar um vazio gigantesco.
-  stage.style.height = `${Math.ceil((viewport.height + barHeight) * scale + 36)}px`;
+  const visualWidth =
+    Math.ceil(viewport.width * scale);
+
+  const visualHeight =
+    Math.ceil((viewport.height + barHeight) * scale);
+
+  stage.style.height =
+    `${visualHeight + 36}px`;
+
   stage.style.minHeight = '0';
 
+  stage.style.setProperty(
+    '--design-preview-visual-width',
+    `${visualWidth}px`
+  );
+
+  stage.style.setProperty(
+    '--design-preview-visual-height',
+    `${visualHeight}px`
+  );
+
   if ($('design-preview-label')) {
-    $('design-preview-label').textContent = viewport.label;
+    $('design-preview-label').textContent =
+      `${viewport.label} · prévia inteira`;
   }
 }
 
@@ -6173,9 +6214,12 @@ function initDesignStudio() {
   if (stage && 'ResizeObserver' in window) {
     designPreviewResizeObserver = new ResizeObserver(() => sizeDesignPreview());
     designPreviewResizeObserver.observe(stage);
-  } else {
-    window.addEventListener('resize', sizeDesignPreview);
   }
+
+  window.addEventListener('resize', sizeDesignPreview);
+  window.addEventListener('orientationchange', () => {
+    setTimeout(sizeDesignPreview, 120);
+  });
 
   setDesignDevice('desktop');
   setTimeout(() => {
