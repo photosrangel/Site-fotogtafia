@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v43 — Preview slideshow + Conteúdo fullscreen corrigido');
+console.log('[admin-v2] Build v44 — Área do Cliente: foco visual + textos editáveis');
 
 const $ = id => document.getElementById(id);
 
@@ -5990,6 +5990,27 @@ const DESIGN_DEFAULTS = Object.freeze({
   client_access_image: '',
   client_focus_x: 50,
   client_focus_y: 50,
+  client_text_visual: 'Retratos guardados com cuidado.\nUm espaço reservado só para você.',
+  client_text_eyebrow: 'Área privada',
+  client_text_title: 'Sua sessão,',
+  client_text_title_emphasis: 'em um espaço só seu.',
+  client_text_description: 'Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.',
+  client_text_login: 'Login',
+  client_text_password: 'Senha',
+  client_text_button: 'Acessar minha galeria',
+  client_text_secure: 'Acesso privado e protegido',
+  client_text_gallery_eyebrow: 'Sua experiência',
+  client_stage_selection: 'Seleção',
+  client_stage_selection_sub: 'Escolha',
+  client_stage_editing: 'Edição',
+  client_stage_editing_sub: 'Tratamento',
+  client_stage_delivery: 'Entrega',
+  client_stage_delivery_sub: 'Final',
+  client_status_preparing: 'Suas fotos estão sendo preparadas',
+  client_status_awaiting: 'Escolha suas fotos favoritas',
+  client_status_selected: 'Seleção enviada — aguardando edição',
+  client_status_editing: 'Suas fotografias estão em edição',
+  client_status_ready: 'Suas fotos estão prontas!',
   content: null
 });
 
@@ -6020,6 +6041,27 @@ function normalizeDesignConfig(config = {}) {
     client_access_image: safeHttpUrl(c.client_access_image || '', { allowRelative: true }),
     client_focus_x: clampNumber(c.client_focus_x, 0, 100, 50),
     client_focus_y: clampNumber(c.client_focus_y, 0, 100, 50),
+    client_text_visual: safeText(c.client_text_visual, 240) || DESIGN_DEFAULTS.client_text_visual,
+    client_text_eyebrow: safeText(c.client_text_eyebrow, 80) || DESIGN_DEFAULTS.client_text_eyebrow,
+    client_text_title: safeText(c.client_text_title, 120) || DESIGN_DEFAULTS.client_text_title,
+    client_text_title_emphasis: safeText(c.client_text_title_emphasis, 120) || DESIGN_DEFAULTS.client_text_title_emphasis,
+    client_text_description: safeText(c.client_text_description, 600) || DESIGN_DEFAULTS.client_text_description,
+    client_text_login: safeText(c.client_text_login, 60) || DESIGN_DEFAULTS.client_text_login,
+    client_text_password: safeText(c.client_text_password, 60) || DESIGN_DEFAULTS.client_text_password,
+    client_text_button: safeText(c.client_text_button, 80) || DESIGN_DEFAULTS.client_text_button,
+    client_text_secure: safeText(c.client_text_secure, 120) || DESIGN_DEFAULTS.client_text_secure,
+    client_text_gallery_eyebrow: safeText(c.client_text_gallery_eyebrow, 100) || DESIGN_DEFAULTS.client_text_gallery_eyebrow,
+    client_stage_selection: safeText(c.client_stage_selection, 60) || DESIGN_DEFAULTS.client_stage_selection,
+    client_stage_selection_sub: safeText(c.client_stage_selection_sub, 60) || DESIGN_DEFAULTS.client_stage_selection_sub,
+    client_stage_editing: safeText(c.client_stage_editing, 60) || DESIGN_DEFAULTS.client_stage_editing,
+    client_stage_editing_sub: safeText(c.client_stage_editing_sub, 60) || DESIGN_DEFAULTS.client_stage_editing_sub,
+    client_stage_delivery: safeText(c.client_stage_delivery, 60) || DESIGN_DEFAULTS.client_stage_delivery,
+    client_stage_delivery_sub: safeText(c.client_stage_delivery_sub, 60) || DESIGN_DEFAULTS.client_stage_delivery_sub,
+    client_status_preparing: safeText(c.client_status_preparing, 140) || DESIGN_DEFAULTS.client_status_preparing,
+    client_status_awaiting: safeText(c.client_status_awaiting, 140) || DESIGN_DEFAULTS.client_status_awaiting,
+    client_status_selected: safeText(c.client_status_selected, 160) || DESIGN_DEFAULTS.client_status_selected,
+    client_status_editing: safeText(c.client_status_editing, 140) || DESIGN_DEFAULTS.client_status_editing,
+    client_status_ready: safeText(c.client_status_ready, 140) || DESIGN_DEFAULTS.client_status_ready,
     content: c.content && typeof c.content === 'object' ? JSON.parse(JSON.stringify(c.content)) : null
   };
 }
@@ -6065,6 +6107,27 @@ function collectDesignConfig() {
     client_access_image: $('design-client-access-image')?.value,
     client_focus_x: $('design-client-focus-x')?.value,
     client_focus_y: $('design-client-focus-y')?.value,
+    client_text_visual: $('design-client-text-visual')?.value,
+    client_text_eyebrow: $('design-client-text-eyebrow')?.value,
+    client_text_title: $('design-client-text-title')?.value,
+    client_text_title_emphasis: $('design-client-text-title-emphasis')?.value,
+    client_text_description: $('design-client-text-description')?.value,
+    client_text_login: $('design-client-text-login')?.value,
+    client_text_password: $('design-client-text-password')?.value,
+    client_text_button: $('design-client-text-button')?.value,
+    client_text_secure: $('design-client-text-secure')?.value,
+    client_text_gallery_eyebrow: $('design-client-text-gallery-eyebrow')?.value,
+    client_stage_selection: $('design-client-stage-selection')?.value,
+    client_stage_selection_sub: $('design-client-stage-selection-sub')?.value,
+    client_stage_editing: $('design-client-stage-editing')?.value,
+    client_stage_editing_sub: $('design-client-stage-editing-sub')?.value,
+    client_stage_delivery: $('design-client-stage-delivery')?.value,
+    client_stage_delivery_sub: $('design-client-stage-delivery-sub')?.value,
+    client_status_preparing: $('design-client-status-preparing')?.value,
+    client_status_awaiting: $('design-client-status-awaiting')?.value,
+    client_status_selected: $('design-client-status-selected')?.value,
+    client_status_editing: $('design-client-status-editing')?.value,
+    client_status_ready: $('design-client-status-ready')?.value,
     content: collectDesignContentSnapshot()
   });
 }
@@ -6099,7 +6162,28 @@ function applyDesignConfigToControls(config) {
     'design-client-border': c.client_border,
     'design-client-access-image': c.client_access_image,
     'design-client-focus-x': c.client_focus_x,
-    'design-client-focus-y': c.client_focus_y
+    'design-client-focus-y': c.client_focus_y,
+    'design-client-text-visual': c.client_text_visual,
+    'design-client-text-eyebrow': c.client_text_eyebrow,
+    'design-client-text-title': c.client_text_title,
+    'design-client-text-title-emphasis': c.client_text_title_emphasis,
+    'design-client-text-description': c.client_text_description,
+    'design-client-text-login': c.client_text_login,
+    'design-client-text-password': c.client_text_password,
+    'design-client-text-button': c.client_text_button,
+    'design-client-text-secure': c.client_text_secure,
+    'design-client-text-gallery-eyebrow': c.client_text_gallery_eyebrow,
+    'design-client-stage-selection': c.client_stage_selection,
+    'design-client-stage-selection-sub': c.client_stage_selection_sub,
+    'design-client-stage-editing': c.client_stage_editing,
+    'design-client-stage-editing-sub': c.client_stage_editing_sub,
+    'design-client-stage-delivery': c.client_stage_delivery,
+    'design-client-stage-delivery-sub': c.client_stage_delivery_sub,
+    'design-client-status-preparing': c.client_status_preparing,
+    'design-client-status-awaiting': c.client_status_awaiting,
+    'design-client-status-selected': c.client_status_selected,
+    'design-client-status-editing': c.client_status_editing,
+    'design-client-status-ready': c.client_status_ready
   };
   Object.entries(map).forEach(([id, value]) => {
     if ($(id)) $(id).value = String(value);
@@ -6764,6 +6848,7 @@ function applyDesignPreview() {
   }
 
   updateDesignClientFocalUI();
+  applyDesignClientTextPreview(doc);
   sizeDesignPreview();
 }
 
@@ -7786,40 +7871,36 @@ function initDesignSidebarNavigation() {
 
 
 function updateDesignClientFocalUI() {
-  const x = clampNumber(
-    $('design-client-focus-x')?.value,
-    0,
-    100,
-    50
-  );
+  const x =
+    clampNumber(
+      $('design-client-focus-x')?.value,
+      0,
+      100,
+      50
+    );
 
-  const y = clampNumber(
-    $('design-client-focus-y')?.value,
-    0,
-    100,
-    50
-  );
+  const y =
+    clampNumber(
+      $('design-client-focus-y')?.value,
+      0,
+      100,
+      50
+    );
 
-  if ($('design-client-focus-x-out')) {
-    $('design-client-focus-x-out').textContent =
-      `${Math.round(x)}%`;
-  }
-
-  if ($('design-client-focus-y-out')) {
-    $('design-client-focus-y-out').textContent =
-      `${Math.round(y)}%`;
-  }
-
-  if ($('design-client-focal-summary')) {
-    $('design-client-focal-summary').textContent =
-      `${Math.round(x)}% × ${Math.round(y)}%`;
-  }
-
-  const marker = $('design-client-focal-marker');
+  const marker =
+    $('design-client-focal-marker');
 
   if (marker) {
     marker.style.left = `${x}%`;
     marker.style.top = `${y}%`;
+  }
+
+  const summary =
+    $('design-client-focal-summary');
+
+  if (summary) {
+    summary.textContent =
+      `Ponto focal: ${Math.round(x)}% × ${Math.round(y)}% — clique na foto para alterar.`;
   }
 
   const preview =
@@ -7827,7 +7908,7 @@ function updateDesignClientFocalUI() {
 
   if (preview) {
     preview.style.backgroundPosition =
-      `${x}% ${y}%`;
+      focalStyle(x, y);
   }
 }
 
@@ -7842,50 +7923,214 @@ function setDesignClientFocalFromPointer(event) {
     return;
   }
 
-  const rect =
-    preview.getBoundingClientRect();
+  setFocalFromClick(
+    preview,
+    event,
+    (x, y) => {
+      $('design-client-focus-x').value =
+        String(x);
 
-  if (
-    rect.width <= 0 ||
-    rect.height <= 0
-  ) {
+      $('design-client-focus-y').value =
+        String(y);
+
+      updateDesignClientFocalUI();
+      applyDesignPreview();
+      updateDesignPublicationState();
+    }
+  );
+}
+
+function applyDesignClientTextPreview(doc = getDesignPreviewDocument()) {
+  if (!doc) return;
+
+  const setText =
+    (selector, value) => {
+      const el =
+        doc.querySelector(selector);
+
+      if (el) {
+        el.textContent =
+          value ?? '';
+      }
+    };
+
+  setText(
+    '#client-visual-text',
+    $('design-client-text-visual')?.value ||
+    DESIGN_DEFAULTS.client_text_visual
+  );
+
+  setText(
+    '#client-access-eyebrow',
+    $('design-client-text-eyebrow')?.value ||
+    DESIGN_DEFAULTS.client_text_eyebrow
+  );
+
+  setText(
+    '#client-access-title-main',
+    $('design-client-text-title')?.value ||
+    DESIGN_DEFAULTS.client_text_title
+  );
+
+  setText(
+    '#client-access-title-emphasis',
+    $('design-client-text-title-emphasis')?.value ||
+    DESIGN_DEFAULTS.client_text_title_emphasis
+  );
+
+  setText(
+    '#client-access-description',
+    $('design-client-text-description')?.value ||
+    DESIGN_DEFAULTS.client_text_description
+  );
+
+  setText(
+    '#client-login-label',
+    $('design-client-text-login')?.value ||
+    DESIGN_DEFAULTS.client_text_login
+  );
+
+  setText(
+    '#client-password-label',
+    $('design-client-text-password')?.value ||
+    DESIGN_DEFAULTS.client_text_password
+  );
+
+  setText(
+    '#client-access-submit',
+    $('design-client-text-button')?.value ||
+    DESIGN_DEFAULTS.client_text_button
+  );
+
+  setText(
+    '#client-access-secure-text',
+    $('design-client-text-secure')?.value ||
+    DESIGN_DEFAULTS.client_text_secure
+  );
+
+  setText(
+    '#client-gallery-eyebrow',
+    $('design-client-text-gallery-eyebrow')?.value ||
+    DESIGN_DEFAULTS.client_text_gallery_eyebrow
+  );
+
+  setText(
+    '#client-stage-selection',
+    $('design-client-stage-selection')?.value ||
+    DESIGN_DEFAULTS.client_stage_selection
+  );
+
+  setText(
+    '#client-stage-selection-sub',
+    $('design-client-stage-selection-sub')?.value ||
+    DESIGN_DEFAULTS.client_stage_selection_sub
+  );
+
+  setText(
+    '#client-stage-editing',
+    $('design-client-stage-editing')?.value ||
+    DESIGN_DEFAULTS.client_stage_editing
+  );
+
+  setText(
+    '#client-stage-editing-sub',
+    $('design-client-stage-editing-sub')?.value ||
+    DESIGN_DEFAULTS.client_stage_editing_sub
+  );
+
+  setText(
+    '#client-stage-delivery',
+    $('design-client-stage-delivery')?.value ||
+    DESIGN_DEFAULTS.client_stage_delivery
+  );
+
+  setText(
+    '#client-stage-delivery-sub',
+    $('design-client-stage-delivery-sub')?.value ||
+    DESIGN_DEFAULTS.client_stage_delivery_sub
+  );
+}
+
+function updateDesignClientImagePreview() {
+  const preview =
+    $('design-client-access-image-preview');
+
+  if (!preview) return;
+
+  const url =
+    safeText(
+      $('design-client-access-image')?.value,
+      2048
+    );
+
+  preview.style.backgroundImage =
+    url
+      ? `url("${url.replace(/"/g, '%22')}")`
+      : '';
+
+  preview.classList.toggle(
+    'empty',
+    !url
+  );
+
+  const emptyLabel =
+    preview.querySelector(
+      '.design-client-image-empty'
+    );
+
+  if (emptyLabel) {
+    emptyLabel.textContent =
+      url
+        ? ''
+        : 'Nenhuma imagem adicionada';
+  }
+
+  if (!url) {
+    preview.style.removeProperty(
+      'aspect-ratio'
+    );
+
+    updateDesignClientFocalUI();
     return;
   }
 
-  const x =
-    clampNumber(
-      (
-        (event.clientX - rect.left) /
-        rect.width
-      ) * 100,
-      0,
-      100,
-      50
+  const img =
+    new Image();
+
+  img.onload = () => {
+    const width =
+      Number(
+        img.naturalWidth || 0
+      );
+
+    const height =
+      Number(
+        img.naturalHeight || 0
+      );
+
+    if (
+      width > 0 &&
+      height > 0 &&
+      $('design-client-access-image')?.value === url
+    ) {
+      preview.style.aspectRatio =
+        `${width} / ${height}`;
+    }
+
+    updateDesignClientFocalUI();
+  };
+
+  img.onerror = () => {
+    preview.style.removeProperty(
+      'aspect-ratio'
     );
 
-  const y =
-    clampNumber(
-      (
-        (event.clientY - rect.top) /
-        rect.height
-      ) * 100,
-      0,
-      100,
-      50
-    );
+    updateDesignClientFocalUI();
+  };
 
-  $('design-client-focus-x').value =
-    String(Math.round(x));
-
-  $('design-client-focus-y').value =
-    String(Math.round(y));
-
-  updateDesignClientFocalUI();
-  applyDesignPreview();
-  updateDesignPublicationState();
+  img.src = url;
 }
 
-function updateDesignClientImagePreview(){const p=$('design-client-access-image-preview');if(!p)return;const url=safeText($('design-client-access-image')?.value,2048);p.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';p.classList.toggle('empty',!url);const span=p.querySelector('span');if(span)span.textContent=url?'Imagem adicionada':'Nenhuma imagem adicionada'}
 async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await supabase.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl||''}
 
 function initDesignStudio() {
@@ -7934,7 +8179,28 @@ function initDesignStudio() {
     'design-client-border',
     'design-client-access-image',
     'design-client-focus-x',
-    'design-client-focus-y'
+    'design-client-focus-y',
+    'design-client-text-visual',
+    'design-client-text-eyebrow',
+    'design-client-text-title',
+    'design-client-text-title-emphasis',
+    'design-client-text-description',
+    'design-client-text-login',
+    'design-client-text-password',
+    'design-client-text-button',
+    'design-client-text-secure',
+    'design-client-text-gallery-eyebrow',
+    'design-client-stage-selection',
+    'design-client-stage-selection-sub',
+    'design-client-stage-editing',
+    'design-client-stage-editing-sub',
+    'design-client-stage-delivery',
+    'design-client-stage-delivery-sub',
+    'design-client-status-preparing',
+    'design-client-status-awaiting',
+    'design-client-status-selected',
+    'design-client-status-editing',
+    'design-client-status-ready'
   ].forEach(id => {
     const handler = () => {
       applyDesignPreview();

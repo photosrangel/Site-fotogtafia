@@ -77,7 +77,28 @@ const PUBLIC_DESIGN_DEFAULTS = {
   client_border:'fine',
   client_access_image:'',
   client_focus_x:50,
-  client_focus_y:50
+  client_focus_y:50,
+  client_text_visual:'Retratos guardados com cuidado.\nUm espaço reservado só para você.',
+  client_text_eyebrow:'Área privada',
+  client_text_title:'Sua sessão,',
+  client_text_title_emphasis:'em um espaço só seu.',
+  client_text_description:'Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.',
+  client_text_login:'Login',
+  client_text_password:'Senha',
+  client_text_button:'Acessar minha galeria',
+  client_text_secure:'Acesso privado e protegido',
+  client_text_gallery_eyebrow:'Sua experiência',
+  client_stage_selection:'Seleção',
+  client_stage_selection_sub:'Escolha',
+  client_stage_editing:'Edição',
+  client_stage_editing_sub:'Tratamento',
+  client_stage_delivery:'Entrega',
+  client_stage_delivery_sub:'Final',
+  client_status_preparing:'Suas fotos estão sendo preparadas',
+  client_status_awaiting:'Escolha suas fotos favoritas',
+  client_status_selected:'Seleção enviada — aguardando edição',
+  client_status_editing:'Suas fotografias estão em edição',
+  client_status_ready:'Suas fotos estão prontas!'
 };
 
 function publicDesignClamp(value,min,max,fallback){
@@ -105,7 +126,61 @@ function normalizePublicDesign(config={}){
     client_border:['fine','none','soft'].includes(c.client_border)?c.client_border:'fine',
     client_access_image:typeof c.client_access_image==='string'?c.client_access_image.trim():'',
     client_focus_x:publicDesignClamp(c.client_focus_x,0,100,50),
-    client_focus_y:publicDesignClamp(c.client_focus_y,0,100,50)
+    client_focus_y:publicDesignClamp(c.client_focus_y,0,100,50),
+    client_text_visual:typeof c.client_text_visual==='string'?c.client_text_visual:PUBLIC_DESIGN_DEFAULTS.client_text_visual,
+    client_text_eyebrow:typeof c.client_text_eyebrow==='string'?c.client_text_eyebrow:PUBLIC_DESIGN_DEFAULTS.client_text_eyebrow,
+    client_text_title:typeof c.client_text_title==='string'?c.client_text_title:PUBLIC_DESIGN_DEFAULTS.client_text_title,
+    client_text_title_emphasis:typeof c.client_text_title_emphasis==='string'?c.client_text_title_emphasis:PUBLIC_DESIGN_DEFAULTS.client_text_title_emphasis,
+    client_text_description:typeof c.client_text_description==='string'?c.client_text_description:PUBLIC_DESIGN_DEFAULTS.client_text_description,
+    client_text_login:typeof c.client_text_login==='string'?c.client_text_login:PUBLIC_DESIGN_DEFAULTS.client_text_login,
+    client_text_password:typeof c.client_text_password==='string'?c.client_text_password:PUBLIC_DESIGN_DEFAULTS.client_text_password,
+    client_text_button:typeof c.client_text_button==='string'?c.client_text_button:PUBLIC_DESIGN_DEFAULTS.client_text_button,
+    client_text_secure:typeof c.client_text_secure==='string'?c.client_text_secure:PUBLIC_DESIGN_DEFAULTS.client_text_secure,
+    client_text_gallery_eyebrow:typeof c.client_text_gallery_eyebrow==='string'?c.client_text_gallery_eyebrow:PUBLIC_DESIGN_DEFAULTS.client_text_gallery_eyebrow,
+    client_stage_selection:typeof c.client_stage_selection==='string'?c.client_stage_selection:PUBLIC_DESIGN_DEFAULTS.client_stage_selection,
+    client_stage_selection_sub:typeof c.client_stage_selection_sub==='string'?c.client_stage_selection_sub:PUBLIC_DESIGN_DEFAULTS.client_stage_selection_sub,
+    client_stage_editing:typeof c.client_stage_editing==='string'?c.client_stage_editing:PUBLIC_DESIGN_DEFAULTS.client_stage_editing,
+    client_stage_editing_sub:typeof c.client_stage_editing_sub==='string'?c.client_stage_editing_sub:PUBLIC_DESIGN_DEFAULTS.client_stage_editing_sub,
+    client_stage_delivery:typeof c.client_stage_delivery==='string'?c.client_stage_delivery:PUBLIC_DESIGN_DEFAULTS.client_stage_delivery,
+    client_stage_delivery_sub:typeof c.client_stage_delivery_sub==='string'?c.client_stage_delivery_sub:PUBLIC_DESIGN_DEFAULTS.client_stage_delivery_sub,
+    client_status_preparing:typeof c.client_status_preparing==='string'?c.client_status_preparing:PUBLIC_DESIGN_DEFAULTS.client_status_preparing,
+    client_status_awaiting:typeof c.client_status_awaiting==='string'?c.client_status_awaiting:PUBLIC_DESIGN_DEFAULTS.client_status_awaiting,
+    client_status_selected:typeof c.client_status_selected==='string'?c.client_status_selected:PUBLIC_DESIGN_DEFAULTS.client_status_selected,
+    client_status_editing:typeof c.client_status_editing==='string'?c.client_status_editing:PUBLIC_DESIGN_DEFAULTS.client_status_editing,
+    client_status_ready:typeof c.client_status_ready==='string'?c.client_status_ready:PUBLIC_DESIGN_DEFAULTS.client_status_ready
+  };
+}
+
+
+function applyPublishedClientTexts(c){
+  const setText=(selector,value)=>{
+    const el=document.querySelector(selector);
+    if(el) el.textContent=value??'';
+  };
+
+  setText('#client-visual-text',c.client_text_visual);
+  setText('#client-access-eyebrow',c.client_text_eyebrow);
+  setText('#client-access-title-main',c.client_text_title);
+  setText('#client-access-title-emphasis',c.client_text_title_emphasis);
+  setText('#client-access-description',c.client_text_description);
+  setText('#client-login-label',c.client_text_login);
+  setText('#client-password-label',c.client_text_password);
+  setText('#client-access-submit',c.client_text_button);
+  setText('#client-access-secure-text',c.client_text_secure);
+  setText('#client-gallery-eyebrow',c.client_text_gallery_eyebrow);
+  setText('#client-stage-selection',c.client_stage_selection);
+  setText('#client-stage-selection-sub',c.client_stage_selection_sub);
+  setText('#client-stage-editing',c.client_stage_editing);
+  setText('#client-stage-editing-sub',c.client_stage_editing_sub);
+  setText('#client-stage-delivery',c.client_stage_delivery);
+  setText('#client-stage-delivery-sub',c.client_stage_delivery_sub);
+
+  window.__CLIENT_DESIGN_TEXTS__={
+    status_preparing:c.client_status_preparing,
+    status_awaiting:c.client_status_awaiting,
+    status_selected:c.client_status_selected,
+    status_editing:c.client_status_editing,
+    status_ready:c.client_status_ready
   };
 }
 
@@ -246,6 +321,8 @@ function applyPublishedDesign(config={}){
 
     @media (prefers-reduced-motion:reduce){body,.section{animation:none !important}}
   `;
+
+  applyPublishedClientTexts(c);
 }
 
 async function loadPublishedDesign(){
