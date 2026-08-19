@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v44 — Área do Cliente: foco visual + textos editáveis');
+console.log('[admin-v2] Build v46 — Conteúdo reordenável + Área do Cliente movida');
 
 const $ = id => document.getElementById(id);
 
@@ -188,7 +188,19 @@ function setView(v) {
   $('view-eyebrow').textContent = l[0];
   $('view-title').textContent = l[1];
 
-  if (v === 'dashboard') loadDashboard();
+  if (v === 'dashboard') {
+    if (adminUiConfig) {
+      $('view-eyebrow').textContent =
+        adminUiConfig.dashboard_eyebrow ||
+        l[0];
+
+      $('view-title').textContent =
+        adminUiConfig.dashboard_title ||
+        l[1];
+    }
+
+    loadDashboard();
+  }
   if (v === 'content') loadContent();
   if (v === 'design') initDesignStudio();
   if (v === 'galleries') loadGalleries();
@@ -1142,6 +1154,20 @@ $('settings-form').addEventListener(
 );
 
 
+$('admin-interface-form')?.addEventListener(
+  'submit',
+  saveAdminUiSettings
+);
+
+$('admin-ui-reset')?.addEventListener(
+  'click',
+  resetAdminUiSettings
+);
+
+
+initAdminContentOrderDnD();
+
+
 $('photo-upload').addEventListener(
   'change',
   async e => {
@@ -1174,6 +1200,11 @@ document
 ========================================================= */
 
 async function loadDashboard() {
+
+  if (!document.body.dataset.adminUiBooted) {
+    document.body.dataset.adminUiBooted = '1';
+    loadAdminUiSettings();
+  }
 
   console.log('[admin-v2] loadDashboard: iniciando');
 
@@ -3498,7 +3529,721 @@ function storagePath(url) {
    CONFIGURAÇÕES
 ========================================================= */
 
+
+const ADMIN_UI_DEFAULTS = Object.freeze({
+  brand: 'Rangel Santos',
+  version: 'CMS V2',
+
+  nav_dashboard: 'Dashboard',
+  nav_design: 'Design',
+  nav_galleries: 'Galerias',
+  nav_categories: 'Categorias',
+  nav_sessions: 'Ensaios',
+  nav_messages: 'Mensagens',
+  nav_settings: 'Configurações',
+  nav_view_site: 'Ver site',
+  nav_logout: 'Sair',
+
+  dashboard_eyebrow: 'Painel',
+  dashboard_title: 'Dashboard',
+
+  gallery_card_title: 'Galeria',
+  gallery_card_button: 'Nova galeria',
+  gallery_card_copy:
+    'Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.',
+
+  safe_title: 'Ambiente seguro',
+  safe_status: 'PROTEGIDO',
+  safe_copy:
+    'Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.',
+
+  design_content_order: [
+    'inicio',
+    'sobre',
+    'contato',
+    'client_area'
+  ]
+});
+
+let adminUiConfig =
+  { ...ADMIN_UI_DEFAULTS };
+
+function normalizeAdminUiConfig(config = {}) {
+  const c =
+    { ...ADMIN_UI_DEFAULTS, ...(config || {}) };
+
+  const field = (key, max) =>
+    safeText(c[key], max) ||
+    ADMIN_UI_DEFAULTS[key];
+
+  return {
+    brand: field('brand', 80),
+    version: field('version', 40),
+
+    nav_dashboard: field('nav_dashboard', 40),
+    nav_design: field('nav_design', 40),
+    nav_galleries: field('nav_galleries', 40),
+    nav_categories: field('nav_categories', 40),
+    nav_sessions: field('nav_sessions', 40),
+    nav_messages: field('nav_messages', 40),
+    nav_settings: field('nav_settings', 40),
+    nav_view_site: field('nav_view_site', 40),
+    nav_logout: field('nav_logout', 40),
+
+    dashboard_eyebrow: field('dashboard_eyebrow', 60),
+    dashboard_title: field('dashboard_title', 80),
+
+    gallery_card_title: field('gallery_card_title', 80),
+    gallery_card_button: field('gallery_card_button', 60),
+    gallery_card_copy: field('gallery_card_copy', 300),
+
+    safe_title: field('safe_title', 80),
+    safe_status: field('safe_status', 40),
+    safe_copy: field('safe_copy', 300),
+
+    design_content_order: (() => {
+      const allowed = [
+        'inicio',
+        'sobre',
+        'contato',
+        'client_area'
+      ];
+
+      const incoming =
+        Array.isArray(c.design_content_order)
+          ? c.design_content_order
+          : [];
+
+      const normalized =
+        incoming.filter(
+          item =>
+            allowed.includes(item)
+        );
+
+      allowed.forEach(item => {
+        if (!normalized.includes(item)) {
+          normalized.push(item);
+        }
+      });
+
+      return normalized.slice(0, allowed.length);
+    })()
+  };
+}
+
+function collectAdminUiConfig() {
+  return normalizeAdminUiConfig({
+    brand: $('admin-ui-brand')?.value,
+    version: $('admin-ui-version')?.value,
+
+    nav_dashboard: $('admin-ui-nav-dashboard')?.value,
+    nav_design: $('admin-ui-nav-design')?.value,
+    nav_galleries: $('admin-ui-nav-galleries')?.value,
+    nav_categories: $('admin-ui-nav-categories')?.value,
+    nav_sessions: $('admin-ui-nav-sessions')?.value,
+    nav_messages: $('admin-ui-nav-messages')?.value,
+    nav_settings: $('admin-ui-nav-settings')?.value,
+    nav_view_site: $('admin-ui-nav-view-site')?.value,
+    nav_logout: $('admin-ui-nav-logout')?.value,
+
+    dashboard_eyebrow: $('admin-ui-dashboard-eyebrow')?.value,
+    dashboard_title: $('admin-ui-dashboard-title')?.value,
+
+    gallery_card_title: $('admin-ui-gallery-card-title')?.value,
+    gallery_card_button: $('admin-ui-gallery-card-button')?.value,
+    gallery_card_copy: $('admin-ui-gallery-card-copy')?.value,
+
+    safe_title: $('admin-ui-safe-title')?.value,
+    safe_status: $('admin-ui-safe-status')?.value,
+    safe_copy: $('admin-ui-safe-copy')?.value,
+
+    design_content_order:
+      collectAdminContentOrder()
+  });
+}
+
+function fillAdminUiSettings(config) {
+  const c =
+    normalizeAdminUiConfig(config);
+
+  const map = {
+    'admin-ui-brand': c.brand,
+    'admin-ui-version': c.version,
+
+    'admin-ui-nav-dashboard': c.nav_dashboard,
+    'admin-ui-nav-design': c.nav_design,
+    'admin-ui-nav-galleries': c.nav_galleries,
+    'admin-ui-nav-categories': c.nav_categories,
+    'admin-ui-nav-sessions': c.nav_sessions,
+    'admin-ui-nav-messages': c.nav_messages,
+    'admin-ui-nav-settings': c.nav_settings,
+    'admin-ui-nav-view-site': c.nav_view_site,
+    'admin-ui-nav-logout': c.nav_logout,
+
+    'admin-ui-dashboard-eyebrow': c.dashboard_eyebrow,
+    'admin-ui-dashboard-title': c.dashboard_title,
+
+    'admin-ui-gallery-card-title': c.gallery_card_title,
+    'admin-ui-gallery-card-button': c.gallery_card_button,
+    'admin-ui-gallery-card-copy': c.gallery_card_copy,
+
+    'admin-ui-safe-title': c.safe_title,
+    'admin-ui-safe-status': c.safe_status,
+    'admin-ui-safe-copy': c.safe_copy
+  };
+
+  Object.entries(map)
+    .forEach(([id, value]) => {
+      if ($(id)) {
+        $(id).value = value;
+      }
+    });
+
+  renderAdminContentOrder(
+    c.design_content_order
+  );
+}
+
+function setAdminText(selector, value) {
+  const el =
+    document.querySelector(selector);
+
+  if (el) {
+    el.textContent = value;
+  }
+}
+
+function applyAdminUiConfig(config = adminUiConfig) {
+  const c =
+    normalizeAdminUiConfig(config);
+
+  adminUiConfig = c;
+
+  const brand =
+    $('admin-ui-brand-render');
+
+  if (brand) {
+    const parts =
+      c.brand.trim().split(/\s+/);
+
+    if (parts.length > 1) {
+      const last =
+        parts.pop();
+
+      brand.innerHTML =
+        `${esc(parts.join(' '))} <em>${esc(last)}</em>`;
+    } else {
+      brand.textContent =
+        c.brand;
+    }
+  }
+
+  setAdminText(
+    '#admin-ui-version-render',
+    c.version
+  );
+
+  document
+    .querySelectorAll(
+      '[data-admin-ui-text]'
+    )
+    .forEach(el => {
+      const key =
+        el.dataset.adminUiText;
+
+      if (c[key]) {
+        el.textContent =
+          c[key];
+      }
+    });
+
+  setAdminText(
+    '#admin-ui-gallery-card-title-render',
+    c.gallery_card_title
+  );
+
+  setAdminText(
+    '#admin-ui-gallery-card-button-render',
+    c.gallery_card_button
+  );
+
+  setAdminText(
+    '#admin-ui-gallery-card-copy-render',
+    c.gallery_card_copy
+  );
+
+  setAdminText(
+    '#admin-ui-safe-title-render',
+    c.safe_title
+  );
+
+  setAdminText(
+    '#admin-ui-safe-status-render',
+    c.safe_status
+  );
+
+  setAdminText(
+    '#admin-ui-safe-copy-render',
+    c.safe_copy
+  );
+
+  /*
+    O cabeçalho superior muda de acordo com a tela.
+    No Dashboard respeitamos os textos personalizados.
+  */
+  applyDesignContentOrder(
+    c.design_content_order
+  );
+
+  if (activeView === 'dashboard') {
+    if ($('view-eyebrow')) {
+      $('view-eyebrow').textContent =
+        c.dashboard_eyebrow;
+    }
+
+    if ($('view-title')) {
+      $('view-title').textContent =
+        c.dashboard_title;
+    }
+  }
+}
+
+
+function collectAdminContentOrder() {
+  const list =
+    $('admin-content-order-list');
+
+  if (!list) {
+    return [
+      'inicio',
+      'sobre',
+      'contato',
+      'client_area'
+    ];
+  }
+
+  return [
+    ...list.querySelectorAll(
+      '[data-admin-content-order]'
+    )
+  ]
+    .map(
+      item =>
+        item.dataset.adminContentOrder
+    )
+    .filter(Boolean);
+}
+
+function renderAdminContentOrder(order = []) {
+  const list =
+    $('admin-content-order-list');
+
+  if (!list) return;
+
+  const map =
+    new Map(
+      [
+        ...list.querySelectorAll(
+          '[data-admin-content-order]'
+        )
+      ].map(
+        node => [
+          node.dataset.adminContentOrder,
+          node
+        ]
+      )
+    );
+
+  order.forEach(key => {
+    const node =
+      map.get(key);
+
+    if (node) {
+      list.appendChild(node);
+    }
+  });
+}
+
+function applyDesignContentOrder(order = []) {
+  const submenu =
+    $('design-content-submenu');
+
+  if (!submenu) return;
+
+  const map =
+    new Map(
+      [
+        ...submenu.querySelectorAll(
+          '[data-design-content-order]'
+        )
+      ].map(
+        node => [
+          node.dataset.designContentOrder,
+          node
+        ]
+      )
+    );
+
+  order.forEach(key => {
+    const node =
+      map.get(key);
+
+    if (node) {
+      submenu.appendChild(node);
+    }
+  });
+}
+
+function bindSimpleReorderList({
+  container,
+  itemSelector,
+  handleSelector,
+  onChange
+}) {
+  if (!container) return;
+
+  let dragged = null;
+
+  const arm = item => {
+    item.dataset.dragArmed = '1';
+    item.draggable = true;
+  };
+
+  const disarm = item => {
+    item.dataset.dragArmed = '0';
+    item.draggable = false;
+  };
+
+  container
+    .querySelectorAll(itemSelector)
+    .forEach(item => {
+      const handle =
+        item.querySelector(handleSelector);
+
+      if (handle) {
+        handle.addEventListener(
+          'pointerdown',
+          event => {
+            if (
+              event.pointerType === 'mouse' &&
+              event.button !== 0
+            ) {
+              return;
+            }
+
+            arm(item);
+          }
+        );
+
+        handle.addEventListener(
+          'mousedown',
+          () => arm(item)
+        );
+      }
+
+      item.addEventListener(
+        'dragstart',
+        event => {
+          if (
+            item.dataset.dragArmed !== '1'
+          ) {
+            event.preventDefault();
+            return;
+          }
+
+          dragged = item;
+          item.classList.add('is-dragging');
+
+          event.dataTransfer.effectAllowed =
+            'move';
+        }
+      );
+
+      item.addEventListener(
+        'dragover',
+        event => {
+          if (!dragged) return;
+
+          event.preventDefault();
+
+          const target =
+            event.currentTarget;
+
+          if (
+            target === dragged
+          ) {
+            return;
+          }
+
+          const rect =
+            target.getBoundingClientRect();
+
+          const before =
+            event.clientY <
+            rect.top +
+            rect.height / 2;
+
+          container.insertBefore(
+            dragged,
+            before
+              ? target
+              : target.nextSibling
+          );
+        }
+      );
+
+      item.addEventListener(
+        'dragend',
+        () => {
+          if (!dragged) return;
+
+          dragged.classList.remove(
+            'is-dragging'
+          );
+
+          disarm(dragged);
+
+          dragged = null;
+
+          onChange?.();
+        }
+      );
+    });
+}
+
+function initAdminContentOrderDnD() {
+  bindSimpleReorderList({
+    container:
+      $('admin-content-order-list'),
+    itemSelector:
+      '[data-admin-content-order]',
+    handleSelector:
+      '.admin-content-order-handle',
+    onChange: () => {
+      msg(
+        $('admin-interface-msg'),
+        'Ordem alterada. Clique em “Salvar interface do painel” para guardar.',
+        ''
+      );
+    }
+  });
+}
+
+function initDesignContentOrderDnD() {
+  bindSimpleReorderList({
+    container:
+      $('design-content-submenu'),
+    itemSelector:
+      '[data-design-content-order]',
+    handleSelector:
+      '.design-content-drag-handle',
+    onChange: async () => {
+      const order =
+        [
+          ...$('design-content-submenu')
+            .querySelectorAll(
+              '[data-design-content-order]'
+            )
+        ]
+          .map(
+            node =>
+              node.dataset.designContentOrder
+          );
+
+      adminUiConfig = {
+        ...adminUiConfig,
+        design_content_order: order
+      };
+
+      renderAdminContentOrder(
+        order
+      );
+
+      try {
+        const { data: existing, error: selectError } =
+          await supabase
+            .from('site_content')
+            .select('id')
+            .eq('slug', 'admin')
+            .eq('section_key', 'interface')
+            .limit(1)
+            .maybeSingle();
+
+        if (selectError) {
+          throw selectError;
+        }
+
+        const row = {
+          slug: 'admin',
+          section_key: 'interface',
+          content: normalizeAdminUiConfig(
+            adminUiConfig
+          ),
+          updated_at:
+            new Date().toISOString()
+        };
+
+        const result =
+          existing?.id
+            ? await supabase
+                .from('site_content')
+                .update(row)
+                .eq('id', existing.id)
+            : await supabase
+                .from('site_content')
+                .insert(row);
+
+        if (result.error) {
+          throw result.error;
+        }
+      } catch (error) {
+        console.warn(
+          '[admin-v2] Não foi possível salvar a ordem do Conteúdo:',
+          error
+        );
+      }
+    }
+  });
+}
+
+async function loadAdminUiSettings() {
+  try {
+    const { data, error } =
+      await supabase
+        .from('site_content')
+        .select('content')
+        .eq('slug', 'admin')
+        .eq('section_key', 'interface')
+        .limit(1)
+        .maybeSingle();
+
+    if (error) {
+      console.warn(
+        '[admin-v2] Interface do painel não carregada:',
+        error.message
+      );
+
+      adminUiConfig =
+        { ...ADMIN_UI_DEFAULTS };
+    } else {
+      let content =
+        data?.content || {};
+
+      if (typeof content === 'string') {
+        try {
+          content =
+            JSON.parse(content);
+        } catch (_) {
+          content = {};
+        }
+      }
+
+      adminUiConfig =
+        normalizeAdminUiConfig(content);
+    }
+
+    fillAdminUiSettings(
+      adminUiConfig
+    );
+
+    applyAdminUiConfig(
+      adminUiConfig
+    );
+  } catch (error) {
+    console.warn(
+      '[admin-v2] Falha ao carregar interface:',
+      error
+    );
+  }
+}
+
+async function saveAdminUiSettings(event) {
+  event.preventDefault();
+
+  const form =
+    event.currentTarget;
+
+  if (!beginFormBusy(form)) {
+    return;
+  }
+
+  try {
+    const payload =
+      collectAdminUiConfig();
+
+    const { data: existing, error: selectError } =
+      await supabase
+        .from('site_content')
+        .select('id')
+        .eq('slug', 'admin')
+        .eq('section_key', 'interface')
+        .limit(1)
+        .maybeSingle();
+
+    if (selectError) {
+      throw selectError;
+    }
+
+    const row = {
+      slug: 'admin',
+      section_key: 'interface',
+      content: payload,
+      updated_at:
+        new Date().toISOString()
+    };
+
+    const result =
+      existing?.id
+        ? await supabase
+            .from('site_content')
+            .update(row)
+            .eq('id', existing.id)
+        : await supabase
+            .from('site_content')
+            .insert(row);
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    adminUiConfig =
+      payload;
+
+    applyAdminUiConfig(
+      adminUiConfig
+    );
+
+    msg(
+      $('admin-interface-msg'),
+      'Interface do painel salva.',
+      'sucesso'
+    );
+  } catch (error) {
+    msg(
+      $('admin-interface-msg'),
+      `Erro ao salvar: ${error.message}`,
+      'erro'
+    );
+  } finally {
+    endFormBusy(form);
+  }
+}
+
+function resetAdminUiSettings() {
+  fillAdminUiSettings(
+    ADMIN_UI_DEFAULTS
+  );
+
+  msg(
+    $('admin-interface-msg'),
+    'Textos padrão carregados. Clique em “Salvar interface do painel” para confirmar.',
+    ''
+  );
+}
+
 async function loadSettings() {
+
+  loadAdminUiSettings();
 
   const {
     data,
@@ -7535,6 +8280,13 @@ function applySobreDesignPreview(doc,s){const d=s.sobre?.conteudo||{},text=doc.q
 function applyContatoDesignPreview(doc,s){const d=s.contato?.conteudo||{},eb=doc.querySelector('.section-head .section-eyebrow'),title=doc.querySelector('.section-head .section-title');if(eb)eb.textContent=d.eyebrow||'';if(title)title.textContent=d.title||'';const form=doc.querySelector('.contact-grid form');if(form){const btn=form.querySelector('button[type="submit"]');if(btn)btn.textContent=d.submit_label||'Enviar mensagem';const sel=form.querySelector('select[name="tipo"],#tipo');if(sel)sel.innerHTML=(d.tipos||[]).map(x=>`<option>${esc(x)}</option>`).join('')}const info=doc.querySelector('.contact-info');if(info){const dt=[...info.querySelectorAll('dt')].find(n=>n.textContent.trim().toLowerCase()==='atendimento');if(dt?.nextElementSibling)dt.nextElementSibling.textContent=d.atendimento||''}}
 function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s)}
 function openDesignContentSection(page, trigger) {
+  if (page === 'client_area') {
+    openDesignDrawer(
+      'client_area',
+      trigger
+    );
+    return;
+  }
   const drawer = $('design-controls-drawer');
   const host = $('design-content-host');
   const controls =
@@ -7746,7 +8498,15 @@ function openDesignDrawer(sectionName, trigger = null) {
   }
 
   drawer.hidden = false;
-  drawer.classList.remove('is-content-editor');
+  drawer.classList.remove(
+    'is-content-editor',
+    'is-client-area-editor'
+  );
+
+  drawer.classList.toggle(
+    'is-client-area-editor',
+    sectionName === 'client_area'
+  );
 
   const contentHost = $('design-content-host');
   const designControls = drawer.querySelector('.design-controls');
@@ -7808,7 +8568,8 @@ function closeDesignDrawer() {
 
   drawer.classList.remove(
     'is-open',
-    'is-content-editor'
+    'is-content-editor',
+    'is-client-area-editor'
   );
 
   drawer.style.removeProperty('width');
@@ -8138,6 +8899,7 @@ function initDesignStudio() {
   initDesignSidebarNavigation();
   initDesignContentMigration();
   initDesignContentNavigation();
+  initDesignContentOrderDnD();
 
   if (designStudioReady) {
     ensureDesignPersistenceLoaded().catch(() => {});
