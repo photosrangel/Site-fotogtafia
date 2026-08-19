@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v10 — sessão resiliente + retry Data API');
+console.log('[admin-v2] Build v11 — QA endurecido + mobile validado');
 
 const $ = id => document.getElementById(id);
 
@@ -42,6 +42,76 @@ function emailValido(value) {
 function msg(el, t, c = '') {
   el.textContent = t || '';
   el.className = c ? `msg ${c}` : 'msg';
+}
+
+
+const operationLocks = new Set();
+
+function clampNumber(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+function safeText(value, max = 500) {
+  return String(value ?? '').trim().slice(0, max);
+}
+
+function safeHttpUrl(value, { allowRelative = true } = {}) {
+  const v = safeText(value, 2048);
+  if (!v) return '';
+  if (allowRelative && /^\/(?!\/)/.test(v)) return v;
+  try {
+    const u = new URL(v, location.origin);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return v;
+  } catch (_) {}
+  return '';
+}
+
+function beginFormBusy(form) {
+  if (!form || form.dataset.busy === '1') return false;
+  form.dataset.busy = '1';
+  form.setAttribute('aria-busy', 'true');
+  form.querySelectorAll('button[type="submit"]').forEach(b => {
+    b.dataset.wasDisabled = b.disabled ? '1' : '0';
+    b.disabled = true;
+  });
+  return true;
+}
+
+function endFormBusy(form) {
+  if (!form) return;
+  form.dataset.busy = '0';
+  form.removeAttribute('aria-busy');
+  form.querySelectorAll('button[type="submit"]').forEach(b => {
+    b.disabled = b.dataset.wasDisabled === '1';
+    delete b.dataset.wasDisabled;
+  });
+}
+
+async function withOperationLock(key, task) {
+  if (operationLocks.has(key)) return { skipped: true };
+  operationLocks.add(key);
+  try { return await task(); }
+  finally { operationLocks.delete(key); }
+}
+
+function validarImagens(files, maxBytes = 25 * 1024 * 1024) {
+  const permitidos = new Set(['image/jpeg', 'image/png', 'image/webp']);
+  const validos = [];
+  const rejeitados = [];
+  for (const file of files || []) {
+    if (!permitidos.has(file.type)) {
+      rejeitados.push(`${file.name}: formato não suportado`);
+    } else if (file.size > maxBytes) {
+      rejeitados.push(`${file.name}: excede 25 MB`);
+    } else if (file.size <= 0) {
+      rejeitados.push(`${file.name}: arquivo vazio`);
+    } else {
+      validos.push(file);
+    }
+  }
+  return { validos, rejeitados };
 }
 
 function flash(t, c = '') {
@@ -173,95 +243,61 @@ $('login-form').addEventListener(
   'submit',
   async e => {
     e.preventDefault();
+    const form = e.currentTarget;
+    if (!beginFormBusy(form)) return;
 
-    msg(
-      $('login-msg'),
-      'Entrando...'
-    );
-
+    msg($('login-msg'), 'Entrando...');
     const inicio = Date.now();
 
     try {
-      console.log('[admin-v2] login: iniciando signInWithPassword', $('login-email').value.trim());
-
+      console.log('[admin-v2] login: iniciando signInWithPassword', safeText($('login-email').value, 254));
       const resultado = await Promise.race([
         supabase.auth.signInWithPassword({
-          email: $('login-email').value.trim(),
+          email: safeText($('login-email').value, 254).toLowerCase(),
           password: $('login-password').value
         }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('timeout')), 10000)
-        )
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
       ]);
 
       console.log(
-        '[admin-v2] login: resposta em',
-        Date.now() - inicio,
-        'ms —',
-        resultado.error ? ('ERRO: ' + (resultado.error.message || resultado.error.code)) : (resultado.data && resultado.data.session ? 'SESSÃO OK' : 'SEM SESSÃO')
+        '[admin-v2] login: resposta em', Date.now() - inicio, 'ms —',
+        resultado.error
+          ? ('ERRO: ' + (resultado.error.message || resultado.error.code))
+          : (resultado.data?.session ? 'SESSÃO OK' : 'SEM SESSÃO')
       );
 
       if (resultado.error) {
-        const msgErro = String(
-          resultado.error.message || resultado.error.code || ''
+        const msgErro = String(resultado.error.message || resultado.error.code || '');
+        msg(
+          $('login-msg'),
+          /confirm|verified|verification|mail/i.test(msgErro)
+            ? 'Seu e-mail ainda não foi confirmado.'
+            : 'E-mail ou senha incorretos.',
+          'erro'
         );
-
-        if (/confirm|verified|verification|mail/i.test(msgErro)) {
-          msg(
-            $('login-msg'),
-            'Seu e-mail ainda não foi confirmado. Clique no link que enviei para o seu e-mail (ou confirme no painel do Supabase).',
-            'erro'
-          );
-        } else {
-          msg(
-            $('login-msg'),
-            'E-mail ou senha incorretos.',
-            'erro'
-          );
-        }
-
         return;
       }
 
       if (!resultado.data?.session) {
-        msg(
-          $('login-msg'),
-          'Seu e-mail ainda não foi confirmado. Clique no link que enviei para o seu e-mail (ou confirme no painel do Supabase).',
-          'erro'
-        );
-
+        msg($('login-msg'), 'Sessão não estabelecida. Tente novamente.', 'erro');
         return;
       }
 
       const entrou = await requireAdmin();
-
-      if (!entrou) {
-        const el = $('login-msg');
-
-        if (el.textContent === 'Entrando...') {
-          msg(
-            el,
-            'Sessão não estabelecida. Verifique se seu e-mail foi confirmado.',
-            'erro'
-          );
-        }
+      if (!entrou && $('login-msg').textContent === 'Entrando...') {
+        msg($('login-msg'), 'Sessão não estabelecida. Tente novamente.', 'erro');
       }
     } catch (err) {
       console.error('[admin-v2] login: exceção em', Date.now() - inicio, 'ms:', err);
-
-      if (err && err.message === 'timeout') {
-        msg(
-          $('login-msg'),
-          'Demorou demais para conectar ao servidor. Verifique sua internet e tente novamente.',
-          'erro'
-        );
-      } else {
-        msg(
-          $('login-msg'),
-          'Erro inesperado ao entrar. Veja o console do navegador (F12).',
-          'erro'
-        );
-      }
+      msg(
+        $('login-msg'),
+        err?.message === 'timeout'
+          ? 'Demorou demais para conectar ao servidor. Verifique sua internet e tente novamente.'
+          : 'Erro inesperado ao entrar. Veja o console do navegador (F12).',
+        'erro'
+      );
+    } finally {
+      endFormBusy(form);
     }
   }
 );
@@ -691,9 +727,9 @@ function renderCategories() {
 
       b.addEventListener(
         'click',
-        () => deleteCategory(
+        () => withOperationLock('delete-category:' + b.dataset.deleteCategory, () => deleteCategory(
           b.dataset.deleteCategory
-        )
+        ))
       );
 
     });
@@ -702,52 +738,43 @@ function renderCategories() {
 
 
 async function saveCategory(e) {
-
   e.preventDefault();
+  const form = e.currentTarget;
+  if (!beginFormBusy(form)) return;
 
-  const id =
-    $('category-id').value;
+  try {
+    const id = $('category-id').value;
+    const name = safeText($('category-name').value, 80);
+    const slug = slugify(safeText($('category-slug').value, 120)).slice(0, 120);
 
-  const p = {
-    name: $('category-name').value.trim(),
-    slug: slugify(
-      $('category-slug').value.trim()
-    ),
-    sort_order:
-      Number($('category-order').value) || 0,
-    published: true
-  };
+    if (!name || !slug) {
+      msg($('category-msg'), 'Preencha nome e slug com conteúdo válido.', 'erro');
+      return;
+    }
 
-  const r = id
-    ? await supabase
-        .from('categories')
-        .update(p)
-        .eq('id', id)
-    : await supabase
-        .from('categories')
-        .insert(p);
+    const p = {
+      name,
+      slug,
+      sort_order: clampNumber($('category-order').value, 0, 9999, 0),
+      published: true
+    };
 
-  if (r.error) {
+    const r = id
+      ? await supabase.from('categories').update(p).eq('id', id)
+      : await supabase.from('categories').insert(p);
 
-    msg(
-      $('category-msg'),
-      r.error.message,
-      'erro'
-    );
+    if (r.error) {
+      msg($('category-msg'), r.error.message, 'erro');
+      return;
+    }
 
-    return;
+    msg($('category-msg'), 'Categoria salva.', 'sucesso');
+    resetCategoryForm();
+    await loadCategories();
+    await loadDashboard();
+  } finally {
+    endFormBusy(form);
   }
-
-  msg(
-    $('category-msg'),
-    'Categoria salva.',
-    'sucesso'
-  );
-
-  resetCategoryForm();
-
-  await loadCategories();
-  await loadDashboard();
 }
 
 
@@ -1000,14 +1027,14 @@ function renderGalleries() {
   c.querySelectorAll('[data-toggle-gallery]').forEach(b => {
     b.addEventListener('click', e => {
       e.stopPropagation();
-      toggleGallery(b.dataset.toggleGallery);
+      withOperationLock('toggle-gallery:' + b.dataset.toggleGallery, () => toggleGallery(b.dataset.toggleGallery));
     });
   });
 
   c.querySelectorAll('[data-delete-gallery]').forEach(b => {
     b.addEventListener('click', e => {
       e.stopPropagation();
-      deleteGallery(b.dataset.deleteGallery);
+      withOperationLock('delete-gallery:' + b.dataset.deleteGallery, () => deleteGallery(b.dataset.deleteGallery));
     });
   });
 
@@ -1352,100 +1379,54 @@ function closeGalleryForm() {
 
 
 async function saveGallery(e) {
-
   e.preventDefault();
+  const form = e.currentTarget;
+  if (!beginFormBusy(form)) return;
 
-  const id =
-    $('gallery-id').value;
+  try {
+    const id = $('gallery-id').value;
+    const title = safeText($('gallery-title').value, 120);
+    const slug = slugify(safeText($('gallery-slug').value, 120)).slice(0, 120);
+    const coverInput = safeText($('gallery-cover').value, 2048);
+    const coverUrl = coverInput ? safeHttpUrl(coverInput, { allowRelative: false }) : '';
 
-  const p = {
+    if (!title || !slug) {
+      msg($('gallery-form-msg'), 'Preencha título e slug com conteúdo válido.', 'erro');
+      return;
+    }
+    if (coverInput && !coverUrl) {
+      msg($('gallery-form-msg'), 'A URL da capa precisa começar com http:// ou https://.', 'erro');
+      return;
+    }
 
-    title:
-      $('gallery-title')
-        .value
-        .trim(),
+    const p = {
+      title,
+      slug,
+      description: safeText($('gallery-description').value, 2000) || null,
+      category_id: $('gallery-category').value || null,
+      cover_url: coverUrl || null,
+      sort_order: clampNumber($('gallery-order').value, 0, 9999, 0)
+    };
 
-    slug:
-      slugify(
-        $('gallery-slug')
-          .value
-          .trim()
-      ),
+    const r = id
+      ? await supabase.from('galleries').update(p).eq('id', id).select().single()
+      : await supabase.from('galleries').insert(p).select().single();
 
-    description:
-      $('gallery-description')
-        .value
-        .trim() || null,
+    if (r.error) {
+      msg($('gallery-form-msg'), r.error.message, 'erro');
+      return;
+    }
 
-    category_id:
-      $('gallery-category')
-        .value || null,
+    msg($('gallery-form-msg'), 'Galeria salva.', 'sucesso');
+    await loadGalleries();
+    await loadDashboard();
 
-    cover_url:
-      $('gallery-cover')
-        .value
-        .trim() || null,
-
-    sort_order:
-      Number(
-        $('gallery-order').value
-      ) || 0
-
-  };
-
-
-  const r =
-    id
-
-      ? await supabase
-          .from('galleries')
-          .update(p)
-          .eq('id', id)
-          .select()
-          .single()
-
-      : await supabase
-          .from('galleries')
-          .insert(p)
-          .select()
-          .single();
-
-
-  if (r.error) {
-
-    msg(
-      $('gallery-form-msg'),
-      r.error.message,
-      'erro'
-    );
-
-    return;
+    if (!id && r.data) {
+      setTimeout(() => openGalleryModal(r.data.id), 250);
+    }
+  } finally {
+    endFormBusy(form);
   }
-
-
-  msg(
-    $('gallery-form-msg'),
-    'Galeria salva.',
-    'sucesso'
-  );
-
-
-  await loadGalleries();
-  await loadDashboard();
-
-
-  if (!id && r.data) {
-
-    setTimeout(
-      () =>
-        openGalleryModal(
-          r.data.id
-        ),
-      250
-    );
-
-  }
-
 }
 
 
@@ -1926,7 +1907,7 @@ async function loadPhotos() {
 
 
           if (pht) {
-            setCover(pht);
+            withOperationLock('cover-gallery:' + (currentGallery?.id || ''), () => setCover(pht));
           }
 
         }
@@ -2063,9 +2044,9 @@ async function loadPhotos() {
 
           e.stopPropagation();
 
-          togglePhotoPublished(
+          withOperationLock('toggle-photo:' + button.dataset.togglePhoto, () => togglePhotoPublished(
             button.dataset.togglePhoto
-          );
+          ));
 
         }
       );
@@ -2085,9 +2066,9 @@ async function loadPhotos() {
 
           e.stopPropagation();
 
-          deletePhoto(
+          withOperationLock('delete-photo:' + button.dataset.deletePhoto, () => deletePhoto(
             button.dataset.deletePhoto
-          );
+          ));
 
         }
       );
@@ -2272,6 +2253,13 @@ async function savePhotoOrder() {
 ========================================================= */
 
 async function uploadPhotos(files, g) {
+
+  const checked = validarImagens(files);
+  if (checked.rejeitados.length) {
+    msg($('upload-msg'), checked.rejeitados.join(' · '), 'erro');
+  }
+  files = checked.validos;
+  if (!files.length) return;
 
   msg(
     $('upload-msg'),
@@ -2794,100 +2782,49 @@ async function loadSettings() {
 
 
 async function saveSettings(e) {
-
   e.preventDefault();
+  const form = e.currentTarget;
+  if (!beginFormBusy(form)) return;
 
+  try {
+    const email = safeText($('settings-email').value, 254).toLowerCase();
+    const whatsappRaw = safeText($('settings-whatsapp').value, 20);
+    const whatsapp = whatsappRaw.replace(/\D/g, '');
 
-  const p = {
+    if (email && !emailValido(email)) {
+      msg($('settings-msg'), 'Informe um e-mail válido.', 'erro');
+      return;
+    }
+    if (whatsappRaw && (whatsapp.length < 7 || whatsapp.length > 15)) {
+      msg($('settings-msg'), 'WhatsApp deve conter entre 7 e 15 dígitos.', 'erro');
+      return;
+    }
 
-    site_name:
-      $('settings-site-name')
-        .value
-        .trim(),
+    const p = {
+      site_name: safeText($('settings-site-name').value, 120),
+      email: email || null,
+      whatsapp: whatsapp || null,
+      instagram_url: safeText($('settings-instagram').value, 2048) || null,
+      location: safeText($('settings-location').value, 160) || null,
+      specialty: safeText($('settings-specialty').value, 160) || null,
+      availability: safeText($('settings-availability').value, 160) || null,
+      footer_text: safeText($('settings-footer').value, 1000) || null,
+      updated_at: new Date().toISOString()
+    };
 
-    email:
-      $('settings-email')
-        .value
-        .trim() || null,
+    const { data: ex } = await supabase.from('site_settings').select('id').limit(1).maybeSingle();
+    const r = ex?.id
+      ? await supabase.from('site_settings').update(p).eq('id', ex.id)
+      : await supabase.from('site_settings').insert(p);
 
-    whatsapp:
-      $('settings-whatsapp')
-        .value
-        .trim() || null,
-
-    instagram_url:
-      $('settings-instagram')
-        .value
-        .trim() || null,
-
-    location:
-      $('settings-location')
-        .value
-        .trim() || null,
-
-    specialty:
-      $('settings-specialty')
-        .value
-        .trim() || null,
-
-    availability:
-      $('settings-availability')
-        .value
-        .trim() || null,
-
-    footer_text:
-      $('settings-footer')
-        .value
-        .trim() || null,
-
-    updated_at:
-      new Date().toISOString()
-
-  };
-
-
-  const {
-    data: ex
-  } = await supabase
-    .from('site_settings')
-    .select('id')
-    .limit(1)
-    .maybeSingle();
-
-
-  const r =
-    ex?.id
-
-      ? await supabase
-          .from('site_settings')
-          .update(p)
-          .eq(
-            'id',
-            ex.id
-          )
-
-      : await supabase
-          .from('site_settings')
-          .insert(p);
-
-
-  if (r.error) {
-
-    msg(
-      $('settings-msg'),
-      r.error.message,
-      'erro'
-    );
-
-    return;
+    if (r.error) {
+      msg($('settings-msg'), r.error.message, 'erro');
+      return;
+    }
+    msg($('settings-msg'), 'Configurações salvas.', 'sucesso');
+  } finally {
+    endFormBusy(form);
   }
-
-
-  msg(
-    $('settings-msg'),
-    'Configurações salvas.',
-    'sucesso'
-  );
 }
 
 
@@ -3049,8 +2986,8 @@ function renderSpecsEditor(specs) {
 
   c.innerHTML = lista.map((s, i) => `
     <div class="inline-form" style="margin-bottom:10px;align-items:flex-end;" data-spec-row>
-      <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label" value="${esc(s.label)}"></div>
-      <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value" value="${esc(s.value)}"></div>
+      <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label" maxlength="80" value="${esc(s.label)}"></div>
+      <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value" maxlength="160" value="${esc(s.value)}"></div>
       <button type="button" class="small-btn" data-remove-spec>Remover</button>
     </div>`).join('');
 
@@ -3091,11 +3028,12 @@ async function upsertContent(slug, sectionKey, payload, msgId) {
 
   if (r.error) {
     msg($(msgId), 'Erro ao salvar: ' + r.error.message, 'erro');
-    return;
+    return false;
   }
 
   msg($(msgId), 'Salvo!', 'sucesso');
   contentCache = null;
+  return true;
 }
 
 
@@ -3164,7 +3102,7 @@ function renderHeroSlidesAdmin() {
         <span class="status-pill ${s.published !== false ? 'online' : ''}">${s.published !== false ? 'PUBLICADA' : 'OCULTA'}</span>
       </div>
       <div class="hero-slide-fields">
-        <div class="field"><label>Texto alternativo</label><input data-slide-alt value="${esc(s.alt || '')}" placeholder="Descrição da fotografia"></div>
+        <div class="field"><label>Texto alternativo</label><input data-slide-alt maxlength="240" value="${esc(s.alt || '')}" placeholder="Descrição da fotografia"></div>
         <div class="hero-slide-actions">
           <button type="button" class="small-btn" data-slide-up ${i === 0 ? 'disabled' : ''}>↑</button>
           <button type="button" class="small-btn" data-slide-down ${i === heroSlidesDraft.length - 1 ? 'disabled' : ''}>↓</button>
@@ -3237,9 +3175,13 @@ $('hero-static-preview').addEventListener('click', e => {
 $('hero-static-upload').addEventListener('change', async e => {
   const files = [...e.target.files];
   if (!files.length) return;
+  const { validos, rejeitados } = validarImagens(files.slice(0, 1));
+  if (rejeitados.length) msg($('hero-msg'), rejeitados.join(' · '), 'erro');
+  if (!validos.length) { e.target.value = ''; return; }
   try {
     msg($('hero-msg'), 'Enviando foto...');
-    const urls = await uploadHeroFiles(files.slice(0, 1));
+    const urls = await withOperationLock('hero-static-upload', () => uploadHeroFiles(validos));
+    if (urls?.skipped) { e.target.value = ''; return; }
     if (urls[0]) {
       $('hero-desktop-image').value = urls[0];
       updateStaticFocalPreview();
@@ -3254,9 +3196,13 @@ $('hero-static-upload').addEventListener('change', async e => {
 $('hero-slides-upload').addEventListener('change', async e => {
   const files = [...e.target.files];
   if (!files.length) return;
+  const { validos, rejeitados } = validarImagens(files);
+  if (rejeitados.length) msg($('hero-msg'), rejeitados.join(' · '), 'erro');
+  if (!validos.length) { e.target.value = ''; return; }
   try {
-    msg($('hero-msg'), `Enviando ${files.length} foto(s)...`);
-    const urls = await uploadHeroFiles(files);
+    msg($('hero-msg'), `Enviando ${validos.length} foto(s)...`);
+    const urls = await withOperationLock('hero-slides-upload', () => uploadHeroFiles(validos));
+    if (urls?.skipped) { e.target.value = ''; return; }
     urls.forEach((url, i) => heroSlidesDraft.push({
       id: `slide-${Date.now()}-${i}`,
       url,
@@ -3275,94 +3221,106 @@ $('hero-slides-upload').addEventListener('change', async e => {
 
 $('form-hero').addEventListener('submit', async e => {
   e.preventDefault();
+  const form = e.currentTarget;
+  if (!beginFormBusy(form)) return;
 
-  const meta = $('hero-meta').value
-    .split('\n')
-    .map(l => l.trim())
-    .filter(Boolean)
-    .map(l => {
-      const i = l.indexOf('|');
-      if (i === -1) return { label: l, value: '' };
-      return { label: l.slice(0, i).trim(), value: l.slice(i + 1).trim() };
-    });
+  try {
+    const mode = document.querySelector('input[name="hero-mode"]:checked')?.value || 'static';
+    const desktopRaw = safeText($('hero-desktop-image').value, 2048);
+    const mobileRaw = safeText($('hero-mobile-image').value, 2048);
+    const desktop = desktopRaw ? safeHttpUrl(desktopRaw, { allowRelative: false }) : '';
+    const mobile = mobileRaw ? safeHttpUrl(mobileRaw, { allowRelative: false }) : '';
 
-  await upsertContent('inicio', 'hero', {
-    eyebrow: $('hero-eyebrow').value.trim(),
-    title: $('hero-title').value.trim(),
-    description: $('hero-description').value.trim(),
-    desktop_image: $('hero-desktop-image').value.trim(),
-    mobile_image: $('hero-mobile-image').value.trim(),
-    image_alt: $('hero-image-alt').value.trim(),
-    mode: document.querySelector('input[name="hero-mode"]:checked')?.value || 'static',
-    static_focus_x: Number($('hero-static-focus-x').value) || 50,
-    static_focus_y: Number($('hero-static-focus-y').value) || 50,
-    slide_interval: Math.max(2, Number($('hero-slide-interval').value) || 5),
-    slide_transition: Math.max(.3, Number($('hero-slide-transition').value) || 1.2),
-    slides: heroSlidesDraft.map((s, index) => ({
-      id: s.id,
-      url: s.url,
-      alt: s.alt || '',
-      focus_x: Number(s.focus_x ?? 50),
-      focus_y: Number(s.focus_y ?? 50),
-      published: s.published !== false,
-      sort_order: index
-    })),
-    primary_button: {
-      text: $('hero-primary-text').value.trim(),
-      url: $('hero-primary-url').value.trim()
-    },
-    secondary_button: {
-      text: $('hero-secondary-text').value.trim(),
-      url: $('hero-secondary-url').value.trim()
-    },
-    meta
-  }, 'hero-msg');
+    if (desktopRaw && !desktop) {
+      msg($('hero-msg'), 'A URL da foto estática é inválida.', 'erro');
+      return;
+    }
+    if (mobileRaw && !mobile) {
+      msg($('hero-msg'), 'A URL alternativa de celular é inválida.', 'erro');
+      return;
+    }
+    if (!desktop) {
+      msg($('hero-msg'), 'Escolha uma foto estática. Ela também é a proteção/fallback do slideshow.', 'erro');
+      return;
+    }
+    if (mode === 'slideshow' && !heroSlidesDraft.some(s => s.published !== false && s.url)) {
+      msg($('hero-msg'), 'Para usar Slideshow, publique pelo menos uma foto.', 'erro');
+      return;
+    }
+
+    const meta = $('hero-meta').value.split('\n')
+      .map(l => l.trim()).filter(Boolean).slice(0, 12)
+      .map(l => {
+        const i = l.indexOf('|');
+        if (i === -1) return { label: safeText(l, 80), value: '' };
+        return { label: safeText(l.slice(0, i), 80), value: safeText(l.slice(i + 1), 160) };
+      });
+
+    await upsertContent('inicio', 'hero', {
+      eyebrow: safeText($('hero-eyebrow').value, 120),
+      title: safeText($('hero-title').value, 180),
+      description: safeText($('hero-description').value, 1000),
+      desktop_image: desktop,
+      mobile_image: mobile,
+      image_alt: safeText($('hero-image-alt').value, 240),
+      mode,
+      static_focus_x: clampNumber($('hero-static-focus-x').value, 0, 100, 50),
+      static_focus_y: clampNumber($('hero-static-focus-y').value, 0, 100, 50),
+      slide_interval: clampNumber($('hero-slide-interval').value, 2, 30, 5),
+      slide_transition: clampNumber($('hero-slide-transition').value, .3, 5, 1.2),
+      slides: heroSlidesDraft.slice(0, 30).map((s, index) => ({
+        id: safeText(s.id, 120), url: safeHttpUrl(s.url, { allowRelative: false }),
+        alt: safeText(s.alt, 240), focus_x: clampNumber(s.focus_x,0,100,50),
+        focus_y: clampNumber(s.focus_y,0,100,50), published: s.published !== false, sort_order: index
+      })).filter(s => s.url),
+      primary_button: { text: safeText($('hero-primary-text').value,80), url: safeHttpUrl($('hero-primary-url').value) || '/galeria' },
+      secondary_button: { text: safeText($('hero-secondary-text').value,80), url: safeHttpUrl($('hero-secondary-url').value) || '/contato' },
+      meta
+    }, 'hero-msg');
+  } finally { endFormBusy(form); }
 });
 
 $('form-recent').addEventListener('submit', async e => {
   e.preventDefault();
-
-  await upsertContent('inicio', 'recent_work', {
-    eyebrow: $('recent-eyebrow').value.trim(),
-    title: $('recent-title').value.trim(),
-    gallery_limit: Number($('recent-limit').value) || 6,
-    button: {
-      text: $('recent-btn-text').value.trim(),
-      url: $('recent-btn-url').value.trim()
-    }
-  }, 'recent-msg');
+  const form=e.currentTarget;
+  if (!beginFormBusy(form)) return;
+  try {
+    await upsertContent('inicio','recent_work',{
+      eyebrow:safeText($('recent-eyebrow').value,120), title:safeText($('recent-title').value,180),
+      gallery_limit:clampNumber($('recent-limit').value,1,24,6),
+      button:{text:safeText($('recent-btn-text').value,80),url:safeHttpUrl($('recent-btn-url').value)||'/galeria'}
+    },'recent-msg');
+  } finally { endFormBusy(form); }
 });
 
 $('form-sobre').addEventListener('submit', async e => {
   e.preventDefault();
-
-  await upsertContent('sobre', 'conteudo', {
-    eyebrow: $('sobre-eyebrow').value.trim(),
-    paragraphs: $('sobre-paragraphs').value
-      .split('\n')
-      .map(l => l.trim())
-      .filter(Boolean),
-    specs: collectSpecs(),
-    portrait_url: $('sobre-portrait-url').value.trim(),
-    portrait_alt: $('sobre-portrait-alt').value.trim(),
-    cta_text: $('sobre-cta-text').value.trim(),
-    cta_url: $('sobre-cta-url').value.trim()
-  }, 'sobre-msg');
+  const form=e.currentTarget;
+  if (!beginFormBusy(form)) return;
+  try {
+    await upsertContent('sobre','conteudo',{
+      eyebrow:safeText($('sobre-eyebrow').value,120),
+      paragraphs:$('sobre-paragraphs').value.split('\n').map(l=>safeText(l,1000)).filter(Boolean).slice(0,20),
+      specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),
+      portrait_url:safeHttpUrl($('sobre-portrait-url').value,{allowRelative:false}),
+      portrait_alt:safeText($('sobre-portrait-alt').value,240),
+      cta_text:safeText($('sobre-cta-text').value,80), cta_url:safeHttpUrl($('sobre-cta-url').value)||'/contato'
+    },'sobre-msg');
+  } finally { endFormBusy(form); }
 });
 
 $('form-contato').addEventListener('submit', async e => {
   e.preventDefault();
-
-  await upsertContent('contato', 'conteudo', {
-    eyebrow: $('contato-eyebrow').value.trim(),
-    title: $('contato-title').value.trim(),
-    submit_label: $('contato-submit-label').value.trim(),
-    tipos: $('contato-tipos').value
-      .split('\n')
-      .map(l => l.trim())
-      .filter(Boolean),
-    atendimento: $('contato-atendimento').value.trim()
-  }, 'contato-msg');
+  const form=e.currentTarget;
+  if (!beginFormBusy(form)) return;
+  try {
+    await upsertContent('contato','conteudo',{
+      eyebrow:safeText($('contato-eyebrow').value,120), title:safeText($('contato-title').value,180),
+      submit_label:safeText($('contato-submit-label').value,80),
+      tipos:$('contato-tipos').value.split('\n').map(l=>safeText(l,120)).filter(Boolean).slice(0,30),
+      atendimento:safeText($('contato-atendimento').value,1000)
+    },'contato-msg');
+  } finally { endFormBusy(form); }
 });
 
 $('btn-add-spec').addEventListener('click', () => {
@@ -3372,8 +3330,8 @@ $('btn-add-spec').addEventListener('click', () => {
   div.style.cssText = 'margin-bottom:10px;align-items:flex-end;';
   div.dataset.specRow = '';
   div.innerHTML = `
-    <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label"></div>
-    <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value"></div>
+    <div class="field" style="flex:1;margin-bottom:0;"><label>Rótulo</label><input class="spec-label" maxlength="80"></div>
+    <div class="field" style="flex:1;margin-bottom:0;"><label>Valor</label><input class="spec-value" maxlength="160"></div>
     <button type="button" class="small-btn" data-remove-spec>Remover</button>`;
   div.querySelector('[data-remove-spec]')
     .addEventListener('click', () => div.remove());
@@ -3703,7 +3661,7 @@ function renderSessions() {
   c.querySelectorAll('[data-delete-session]').forEach(b => {
     b.addEventListener('click', e => {
       e.stopPropagation();
-      excluirSession(b.dataset.deleteSession);
+      withOperationLock('delete-session:' + b.dataset.deleteSession, () => excluirSession(b.dataset.deleteSession));
     });
   });
 }
@@ -3724,39 +3682,57 @@ function closeSessionForm() {
 
 async function saveSession(e) {
   e.preventDefault();
+  const form = e.currentTarget;
+  if (!beginFormBusy(form)) return;
   const msgEl = $('session-form-msg');
 
-  const clienteEmail = $('session-email').value.trim().toLowerCase();
+  try {
+    const titulo = safeText($('session-titulo').value, 160);
+    const clienteEmail = safeText($('session-email').value, 254).toLowerCase();
+    const telefoneRaw = safeText($('session-telefone').value, 20);
+    const telefone = telefoneRaw.replace(/\D/g, '');
+    const login = slugify(safeText($('session-login').value, 80)).slice(0,80);
+    const codigo = safeText($('session-codigo').value,64);
 
-  if (!emailValido(clienteEmail)) {
-    msgEl.textContent = 'Informe um e-mail válido para a cliente.';
-    msgEl.className = 'msg erro';
-    $('session-email').focus();
-    return;
-  }
+    if (!titulo || !login || !codigo) {
+      msg(msgEl, 'Título, login e senha precisam conter caracteres válidos.', 'erro');
+      return;
+    }
+    if (!emailValido(clienteEmail)) {
+      msg(msgEl, 'Informe um e-mail válido para a cliente.', 'erro');
+      $('session-email').focus();
+      return;
+    }
+    if (telefoneRaw && (telefone.length < 7 || telefone.length > 15)) {
+      msg(msgEl, 'O WhatsApp deve conter entre 7 e 15 dígitos.', 'erro');
+      $('session-telefone').focus();
+      return;
+    }
 
-  const p = {
-    titulo: $('session-titulo').value.trim(),
-    cliente_nome: $('session-cliente').value.trim(),
-    cliente_telefone: $('session-telefone').value.replace(/\D/g, ''),
-    cliente_email: clienteEmail,
-    categoria: $('session-categoria').value,
-    codigo_acesso: $('session-codigo').value,
-    slug: slugify($('session-login').value)
-  };
-  const { error } = await supabase.from('ensaios').insert(p);
-  if (error) {
-    msgEl.textContent = (error.message.includes('duplicate') || error.message.includes('unique'))
-      ? `O login "${p.slug}" já está em uso por outro ensaio. Escolha outro.`
-      : 'Erro ao criar: ' + error.message;
-    msgEl.className = 'msg erro';
-    return;
-  }
-  msgEl.textContent = 'Ensaio criado!';
-  msgEl.className = 'msg sucesso';
-  $('session-form').reset();
-  $('session-form-wrap').hidden = true;
-  await loadSessions();
+    const p = {
+      titulo,
+      cliente_nome: safeText($('session-cliente').value,160),
+      cliente_telefone: telefone,
+      cliente_email: clienteEmail,
+      categoria: safeText($('session-categoria').value,80),
+      codigo_acesso: codigo,
+      slug: login
+    };
+
+    const { error } = await supabase.from('ensaios').insert(p);
+    if (error) {
+      msgEl.textContent = (error.message.includes('duplicate') || error.message.includes('unique'))
+        ? `O login "${p.slug}" já está em uso por outro ensaio. Escolha outro.`
+        : 'Erro ao criar: ' + error.message;
+      msgEl.className = 'msg erro';
+      return;
+    }
+
+    msg(msgEl, 'Ensaio criado!', 'sucesso');
+    form.reset();
+    $('session-form-wrap').hidden = true;
+    await loadSessions();
+  } finally { endFormBusy(form); }
 }
 
 async function openSessionModal(id) {
@@ -3986,7 +3962,7 @@ function renderSessionDetail() {
   $('prova-grid').querySelectorAll('[data-delete-session-photo]').forEach(button => {
     button.addEventListener('click', e => {
       e.stopPropagation();
-      excluirFotoEnsaio(button.dataset.deleteSessionPhoto);
+      withOperationLock('delete-session-photo:' + button.dataset.deleteSessionPhoto, () => excluirFotoEnsaio(button.dataset.deleteSessionPhoto));
     });
   });
 
@@ -3996,7 +3972,7 @@ function renderSessionDetail() {
     card.addEventListener('click', e => {
       if (e.target.closest('button')) return;
       const id = card.dataset.sessionPhotoId;
-      if (id && id !== coverPhotoId) definirCapaEnsaio(id);
+      if (id && id !== coverPhotoId) withOperationLock('cover-session:' + currentSession.id, () => definirCapaEnsaio(id));
     });
   });
 
@@ -4026,7 +4002,7 @@ function renderSessionDetail() {
     card.addEventListener('click', e => {
       if (e.target.closest('button')) return;
       const id = card.dataset.sessionPhotoId;
-      if (id && id !== coverPhotoId) definirCapaEnsaio(id);
+      if (id && id !== coverPhotoId) withOperationLock('cover-session:' + currentSession.id, () => definirCapaEnsaio(id));
     });
   });
 
@@ -4039,7 +4015,7 @@ function renderSessionDetail() {
   const acoes = $('selecao-actions');
   if (statusAtual === 'preparando') {
     acoes.innerHTML = `<button class="btn btn-accent" id="btn-enviar-selecao" ${provas.length === 0 ? 'disabled' : ''}>Enviar fotos para seleção</button>`;
-    $('btn-enviar-selecao').addEventListener('click', enviarParaSelecao);
+    $('btn-enviar-selecao').addEventListener('click', () => withOperationLock('selecao:' + (currentSession?.id || ''), enviarParaSelecao));
   } else if (statusAtual === 'aguardando_selecao') {
     acoes.innerHTML = `
       <span class="status-pill published">Aguardando seleção da cliente</span>
@@ -4051,8 +4027,8 @@ function renderSessionDetail() {
       ${statusAtual === 'selecao_finalizada' ? '<button class="btn btn-accent" id="btn-iniciar-edicao" type="button">Iniciar edição</button>' : ''}
       ${faltamEmailsSelecao ? '<button class="small-btn" id="btn-reenviar-selecao" type="button">Tentar e-mails novamente</button>' : ''}`;
 
-    if ($('btn-iniciar-edicao')) $('btn-iniciar-edicao').addEventListener('click', iniciarEdicao);
-    if ($('btn-reenviar-selecao')) $('btn-reenviar-selecao').addEventListener('click', reenviarNotificacoesSelecao);
+    if ($('btn-iniciar-edicao')) $('btn-iniciar-edicao').addEventListener('click', () => withOperationLock('start-edit:' + (currentSession?.id || ''), iniciarEdicao));
+    if ($('btn-reenviar-selecao')) $('btn-reenviar-selecao').addEventListener('click', () => withOperationLock('retry-selection-mail:' + (currentSession?.id || ''), reenviarNotificacoesSelecao));
   }
 
   const btnEntregar = $('btn-entregar');
@@ -4276,24 +4252,29 @@ async function excluirFotoEnsaio(id) {
 async function uploadSessionPhotos(files, tipo) {
   if (!currentSession) return;
   const msgEl = $('session-msg');
-  msgEl.textContent = `Enviando ${files.length} foto(s)...`;
-  msgEl.className = 'msg';
+  const { validos, rejeitados } = validarImagens(files);
+  if (rejeitados.length) msg(msgEl, rejeitados.join(' · '), 'erro');
+  if (!validos.length) return;
 
-  for (const file of files) {
-    const path = `${currentSession.id}/${tipo}/${Date.now()}-${file.name}`;
-    const { error: upErr } = await supabase.storage.from(SESSIONS_BUCKET).upload(path, file);
-    if (upErr) {
-      msgEl.textContent = 'Erro ao enviar: ' + upErr.message;
-      msgEl.className = 'msg erro';
-      continue;
+  return withOperationLock(`session-upload:${currentSession.id}:${tipo}`, async () => {
+    msg(msgEl, `Enviando ${validos.length} foto(s)...`);
+
+    for (const file of validos) {
+      const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+      const path = `${currentSession.id}/${tipo}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from(SESSIONS_BUCKET).upload(path, file, { upsert:false });
+      if (upErr) { msg(msgEl, 'Erro ao enviar: ' + upErr.message, 'erro'); continue; }
+      const { data: urlData } = supabase.storage.from(SESSIONS_BUCKET).getPublicUrl(path);
+      const { error: dbErr } = await supabase.from('fotos').insert({ ensaio_id: currentSession.id, url: urlData.publicUrl, tipo });
+      if (dbErr) {
+        await supabase.storage.from(SESSIONS_BUCKET).remove([path]).catch(()=>{});
+        msg(msgEl, 'Erro ao registrar a foto: ' + dbErr.message, 'erro');
+      }
     }
-    const { data: urlData } = supabase.storage.from(SESSIONS_BUCKET).getPublicUrl(path);
-    await supabase.from('fotos').insert({ ensaio_id: currentSession.id, url: urlData.publicUrl, tipo });
-  }
 
-  msgEl.textContent = 'Fotos enviadas!';
-  msgEl.className = 'msg sucesso';
-  await loadSessionPhotos();
+    msg(msgEl, 'Fotos enviadas!', 'sucesso');
+    await loadSessionPhotos();
+  });
 }
 
 async function enviarParaSelecao() {
@@ -4376,10 +4357,13 @@ async function excluirSession(id) {
 function copySession() {
   if (!currentSession) return;
   const texto = `Acesse em: ${location.origin}/area-cliente\nLogin: ${currentSession.slug}\nSenha: ${currentSession.codigo_acesso}`;
-  navigator.clipboard.writeText(texto);
   const btn = $('btn-copy-session');
-  btn.textContent = 'Copiado!';
-  setTimeout(() => { btn.textContent = 'Copiar tudo'; }, 1500);
+  navigator.clipboard.writeText(texto).then(() => {
+    btn.textContent = 'Copiado!';
+    setTimeout(() => { btn.textContent = 'Copiar tudo'; }, 1500);
+  }).catch(() => {
+    flash('Não foi possível copiar automaticamente. Selecione login e senha manualmente.', 'erro');
+  });
 }
 
 $('new-session-btn').addEventListener('click', openSessionForm);
@@ -4389,9 +4373,9 @@ $('session-form').addEventListener('submit', saveSession);
 $('btn-gerar-login').addEventListener('click', () => { $('session-login').value = 'cliente-' + Math.random().toString(36).slice(2, 8); });
 $('btn-gerar-codigo').addEventListener('click', () => { $('session-codigo').value = Math.random().toString(36).slice(2, 8).toUpperCase(); });
 $('btn-copy-session').addEventListener('click', copySession);
-$('btn-save-session-email').addEventListener('click', salvarEmailClienteEnsaio);
-$('btn-entregar').addEventListener('click', marcarEntregue);
-$('btn-excluir-session').addEventListener('click', () => excluirSession(currentSession && currentSession.id));
+$('btn-save-session-email').addEventListener('click', () => withOperationLock('save-session-email:' + (currentSession?.id || ''), salvarEmailClienteEnsaio));
+$('btn-entregar').addEventListener('click', () => withOperationLock('entregar:' + (currentSession?.id || ''), marcarEntregue));
+$('btn-excluir-session').addEventListener('click', () => withOperationLock('delete-session:' + (currentSession?.id || ''), () => excluirSession(currentSession && currentSession.id)));
 $('upload-prova').addEventListener('change', async e => {
   const f = [...e.target.files];
   if (f.length && currentSession) await uploadSessionPhotos(f, 'prova');
