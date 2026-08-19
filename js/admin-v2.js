@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v14 — ensaios recolhíveis + hero compacto');
+console.log('[admin-v2] Build v15 — hero alinhado + slides compactos');
 
 const $ = id => document.getElementById(id);
 
