@@ -3795,3 +3795,223 @@
     line-height: 1.15 !important;
   }
 }
+
+
+/* =========================================================
+   ADMIN V2 — REALTIME / TOASTS INTERNOS / RESPOSTAS
+   ========================================================= */
+
+.sidebar-link[data-view="messages"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sidebar-live-badge {
+  flex: 0 0 auto;
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: .52rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.sidebar-live-badge[hidden] {
+  display: none !important;
+}
+
+.admin-live-toasts {
+  position: fixed;
+  top: 22px;
+  right: 22px;
+  z-index: 3400;
+  display: grid;
+  gap: 9px;
+  width: min(390px, calc(100vw - 44px));
+  pointer-events: none;
+}
+
+.admin-live-toast {
+  position: relative;
+  width: 100%;
+  padding: 16px 42px 15px 17px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 10px;
+  background: rgba(17,17,15,.97);
+  box-shadow: 0 22px 65px rgba(0,0,0,.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  pointer-events: auto;
+  animation: adminToastIn .24s ease both;
+}
+
+.admin-live-toast.is-leaving {
+  animation: adminToastOut .22s ease both;
+}
+
+.admin-live-toast .section-eyebrow {
+  margin: 0 0 7px;
+}
+
+.admin-live-toast-title {
+  padding-right: 2px;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.admin-live-toast-text {
+  margin: 7px 0 11px;
+  color: var(--text-muted);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+
+.admin-live-toast-close {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.admin-live-toast-action {
+  min-height: 34px;
+}
+
+@keyframes adminToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes adminToastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.message-reply-modal {
+  z-index: 3300;
+}
+
+.message-reply-dialog {
+  width: min(680px, calc(100vw - 30px));
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+}
+
+.message-reply-recipient,
+.message-reply-original {
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 8px;
+  background: rgba(255,255,255,.012);
+}
+
+.message-reply-recipient {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.message-reply-recipient span {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.message-reply-recipient strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: .8rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.message-reply-original p:last-child {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: .78rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.msg-reply-btn {
+  border-color: rgba(255,255,255,.32) !important;
+  color: var(--accent) !important;
+}
+
+@media (max-width: 680px) {
+  .admin-live-toasts {
+    top: 12px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
+
+  .admin-live-toast {
+    padding: 14px 40px 14px 14px;
+  }
+
+  .admin-live-toast-action,
+  .admin-live-toast-close {
+    min-height: 44px;
+  }
+
+  .message-reply-dialog {
+    width: calc(100vw - 18px);
+    max-height: calc(100dvh - 18px);
+    padding: 16px !important;
+  }
+
+  .message-reply-recipient {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  #message-reply-text {
+    min-height: 180px;
+  }
+
+  #view-messages .card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  #view-messages .card-actions .small-btn {
+    min-width: 0 !important;
+    min-height: 44px !important;
+    width: 100%;
+  }
+}
