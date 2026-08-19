@@ -75,7 +75,9 @@ const PUBLIC_DESIGN_DEFAULTS = {
   client_photo_size:'large',
   client_typography:'classic',
   client_border:'fine',
-  client_access_image:''
+  client_access_image:'',
+  client_focus_x:50,
+  client_focus_y:50
 };
 
 function publicDesignClamp(value,min,max,fallback){
@@ -101,7 +103,9 @@ function normalizePublicDesign(config={}){
     client_photo_size:['compact','medium','large'].includes(c.client_photo_size)?c.client_photo_size:'large',
     client_typography:['classic','editorial','minimal'].includes(c.client_typography)?c.client_typography:'classic',
     client_border:['fine','none','soft'].includes(c.client_border)?c.client_border:'fine',
-    client_access_image:typeof c.client_access_image==='string'?c.client_access_image.trim():''
+    client_access_image:typeof c.client_access_image==='string'?c.client_access_image.trim():'',
+    client_focus_x:publicDesignClamp(c.client_focus_x,0,100,50),
+    client_focus_y:publicDesignClamp(c.client_focus_y,0,100,50)
   };
 }
 
@@ -237,6 +241,7 @@ function applyPublishedDesign(config={}){
 
     .client-access-visual{
       ${c.client_access_image ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${c.client_access_image.replace(/"/g,'%22')}") !important;` : ''}
+      background-position:${c.client_focus_x}% ${c.client_focus_y}% !important;
     }
 
     @media (prefers-reduced-motion:reduce){body,.section{animation:none !important}}
