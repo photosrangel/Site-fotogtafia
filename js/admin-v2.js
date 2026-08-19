@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v8 — tela cheia responsiva');
+console.log('[admin-v2] Build v9 — correção dashboard + diagnóstico de sessão');
 
 const $ = id => document.getElementById(id);
 
@@ -141,6 +141,44 @@ async function requireAdmin() {
     msg(
       $('login-msg'),
       'Este usuário não possui permissão de administrador.',
+      'erro'
+    );
+
+    return false;
+  }
+
+  // Confirma a sessão também no servidor do Supabase.
+  // Não imprime o access token no console.
+  const {
+    data: userData,
+    error: userError
+  } = await supabase.auth.getUser();
+
+  console.log(
+    '[admin-v2] requireAdmin: validação remota',
+    userError
+      ? `ERRO: ${userError.message || userError.code || 'desconhecido'}`
+      : `OK — ${userData?.user?.email || session.user.email || ''}`
+  );
+
+  if (userError || !userData?.user || userData.user.id !== ADMIN_ID) {
+    console.error(
+      '[admin-v2] requireAdmin: sessão rejeitada na validação remota',
+      {
+        message: userError?.message || '',
+        code: userError?.code || '',
+        status: userError?.status || ''
+      }
+    );
+
+    await supabase.auth.signOut().catch(() => {});
+
+    $('login-screen').hidden = false;
+    $('app').hidden = true;
+
+    msg(
+      $('login-msg'),
+      'Sua sessão não pôde ser validada. Entre novamente.',
       'erro'
     );
 
@@ -416,13 +454,22 @@ async function loadDashboard() {
     .filter(Boolean);
 
   if (falhas.length) {
+    const erroDashboard = falhas[0];
+
     console.error(
       '[admin-v2] Falha ao carregar dados do dashboard:',
-      falhas[0]
+      {
+        message: erroDashboard?.message || '',
+        code: erroDashboard?.code || '',
+        details: erroDashboard?.details || '',
+        hint: erroDashboard?.hint || ''
+      }
     );
 
     const detalhe = String(
-      falhas[0].message || falhas[0].code || JSON.stringify(falhas[0])
+      erroDashboard?.message ||
+      erroDashboard?.code ||
+      JSON.stringify(erroDashboard)
     );
 
     flash(
@@ -446,7 +493,7 @@ async function loadDashboard() {
   const g = a.data || [];
   const k = b.data || [];
   const p = c.data || [];
-  const msg = m.data || [];
+  const mensagens = m.data || [];
 
   $('stat-galleries').textContent =
     g.length;
@@ -461,8 +508,8 @@ async function loadDashboard() {
     p.filter(x => x.published).length;
 
   const msgEl = $('stat-messages');
-  msgEl.textContent = msg.length;
-  msgEl.style.color = msg.length ? 'var(--accent)' : '';
+  msgEl.textContent = mensagens.length;
+  msgEl.style.color = mensagens.length ? 'var(--accent)' : '';
 }
 
 
