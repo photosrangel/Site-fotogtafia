@@ -331,14 +331,83 @@
           </label>
 
           <div class="design-client-image-control">
-  <div class="design-control-row"><span>Imagem da tela de acesso</span></div>
-  <input id="design-client-access-image" type="hidden" value="">
-  <div class="design-client-image-preview empty" id="design-client-access-image-preview"><span>Nenhuma imagem adicionada</span></div>
-  <div class="design-client-image-actions">
-    <label class="small-btn design-client-upload-label">Adicionar foto<input id="design-client-access-image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
-    <button class="small-btn" id="design-client-access-image-remove" type="button">Remover</button>
+  <div class="design-control-row">
+    <span>Imagem da tela de acesso</span>
   </div>
-  <p class="design-control-help" id="design-client-access-image-msg">JPG, PNG ou WebP. A fotografia será enviada para o storage do site.</p>
+
+  <input id="design-client-access-image" type="hidden" value="">
+
+  <div
+    class="design-client-image-preview empty"
+    id="design-client-access-image-preview"
+    title="Clique no ponto que deve permanecer em destaque"
+  >
+    <span>Nenhuma imagem adicionada</span>
+    <i
+      class="design-client-focal-marker"
+      id="design-client-focal-marker"
+      aria-hidden="true"
+    ></i>
+  </div>
+
+  <div class="design-client-image-actions">
+    <label class="small-btn design-client-upload-label">
+      Adicionar foto
+      <input
+        id="design-client-access-image-file"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+      >
+    </label>
+
+    <button
+      class="small-btn"
+      id="design-client-access-image-remove"
+      type="button"
+    >
+      Remover
+    </button>
+  </div>
+
+  <div class="design-client-focal-controls">
+    <div class="design-client-focal-head">
+      <span>Ponto focal da imagem</span>
+      <strong id="design-client-focal-summary">50% × 50%</strong>
+    </div>
+
+    <label class="design-control-row design-client-focal-row">
+      Horizontal
+      <output id="design-client-focus-x-out">50%</output>
+      <input
+        id="design-client-focus-x"
+        type="range"
+        min="0"
+        max="100"
+        value="50"
+      >
+    </label>
+
+    <label class="design-control-row design-client-focal-row">
+      Vertical
+      <output id="design-client-focus-y-out">50%</output>
+      <input
+        id="design-client-focus-y"
+        type="range"
+        min="0"
+        max="100"
+        value="50"
+      >
+    </label>
+
+    <p class="design-control-help">
+      Clique diretamente na fotografia ou use os controles para escolher o ponto que deve permanecer em destaque no recorte.
+    </p>
+  </div>
+
+  <p class="design-control-help" id="design-client-access-image-msg">
+    JPG, PNG ou WebP. A fotografia será enviada para o storage do site.
+  </p>
 </div>
         </div>
       </section>
@@ -407,8 +476,8 @@
   </div>
 </div>
 <div class="form-grid">
-<div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" type="url" maxlength="2048" placeholder="https://..."></div>
-<div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" type="url" maxlength="2048" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" type="text" maxlength="2048" placeholder="https://... ou images/arquivo.jpg"></div>
+<div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" type="text" maxlength="2048" placeholder="https://... ou images/arquivo-mobile.jpg"></div>
 <div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt" maxlength="240"></div>
 </div>
 <div class="hero-static-preview-row">
