@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v21 — fluxo natural do ensaio em ultrawide');
+console.log('[admin-v2] Build v22 — hero preenchendo largura em desktop e ultrawide');
 
 const $ = id => document.getElementById(id);
 
