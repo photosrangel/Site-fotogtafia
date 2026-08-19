@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v55 — editor visual: título em texto puro durante edição');
+console.log('[admin-v2] Build v54 — editor visual: Enter e edição ao vivo corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -8531,197 +8531,46 @@ function insertInlineEditorBreak(editable){
 }
 
 function openDesignInlineEditor(el,cfg,key){
-  if(
-    designInlineActive &&
-    designInlineActive.el !== el
-  ){
-    finishDesignInline(false);
-  }
+  if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
+  designInlineActive={el,cfg,key,originalText:(el.innerText||el.textContent||''),originalHTML:el.innerHTML,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
+  el.contentEditable='true';
+  el.spellcheck=false;
+  el.style.whiteSpace='pre-line';
+  el.classList.add('design-inline-editing');
 
-  const input =
-    $(cfg.input);
+  el.onkeydown=event=>{
+    if(event.key==='Enter'){
+      event.preventDefault();
 
-  const sourceText =
-    input
-      ? String(input.value || '')
-      : String(el.innerText || el.textContent || '');
+      const inserted=
+        insertInlineEditorBreak(el);
 
-  designInlineActive = {
-    el,
-    cfg,
-    key,
-    originalText:
-      String(el.innerText || el.textContent || ''),
-    originalHTML:
-      el.innerHTML,
-    originalStyle:
-      JSON.parse(
-        JSON.stringify(
-          (window.__designInlineStyles || {})[key] || {}
-        )
-      )
+      if(!inserted){
+        console.warn(
+          '[admin-v2] editor visual: não foi possível inserir quebra de linha'
+        );
+      }
+    }
   };
 
   /*
-    Para o título principal usamos contenteditable em texto puro.
-    Isso evita o Chromium misturar <em>, <br> e nós de texto durante
-    a edição, que era o que juntava "como" + "sempre".
+    O próprio contenteditable é a prévia em tempo real.
+    Não chamamos applyDesignContentPreview() a cada tecla porque isso
+    recriaria o título e faria o cursor saltar. Apenas marcamos o
+    Designer como alterado enquanto o usuário digita.
   */
-  const isHeroTitle =
-    key === 'hero-title';
-
-  if (isHeroTitle) {
-    el.textContent =
-      sourceText;
-
-    el.style.whiteSpace =
-      'pre-wrap';
-
-    try {
-      el.contentEditable =
-        'plaintext-only';
-    } catch (_) {
-      el.contentEditable =
-        'true';
-    }
-  } else {
-    el.contentEditable =
-      'true';
-
-    el.style.whiteSpace =
-      'pre-line';
-  }
-
-  el.spellcheck =
-    false;
-
-  el.classList.add(
-    'design-inline-editing'
-  );
-
-  /*
-    No título NÃO interceptamos Enter.
-    Em Chromium, plaintext-only gera uma quebra real que aparece
-    instantaneamente e é recuperada por innerText.
-  */
-  if (!isHeroTitle) {
-    el.onkeydown =
-      event => {
-        if (
-          event.key ===
-          'Enter'
-        ) {
-          event.preventDefault();
-
-          const inserted =
-            insertInlineEditorBreak(
-              el
-            );
-
-          if (!inserted) {
-            console.warn(
-              '[admin-v2] editor visual: não foi possível inserir quebra de linha'
-            );
-          }
-        }
-      };
-  } else {
-    el.onkeydown =
-      null;
-  }
-
-  el.oninput =
-    () => {
-      updateDesignPublicationState();
-    };
+  el.oninput=()=>{
+    updateDesignPublicationState();
+  };
 
   el.focus();
-
-  /*
-    Coloca o cursor no final sem trocar a janela de seleção.
-  */
-  try {
-    const doc =
-      el.ownerDocument;
-
-    const view =
-      doc.defaultView;
-
-    const selection =
-      view.getSelection();
-
-    const range =
-      doc.createRange();
-
-    range.selectNodeContents(
-      el
-    );
-
-    range.collapse(
-      false
-    );
-
-    selection.removeAllRanges();
-    selection.addRange(
-      range
-    );
-  } catch (_) {}
-
-  const box =
-    $('design-inline-editor');
-
-  if (box) {
-    box.hidden =
-      false;
-  }
-
-  if (
-    $('design-inline-editor-label')
-  ) {
-    $('design-inline-editor-label').textContent =
-      isHeroTitle
-        ? `${cfg.label} · edite diretamente e use Enter normalmente`
-        : `${cfg.label} · Enter cria nova linha`;
-  }
-
-  const st =
-    (window.__designInlineStyles || {})[key] || {};
-
-  if ($('design-inline-size')) {
-    $('design-inline-size').value =
-      st.size || 'inherit';
-  }
-
-  document
-    .querySelectorAll(
-      '[data-inline-command]'
-    )
-    .forEach(
-      button => {
-        button.classList.toggle(
-          'active',
-          !!st[
-            button.dataset.inlineCommand
-          ]
-        );
-      }
-    );
-
-  document
-    .querySelectorAll(
-      '[data-inline-align]'
-    )
-    .forEach(
-      button => {
-        button.classList.toggle(
-          'active',
-          (st.align || 'left') ===
-            button.dataset.inlineAlign
-        );
-      }
-    );
+  const box=$('design-inline-editor'); if(box)box.hidden=false;
+  if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
+  const st=(window.__designInlineStyles||{})[key]||{};
+  if($('design-inline-size'))$('design-inline-size').value=st.size||'inherit';
+  document.querySelectorAll('[data-inline-command]').forEach(b=>b.classList.toggle('active',!!st[b.dataset.inlineCommand]));
+  document.querySelectorAll('[data-inline-align]').forEach(b=>b.classList.toggle('active',(st.align||'left')===b.dataset.inlineAlign));
 }
-
 function previewInlineStyle(patch){
   if(!designInlineActive)return;
   window.__designInlineStyles=window.__designInlineStyles||{};
@@ -8762,19 +8611,8 @@ async function saveDesignInline() {
     return walk(root);
   };
 
-  const rawInlineText =
-    active.key === 'hero-title'
-      ? (
-          active.el.innerText ||
-          active.el.textContent ||
-          ''
-        )
-      : serializeInlineText(
-          active.el
-        );
-
   const newText =
-    rawInlineText
+    serializeInlineText(active.el)
       .replace(/\u00a0/g, ' ')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
@@ -8865,9 +8703,7 @@ async function saveDesignInline() {
       key: editedKey,
       input: active.cfg.input,
       text: newText,
-      lines: newText.split('\n'),
-      fieldValue:
-        input.value
+      lines: newText.split('\n')
     }
   );
 
