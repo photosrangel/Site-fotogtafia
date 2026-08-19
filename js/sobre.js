@@ -59,44 +59,78 @@ function mergeSpecs(savedSpecs, settings) {
           )
       : [];
 
-  if (saved.length) {
-    return saved;
-  }
+  const savedByKey =
+    new Map(
+      saved.map(spec => [
+        chaveSpec(spec.label),
+        spec
+      ])
+    );
 
-  return DEFAULTS.specs.map(spec => {
-    const key =
-      chaveSpec(spec.label);
+  const result =
+    DEFAULTS.specs.map(defaultSpec => {
+      const key =
+        chaveSpec(
+          defaultSpec.label
+        );
 
-    if (
-      key === 'baseado em' &&
-      normalizarTexto(settings?.location)
-    ) {
+      const savedSpec =
+        savedByKey.get(key);
+
+      if (savedSpec) {
+        savedByKey.delete(key);
+
+        return {
+          label:
+            savedSpec.label ||
+            defaultSpec.label,
+
+          value:
+            savedSpec.value ||
+            defaultSpec.value
+        };
+      }
+
+      if (
+        key === 'baseado em' &&
+        normalizarTexto(
+          settings?.location
+        )
+      ) {
+        return {
+          ...defaultSpec,
+          value:
+            normalizarTexto(
+              settings.location
+            )
+        };
+      }
+
+      if (
+        key === 'especialidade' &&
+        normalizarTexto(
+          settings?.specialty
+        )
+      ) {
+        return {
+          ...defaultSpec,
+          value:
+            normalizarTexto(
+              settings.specialty
+            )
+        };
+      }
+
       return {
-        ...spec,
-        value:
-          normalizarTexto(
-            settings.location
-          )
+        ...defaultSpec
       };
-    }
+    });
 
-    if (
-      key === 'especialidade' &&
-      normalizarTexto(settings?.specialty)
-    ) {
-      return {
-        ...spec,
-        value:
-          normalizarTexto(
-            settings.specialty
-          )
-      };
-    }
-
-    return {
-      ...spec
-    };
+  savedByKey.forEach(spec => {
+    result.push(spec);
   });
+
+  return result;
 }
 
 function mostrarPaginaSobre() {

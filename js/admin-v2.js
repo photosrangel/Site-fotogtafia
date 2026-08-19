@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v49 — editor visual: quebras de linha preservadas');
+console.log('[admin-v2] Build v53 — Sobre completo + slideshow corrigido');
 
 const $ = id => document.getElementById(id);
 
@@ -8254,6 +8254,7 @@ function applyInicioDesignPreview(doc, snapshot) {
       );
 
   const slideshowMode =
+    Boolean(slideshow) &&
     hero.mode === 'slideshow' &&
     visibleSlides.length > 0;
 
@@ -8465,10 +8466,32 @@ function decorateDesignInlinePreview(doc){
     el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,id);});
   });
 }
+function insertInlineEditorBreak(){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  range.deleteContents();
+  const br=document.createElement('br');
+  range.insertNode(br);
+  range.setStartAfter(br);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
 function openDesignInlineEditor(el,cfg,key){
   if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
   designInlineActive={el,cfg,key,originalText:(el.innerText||el.textContent||''),originalHTML:el.innerHTML,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
-  el.contentEditable='true'; el.style.whiteSpace='pre-line'; el.classList.add('design-inline-editing'); el.focus();
+  el.contentEditable='true';
+  el.style.whiteSpace='pre-line';
+  el.classList.add('design-inline-editing');
+  el.onkeydown=event=>{
+    if(event.key==='Enter'){
+      event.preventDefault();
+      insertInlineEditorBreak();
+    }
+  };
+  el.focus();
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=cfg.label;
   const st=(window.__designInlineStyles||{})[key]||{};
@@ -8494,7 +8517,7 @@ function finishDesignInline(save){
     window.__designInlineStyles[a.key]=a.originalStyle;
     applyInlineStyleToElement(a.el,a.key);
   }
-  a.el.contentEditable='false';a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
+  a.el.contentEditable='false';a.el.onkeydown=null;a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
   if($('design-inline-editor'))$('design-inline-editor').hidden=true;
   applyDesignContentPreview();updateDesignPublicationState();
 }
@@ -8504,12 +8527,20 @@ async function saveDesignInline() {
   const active =
     designInlineActive;
 
+  const serializeInlineText=root=>{
+    const walk=node=>{
+      if(node.nodeType===Node.TEXT_NODE)return node.nodeValue||'';
+      if(node.nodeType!==Node.ELEMENT_NODE)return '';
+      if(node.tagName==='BR')return '\n';
+      const text=[...node.childNodes].map(walk).join('');
+      if(node!==root&&/^(DIV|P)$/.test(node.tagName))return `${text}\n`;
+      return text;
+    };
+    return walk(root);
+  };
+
   const newText =
-    (
-      active.el.innerText ||
-      active.el.textContent ||
-      ''
-    )
+    serializeInlineText(active.el)
       .replace(/\u00a0/g, ' ')
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
@@ -8561,6 +8592,9 @@ async function saveDesignInline() {
 
   active.el.contentEditable =
     'false';
+
+  active.el.onkeydown =
+    null;
 
   active.el.style.removeProperty(
     'white-space'
