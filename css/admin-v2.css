@@ -5527,3 +5527,47 @@
    BUILD V23 — DESIGN STUDIO / PREVIA RESPONSIVA SEGURA
    ========================================================= */
 .design-studio-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}.design-studio-head h2{font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.6rem);font-weight:400;margin:0 0 8px}.design-device-switch{display:flex;gap:8px;flex-wrap:wrap}.design-device-switch .active{color:var(--accent);border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.06)}.design-studio-grid{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}.design-controls{position:sticky;top:20px;padding:20px}.design-control-group{padding:0 0 20px;margin:0 0 20px;border-bottom:1px solid var(--admin-line-soft)}.design-control-row{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;margin-top:15px;color:var(--text);font-size:.78rem}.design-control-row output{font-family:var(--font-mono);font-size:.58rem;color:var(--text-muted)}.design-control-row input[type=range],.design-control-row select{grid-column:1/-1;width:100%}.design-control-row select{min-height:38px;border:1px solid var(--admin-line-strong);border-radius:7px;background:var(--bg);color:var(--text);padding:7px 9px}.design-safety-note{padding:13px;margin-bottom:16px;border:1px solid var(--admin-line-soft);border-radius:8px;background:rgba(255,255,255,.018)}.design-safety-note strong{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.design-safety-note p{margin:7px 0 0;color:var(--text-muted);font-size:.72rem;line-height:1.55}.design-preview-panel{padding:0;overflow:hidden}.design-preview-toolbar{min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 12px 9px 16px;border-bottom:1px solid var(--admin-line-soft);font-family:var(--font-mono);font-size:.62rem;color:var(--text-muted)}.design-preview-stage{min-height:720px;padding:18px;display:flex;justify-content:center;align-items:flex-start;overflow:auto;background:#0d0d0c}.design-browser-frame{width:100%;min-width:0;border:1px solid rgba(255,255,255,.13);border-radius:11px;overflow:hidden;background:#090908;box-shadow:0 18px 50px rgba(0,0,0,.28);transition:width .28s ease}.design-browser-bar{height:34px;display:flex;align-items:center;gap:6px;padding:0 11px;background:#181715;border-bottom:1px solid rgba(255,255,255,.08)}.design-browser-bar i{width:7px;height:7px;border-radius:50%;background:#777;opacity:.55}.design-browser-bar span{margin-left:7px;font-family:var(--font-mono);font-size:.55rem;color:var(--text-muted)}#design-preview-frame{display:block;width:100%;height:650px;border:0;background:#0b0b0a}.design-preview-stage.is-mobile .design-browser-frame{width:390px;max-width:100%}.design-preview-stage.is-mobile #design-preview-frame{height:720px}@media(max-width:1050px){.design-studio-grid{grid-template-columns:1fr}.design-controls{position:static}.design-studio-head{align-items:flex-start;flex-direction:column}.design-preview-stage{min-height:650px;padding:10px}}
+
+
+/* =========================================================
+   BUILD V24 — PREVIA FIEL AO VIEWPORT REAL
+   Desktop = 1920x1080. Mobile = 390x844.
+   O iframe conserva esses tamanhos internamente e o CMS apenas
+   reduz visualmente o dispositivo para caber no painel.
+   ========================================================= */
+.design-preview-stage{
+  position:relative;
+  display:flex !important;
+  align-items:flex-start !important;
+  justify-content:center !important;
+  width:100%;
+  overflow:hidden !important;
+  padding:18px !important;
+  background:#0d0d0c;
+  transition:height .25s ease;
+}
+
+.design-browser-frame{
+  flex:0 0 auto !important;
+  max-width:none !important;
+  overflow:hidden !important;
+  transition:transform .28s ease !important;
+}
+
+.design-preview-stage.is-mobile .design-browser-frame,
+.design-preview-stage.is-desktop .design-browser-frame{
+  max-width:none !important;
+}
+
+#design-preview-frame{
+  display:block !important;
+  max-width:none !important;
+  border:0 !important;
+  background:#0b0b0a;
+}
+
+@media(max-width:1050px){
+  .design-preview-stage{
+    padding:10px !important;
+  }
+}

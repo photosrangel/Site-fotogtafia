@@ -1256,3 +1256,33 @@ html, body {
   background: #ffffff !important;
   color: #0b0b0a !important;
 }
+
+
+/* =========================================================
+   BUILD V25 — FUNDO LIMPO NAS GALERIAS PÚBLICAS
+   ========================================================= */
+
+/*
+   A grade pública usa 2px de gap e antes tinha background:
+   var(--hairline). Isso funcionava como divisória, mas também
+   pintava todo o espaço vazio da última linha de cinza.
+*/
+.grid {
+  background: transparent !important;
+}
+
+/* Mantém a separação fina sem preencher os espaços vazios. */
+.grid > .frame {
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
+/* Salvaguarda para os dois usos públicos: home e galeria. */
+#recent-work,
+#recent-works,
+.recent-work,
+.recent-works,
+.trabalhos-recentes,
+.gallery-page .grid,
+.gallery-section .grid {
+  background: transparent !important;
+}
