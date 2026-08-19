@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v16 — slideshow configurável completo');
+console.log('[admin-v2] Build v17 — prévia real das animações + arrastar slides');
 
 const $ = id => document.getElementById(id);
 
@@ -3909,7 +3909,7 @@ function renderHeroSlideshowOverview() {
 
   stopHeroAdminPreview();
 
-  const slides = heroSlidesDraft
+  let slides = heroSlidesDraft
     .filter(slide => slide?.url && slide.published !== false);
 
   const total = heroSlidesDraft.length;
@@ -3920,6 +3920,49 @@ function renderHeroSlideshowOverview() {
 
   updateHeroSlideshowConfigSummary();
 
+  const animation =
+    $('hero-slide-animation')?.value || 'fade';
+
+  const order =
+    $('hero-slide-order')?.value || 'sequential';
+
+  const fit =
+    $('hero-slide-fit')?.value || 'cover';
+
+  const transitionMs =
+    Math.max(
+      300,
+      (Number($('hero-slide-transition')?.value) || 1.2) * 1000
+    );
+
+  const intervalMs =
+    Math.max(
+      1800,
+      (Number($('hero-slide-interval')?.value) || 5) * 1000
+    );
+
+  if (order === 'random' && slides.length > 1) {
+    slides = [...slides];
+
+    for (let i = slides.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slides[i], slides[j]] = [slides[j], slides[i]];
+    }
+  }
+
+  preview.dataset.animation = animation;
+  preview.dataset.fit = fit;
+
+  preview.style.setProperty(
+    '--admin-hero-transition',
+    `${transitionMs}ms`
+  );
+
+  preview.style.setProperty(
+    '--admin-hero-interval',
+    `${intervalMs}ms`
+  );
+
   if (!slides.length) {
     preview.innerHTML =
       '<div class="hero-slideshow-admin-empty">Nenhuma imagem publicada no slideshow.</div>';
@@ -3929,6 +3972,7 @@ function renderHeroSlideshowOverview() {
   preview.innerHTML = slides.map((slide, index) => `
     <div
       class="hero-slideshow-admin-frame ${index === 0 ? 'is-visible' : ''}"
+      data-admin-frame="${index}"
       style="
         background-image:url('${attr(slide.url)}');
         background-position:${focalStyle(slide.focus_x, slide.focus_y)};
@@ -3939,25 +3983,135 @@ function renderHeroSlideshowOverview() {
 
   if (slides.length < 2) return;
 
-  const frames = [...preview.querySelectorAll('.hero-slideshow-admin-frame')];
+  const frames = [
+    ...preview.querySelectorAll(
+      '.hero-slideshow-admin-frame'
+    )
+  ];
+
   let current = 0;
 
-  const intervalMs = Math.max(
-    1800,
-    (Number($('hero-slide-interval')?.value) || 5) * 1000
-  );
+  const activate = next => {
+    const currentFrame =
+      frames[current];
 
-  heroAdminPreviewTimer = setInterval(() => {
-    const next = (current + 1) % frames.length;
+    const nextFrame =
+      frames[next];
 
-    frames[current].classList.remove('is-visible');
-    frames[current].setAttribute('aria-hidden', 'true');
+    frames.forEach(frame => {
+      frame.classList.remove(
+        'is-prev',
+        'is-entering',
+        'is-from-right',
+        'is-from-top'
+      );
+    });
 
-    frames[next].classList.add('is-visible');
-    frames[next].setAttribute('aria-hidden', 'false');
+    if (animation === 'slide-horizontal') {
+
+      nextFrame.classList.add(
+        'is-entering',
+        'is-from-right',
+        'is-visible'
+      );
+
+      currentFrame.classList.add(
+        'is-prev'
+      );
+
+      nextFrame.setAttribute(
+        'aria-hidden',
+        'false'
+      );
+
+      requestAnimationFrame(() => {
+        nextFrame.classList.remove(
+          'is-from-right'
+        );
+      });
+
+    } else if (animation === 'slide-vertical') {
+
+      nextFrame.classList.add(
+        'is-entering',
+        'is-from-top',
+        'is-visible'
+      );
+
+      currentFrame.classList.add(
+        'is-prev'
+      );
+
+      nextFrame.setAttribute(
+        'aria-hidden',
+        'false'
+      );
+
+      requestAnimationFrame(() => {
+        nextFrame.classList.remove(
+          'is-from-top'
+        );
+      });
+
+    } else {
+
+      currentFrame.classList.remove(
+        'is-visible'
+      );
+
+      currentFrame.setAttribute(
+        'aria-hidden',
+        'true'
+      );
+
+      nextFrame.classList.add(
+        'is-visible'
+      );
+
+      nextFrame.setAttribute(
+        'aria-hidden',
+        'false'
+      );
+    }
+
+    window.setTimeout(
+      () => {
+        if (
+          animation === 'slide-horizontal' ||
+          animation === 'slide-vertical'
+        ) {
+          currentFrame.classList.remove(
+            'is-visible',
+            'is-prev'
+          );
+
+          currentFrame.setAttribute(
+            'aria-hidden',
+            'true'
+          );
+
+          nextFrame.classList.remove(
+            'is-entering'
+          );
+        }
+      },
+      transitionMs + 70
+    );
 
     current = next;
-  }, intervalMs);
+  };
+
+  heroAdminPreviewTimer =
+    setInterval(
+      () => {
+        const next =
+          (current + 1) %
+          frames.length;
+
+        activate(next);
+      },
+      intervalMs
+    );
 }
 
 function openHeroSlidesManager() {
@@ -4026,66 +4180,369 @@ function renderHeroSlidesAdmin() {
   }
 
   c.innerHTML = heroSlidesDraft.map((s, i) => `
-    <article class="hero-slide-card" data-slide-index="${i}">
-      <div class="hero-slide-preview focal-preview" style="background-image:url('${esc(s.url)}');background-position:${focalStyle(s.focus_x,s.focus_y)}">
-        <span class="focal-marker" style="left:${Number(s.focus_x ?? 50)}%;top:${Number(s.focus_y ?? 50)}%"></span>
-        <span class="hero-slide-number">${String(i + 1).padStart(2, '0')}</span>
-        <span class="status-pill ${s.published !== false ? 'online' : ''}">${s.published !== false ? 'PUBLICADA' : 'OCULTA'}</span>
+    <article
+      class="hero-slide-card"
+      data-slide-index="${i}"
+      draggable="true"
+    >
+      <button
+        class="hero-slide-drag-handle"
+        type="button"
+        title="Arraste para mudar a ordem"
+        aria-label="Arraste para mudar a ordem da fotografia ${i + 1}"
+      >⋮⋮</button>
+
+      <div
+        class="hero-slide-preview focal-preview"
+        style="
+          background-image:url('${esc(s.url)}');
+          background-position:${focalStyle(s.focus_x,s.focus_y)}
+        "
+      >
+        <span
+          class="focal-marker"
+          style="
+            left:${Number(s.focus_x ?? 50)}%;
+            top:${Number(s.focus_y ?? 50)}%
+          "
+        ></span>
+
+        <span class="hero-slide-number">
+          ${String(i + 1).padStart(2, '0')}
+        </span>
+
+        <span class="status-pill ${s.published !== false ? 'online' : ''}">
+          ${s.published !== false ? 'PUBLICADA' : 'OCULTA'}
+        </span>
       </div>
+
       <div class="hero-slide-fields">
-        <div class="field"><label>Texto alternativo</label><input data-slide-alt maxlength="240" value="${esc(s.alt || '')}" placeholder="Descrição da fotografia"></div>
-        <div class="hero-slide-actions">
-          <button type="button" class="small-btn" data-slide-up ${i === 0 ? 'disabled' : ''}>↑</button>
-          <button type="button" class="small-btn" data-slide-down ${i === heroSlidesDraft.length - 1 ? 'disabled' : ''}>↓</button>
-          <button type="button" class="small-btn" data-slide-publish>${s.published !== false ? 'Ocultar' : 'Publicar'}</button>
-          <button type="button" class="small-btn danger" data-slide-remove>Remover</button>
+        <div class="field">
+          <label>Texto alternativo</label>
+
+          <input
+            data-slide-alt
+            maxlength="240"
+            value="${esc(s.alt || '')}"
+            placeholder="Descrição da fotografia"
+          >
         </div>
-        <p class="field-help">Ponto focal: ${Math.round(s.focus_x ?? 50)}% × ${Math.round(s.focus_y ?? 50)}% — clique na foto para alterar.</p>
+
+        <div class="hero-slide-actions">
+          <button
+            type="button"
+            class="small-btn"
+            data-slide-publish
+          >
+            ${s.published !== false ? 'Ocultar' : 'Publicar'}
+          </button>
+
+          <button
+            type="button"
+            class="small-btn danger"
+            data-slide-remove
+          >
+            Remover
+          </button>
+        </div>
+
+        <p class="field-help">
+          Ponto focal:
+          ${Math.round(s.focus_x ?? 50)}% ×
+          ${Math.round(s.focus_y ?? 50)}%
+          — clique na foto para alterar.
+        </p>
       </div>
     </article>
   `).join('');
 
-  c.querySelectorAll('.hero-slide-card').forEach(card => {
-    const i = Number(card.dataset.slideIndex);
-    const preview = card.querySelector('.hero-slide-preview');
+  c.querySelectorAll(
+    '.hero-slide-card'
+  ).forEach(card => {
 
-    preview.addEventListener('click', e => {
-      setFocalFromClick(preview, e, (x, y) => {
-        heroSlidesDraft[i].focus_x = x;
-        heroSlidesDraft[i].focus_y = y;
-        renderHeroSlidesAdmin();
-      });
-    });
+    const i =
+      Number(
+        card.dataset.slideIndex
+      );
 
-    card.querySelector('[data-slide-alt]').addEventListener('input', e => {
-      heroSlidesDraft[i].alt = e.target.value;
-    });
+    const preview =
+      card.querySelector(
+        '.hero-slide-preview'
+      );
 
-    card.querySelector('[data-slide-up]').addEventListener('click', () => {
-      if (i < 1) return;
-      [heroSlidesDraft[i - 1], heroSlidesDraft[i]] = [heroSlidesDraft[i], heroSlidesDraft[i - 1]];
-      renderHeroSlidesAdmin();
-    });
+    preview.addEventListener(
+      'click',
+      e => {
+        setFocalFromClick(
+          preview,
+          e,
+          (x, y) => {
+            heroSlidesDraft[i].focus_x = x;
+            heroSlidesDraft[i].focus_y = y;
+            renderHeroSlidesAdmin();
+          }
+        );
+      }
+    );
 
-    card.querySelector('[data-slide-down]').addEventListener('click', () => {
-      if (i >= heroSlidesDraft.length - 1) return;
-      [heroSlidesDraft[i + 1], heroSlidesDraft[i]] = [heroSlidesDraft[i], heroSlidesDraft[i + 1]];
-      renderHeroSlidesAdmin();
-    });
+    card
+      .querySelector('[data-slide-alt]')
+      .addEventListener(
+        'input',
+        e => {
+          heroSlidesDraft[i].alt =
+            e.target.value;
+        }
+      );
 
-    card.querySelector('[data-slide-publish]').addEventListener('click', () => {
-      heroSlidesDraft[i].published = heroSlidesDraft[i].published === false;
-      renderHeroSlidesAdmin();
-    });
+    card
+      .querySelector('[data-slide-publish]')
+      .addEventListener(
+        'click',
+        () => {
+          heroSlidesDraft[i].published =
+            heroSlidesDraft[i].published === false;
 
-    card.querySelector('[data-slide-remove]').addEventListener('click', () => {
-      heroSlidesDraft.splice(i, 1);
-      renderHeroSlidesAdmin();
-    });
+          renderHeroSlidesAdmin();
+        }
+      );
+
+    card
+      .querySelector('[data-slide-remove]')
+      .addEventListener(
+        'click',
+        () => {
+          heroSlidesDraft.splice(
+            i,
+            1
+          );
+
+          renderHeroSlidesAdmin();
+        }
+      );
   });
+
+  configurarOrdenacaoHeroSlides();
 
   renderHeroSlideshowOverview();
 }
+
+
+/* =========================================================
+   SLIDESHOW — ORDENAÇÃO MANUAL POR ARRASTAR
+   Mesmo princípio usado nas galerias.
+========================================================= */
+
+function configurarOrdenacaoHeroSlides() {
+  const container =
+    $('hero-slides-list');
+
+  if (!container) return;
+
+  let draggedCard = null;
+
+  const cards = [
+    ...container.querySelectorAll(
+      '.hero-slide-card'
+    )
+  ];
+
+  cards.forEach(card => {
+
+    card.addEventListener(
+      'dragstart',
+      event => {
+
+        if (
+          !event.target.closest(
+            '.hero-slide-drag-handle'
+          )
+        ) {
+          event.preventDefault();
+          return;
+        }
+
+        draggedCard = card;
+
+        card.classList.add(
+          'is-dragging'
+        );
+
+        event.dataTransfer.effectAllowed =
+          'move';
+
+        event.dataTransfer.setData(
+          'text/plain',
+          card.dataset.slideIndex
+        );
+      }
+    );
+
+    card.addEventListener(
+      'dragover',
+      event => {
+        event.preventDefault();
+
+        if (
+          !draggedCard ||
+          draggedCard === card
+        ) {
+          return;
+        }
+
+        event.dataTransfer.dropEffect =
+          'move';
+
+        const rect =
+          card.getBoundingClientRect();
+
+        // A janela usa cards em grade:
+        // decide esquerda/direita quando estão na mesma linha;
+        // acima/abaixo quando o cursor cruza linhas.
+        const sameRow =
+          Math.abs(
+            draggedCard.getBoundingClientRect().top -
+            rect.top
+          ) <
+          Math.min(
+            rect.height,
+            draggedCard.getBoundingClientRect().height
+          ) * .55;
+
+        if (sameRow) {
+          const middleX =
+            rect.left +
+            rect.width / 2;
+
+          if (event.clientX < middleX) {
+            container.insertBefore(
+              draggedCard,
+              card
+            );
+          } else {
+            container.insertBefore(
+              draggedCard,
+              card.nextSibling
+            );
+          }
+        } else {
+          const middleY =
+            rect.top +
+            rect.height / 2;
+
+          if (event.clientY < middleY) {
+            container.insertBefore(
+              draggedCard,
+              card
+            );
+          } else {
+            container.insertBefore(
+              draggedCard,
+              card.nextSibling
+            );
+          }
+        }
+
+        container
+          .querySelectorAll(
+            '.hero-slide-card'
+          )
+          .forEach(item => {
+            item.classList.remove(
+              'drag-over'
+            );
+          });
+
+        card.classList.add(
+          'drag-over'
+        );
+      }
+    );
+
+    card.addEventListener(
+      'drop',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        card.classList.remove(
+          'drag-over'
+        );
+      }
+    );
+
+    card.addEventListener(
+      'dragend',
+      () => {
+        if (!draggedCard) return;
+
+        draggedCard.classList.remove(
+          'is-dragging'
+        );
+
+        container
+          .querySelectorAll(
+            '.hero-slide-card'
+          )
+          .forEach(item => {
+            item.classList.remove(
+              'drag-over'
+            );
+          });
+
+        const original =
+          [...heroSlidesDraft];
+
+        const novaOrdem = [
+          ...container.querySelectorAll(
+            '.hero-slide-card'
+          )
+        ].map(item => {
+          const oldIndex =
+            Number(
+              item.dataset.slideIndex
+            );
+
+          return original[oldIndex];
+        }).filter(Boolean);
+
+        if (
+          novaOrdem.length ===
+          heroSlidesDraft.length
+        ) {
+          heroSlidesDraft =
+            novaOrdem;
+        }
+
+        draggedCard = null;
+
+        renderHeroSlidesAdmin();
+
+        msg(
+          $('hero-msg'),
+          'Ordem alterada. Clique em “Salvar herói” para publicar.',
+          'sucesso'
+        );
+      }
+    );
+
+    card.addEventListener(
+      'dragleave',
+      event => {
+        if (
+          !card.contains(
+            event.relatedTarget
+          )
+        ) {
+          card.classList.remove(
+            'drag-over'
+          );
+        }
+      }
+    );
+  });
+}
+
 
 document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
   r.addEventListener('change', () => {
