@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v20 — ultrawide hero equilibrado + correções V19');
+console.log('[admin-v2] Build v21 — fluxo natural do ensaio em ultrawide');
 
 const $ = id => document.getElementById(id);
 
