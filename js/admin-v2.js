@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v11 — QA endurecido + mobile validado');
+console.log('[admin-v2] Build v12 — Realtime + respostas no painel');
 
 const $ = id => document.getElementById(id);
 
@@ -20,6 +20,9 @@ let sessionsCache = [];
 let currentSession = null;
 let currentSessionPhotos = [];
 let heroSlidesDraft = [];
+let messagesCache = [];
+let activeView = 'dashboard';
+let adminRealtimeChannel = null;
 
 
 const slugify = v =>
@@ -129,6 +132,8 @@ function flash(t, c = '') {
 }
 
 function setView(v) {
+  activeView = v;
+
   document
     .querySelectorAll('.admin-view')
     .forEach(e => {
@@ -165,6 +170,414 @@ function setView(v) {
   if (v === 'messages') loadMessages();
   if (v === 'settings') loadSettings();
 }
+
+
+/* =========================================================
+   REALTIME + NOTIFICAÇÕES INTERNAS
+   Funciona apenas enquanto o Admin V2 estiver aberto.
+========================================================= */
+
+function ensureAdminToastContainer() {
+  let container = document.getElementById('admin-live-toasts');
+
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'admin-live-toasts';
+    container.className = 'admin-live-toasts';
+    container.setAttribute('aria-live', 'polite');
+    document.body.appendChild(container);
+  }
+
+  return container;
+}
+
+function liveToast({
+  eyebrow = 'Atualização',
+  title = '',
+  text = '',
+  actionLabel = '',
+  onAction = null,
+  timeout = 9000
+} = {}) {
+  const container = ensureAdminToastContainer();
+  const toast = document.createElement('article');
+
+  toast.className = 'admin-live-toast';
+  toast.innerHTML = `
+    <button class="admin-live-toast-close" type="button" aria-label="Fechar">×</button>
+    <p class="section-eyebrow">${esc(eyebrow)}</p>
+    <div class="admin-live-toast-title">${esc(title)}</div>
+    ${text ? `<p class="admin-live-toast-text">${esc(text)}</p>` : ''}
+    ${actionLabel ? `<button class="small-btn admin-live-toast-action" type="button">${esc(actionLabel)}</button>` : ''}
+  `;
+
+  const remove = () => {
+    toast.classList.add('is-leaving');
+    setTimeout(() => toast.remove(), 220);
+  };
+
+  toast.querySelector('.admin-live-toast-close')
+    ?.addEventListener('click', remove);
+
+  const action = toast.querySelector('.admin-live-toast-action');
+  if (action && typeof onAction === 'function') {
+    action.addEventListener('click', () => {
+      onAction();
+      remove();
+    });
+  }
+
+  container.appendChild(toast);
+
+  if (timeout > 0) {
+    setTimeout(() => {
+      if (toast.isConnected) remove();
+    }, timeout);
+  }
+}
+
+function ensureMessagesBadge() {
+  const button = document.querySelector('.sidebar-link[data-view="messages"]');
+  if (!button) return null;
+
+  let badge = button.querySelector('.sidebar-live-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'sidebar-live-badge';
+    badge.hidden = true;
+    button.appendChild(badge);
+  }
+
+  return badge;
+}
+
+async function refreshUnreadMessagesCount() {
+  const { count, error } = await supabase
+    .from('mensagens')
+    .select('id', { count: 'exact', head: true })
+    .eq('lida', false);
+
+  if (error) {
+    console.warn('[admin-v2] Não foi possível atualizar contador de mensagens:', error.message);
+    return;
+  }
+
+  const total = Number(count || 0);
+  const badge = ensureMessagesBadge();
+
+  if (badge) {
+    badge.textContent = total > 99 ? '99+' : String(total);
+    badge.hidden = total < 1;
+  }
+
+  const dashboardCount = $('stat-messages');
+  if (dashboardCount) {
+    dashboardCount.textContent = total;
+    dashboardCount.style.color = total ? 'var(--accent)' : '';
+  }
+}
+
+function normalizarRealtimeStatus(status) {
+  if (status === 'selecionado') return 'selecao_finalizada';
+  if (status === 'entregue') return 'fotos_disponiveis';
+  return status || 'preparando';
+}
+
+async function handleRealtimeMessage(payload) {
+  const event = payload?.eventType;
+  const row = payload?.new || payload?.old || {};
+
+  console.log('[admin-v2] Realtime mensagens:', event, row?.id || '');
+
+  await refreshUnreadMessagesCount();
+
+  if (activeView === 'messages') {
+    await loadMessages();
+  }
+
+  if (event === 'INSERT') {
+    const nome = safeText(row.nome || 'Nova cliente', 120);
+    const tipo = safeText(row.tipo || '', 100);
+
+    liveToast({
+      eyebrow: 'Nova mensagem',
+      title: nome,
+      text: tipo
+        ? `${tipo} · nova mensagem recebida pelo site.`
+        : 'Nova mensagem recebida pelo site.',
+      actionLabel: 'Abrir mensagem',
+      onAction: () => setView('messages')
+    });
+  }
+}
+
+async function handleRealtimeEnsaio(payload) {
+  const novo = payload?.new || {};
+  if (!novo?.id) return;
+
+  const cacheAntes = sessionsCache.find(s => s.id === novo.id);
+  const statusAntes = normalizarRealtimeStatus(cacheAntes?.status);
+  const statusAgora = normalizarRealtimeStatus(novo.status);
+
+  console.log(
+    '[admin-v2] Realtime ensaio:',
+    novo.id,
+    statusAntes,
+    '→',
+    statusAgora
+  );
+
+  // Atualiza cache imediatamente para evitar notificação duplicada.
+  if (cacheAntes) {
+    Object.assign(cacheAntes, novo);
+  }
+
+  if (
+    statusAgora === 'selecao_finalizada' &&
+    statusAntes !== 'selecao_finalizada'
+  ) {
+    const nome = safeText(novo.cliente_nome || novo.titulo || 'Cliente', 160);
+
+    liveToast({
+      eyebrow: 'Seleção finalizada',
+      title: nome,
+      text: 'A cliente terminou a escolha das fotografias.',
+      actionLabel: 'Abrir ensaio',
+      onAction: async () => {
+        setView('sessions');
+        await loadSessions();
+        await openSessionModal(novo.id);
+      }
+    });
+  }
+
+  if (activeView === 'sessions' || currentSession?.id === novo.id) {
+    await loadSessions();
+
+    if (currentSession?.id === novo.id) {
+      const atualizado = sessionsCache.find(s => s.id === novo.id);
+      if (atualizado) currentSession = atualizado;
+      await loadSessionPhotos();
+    }
+  }
+}
+
+async function startAdminRealtime() {
+  if (adminRealtimeChannel) return;
+
+  ensureMessagesBadge();
+  await refreshUnreadMessagesCount();
+
+  adminRealtimeChannel = supabase
+    .channel('admin-v2-live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'mensagens'
+      },
+      payload => {
+        handleRealtimeMessage(payload)
+          .catch(error => console.error('[admin-v2] Realtime mensagens falhou:', error));
+      }
+    )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'ensaios'
+      },
+      payload => {
+        handleRealtimeEnsaio(payload)
+          .catch(error => console.error('[admin-v2] Realtime ensaios falhou:', error));
+      }
+    )
+    .subscribe(status => {
+      console.log('[admin-v2] Realtime:', status);
+    });
+}
+
+async function stopAdminRealtime() {
+  if (!adminRealtimeChannel) return;
+
+  const channel = adminRealtimeChannel;
+  adminRealtimeChannel = null;
+
+  try {
+    await supabase.removeChannel(channel);
+  } catch (error) {
+    console.warn('[admin-v2] Falha ao encerrar Realtime:', error);
+  }
+}
+
+
+/* =========================================================
+   RESPOSTA DE MENSAGENS
+========================================================= */
+
+function ensureReplyModal() {
+  let modal = document.getElementById('message-reply-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'message-reply-modal';
+  modal.className = 'modal message-reply-modal';
+  modal.hidden = true;
+
+  modal.innerHTML = `
+    <div class="modal-backdrop" data-close-reply></div>
+    <div class="modal-dialog message-reply-dialog" role="dialog" aria-modal="true" aria-labelledby="message-reply-title">
+      <div class="modal-head">
+        <div>
+          <p class="section-eyebrow">Responder cliente</p>
+          <h2 id="message-reply-title">Nova resposta</h2>
+        </div>
+        <button class="icon-btn" type="button" data-close-reply>×</button>
+      </div>
+
+      <div class="message-reply-recipient">
+        <span>Para</span>
+        <strong id="message-reply-recipient"></strong>
+      </div>
+
+      <div class="message-reply-original">
+        <p class="section-eyebrow">Mensagem recebida</p>
+        <p id="message-reply-original"></p>
+      </div>
+
+      <form id="message-reply-form">
+        <input type="hidden" id="message-reply-id">
+
+        <div class="field">
+          <label for="message-reply-text">Sua resposta</label>
+          <textarea
+            id="message-reply-text"
+            rows="8"
+            maxlength="5000"
+            placeholder="Escreva aqui a sua resposta..."
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-accent" type="submit">Enviar resposta</button>
+          <button class="btn" type="button" data-close-reply>Cancelar</button>
+          <span class="msg" id="message-reply-msg"></span>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll('[data-close-reply]').forEach(element => {
+    element.addEventListener('click', closeReplyModal);
+  });
+
+  modal.querySelector('#message-reply-form')
+    ?.addEventListener('submit', sendReplyMessage);
+
+  return modal;
+}
+
+function openReplyMessage(id) {
+  const message = messagesCache.find(row => String(row.id) === String(id));
+
+  if (!message) {
+    flash('Mensagem não encontrada. Atualize a lista e tente novamente.', 'erro');
+    return;
+  }
+
+  const modal = ensureReplyModal();
+
+  $('message-reply-id').value = String(message.id);
+  $('message-reply-recipient').textContent =
+    `${message.nome || 'Cliente'} · ${message.email || ''}`;
+
+  $('message-reply-original').textContent =
+    message.mensagem || '';
+
+  $('message-reply-title').textContent =
+    `Responder ${message.nome || 'cliente'}`;
+
+  $('message-reply-text').value = '';
+  msg($('message-reply-msg'), '');
+
+  modal.hidden = false;
+
+  setTimeout(() => $('message-reply-text')?.focus(), 40);
+}
+
+function closeReplyModal() {
+  const modal = document.getElementById('message-reply-modal');
+  if (!modal) return;
+
+  modal.hidden = true;
+  const form = document.getElementById('message-reply-form');
+  form?.reset();
+  msg($('message-reply-msg'), '');
+}
+
+async function sendReplyMessage(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  if (!beginFormBusy(form)) return;
+
+  const messageId = safeText($('message-reply-id').value, 100);
+  const replyText = safeText($('message-reply-text').value, 5000);
+  const statusEl = $('message-reply-msg');
+
+  if (!messageId || !replyText) {
+    msg(statusEl, 'Escreva uma resposta antes de enviar.', 'erro');
+    endFormBusy(form);
+    return;
+  }
+
+  msg(statusEl, 'Enviando...');
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      'contact-notifications',
+      {
+        body: {
+          action: 'reply',
+          message_id: messageId,
+          reply_text: replyText
+        }
+      }
+    );
+
+    if (error) throw error;
+    if (!data?.ok) {
+      throw new Error(data?.error || 'Não foi possível enviar a resposta.');
+    }
+
+    msg(statusEl, 'Resposta enviada por e-mail.', 'sucesso');
+
+    await Promise.all([
+      loadMessages(),
+      refreshUnreadMessagesCount()
+    ]);
+
+    setTimeout(() => {
+      closeReplyModal();
+      flash('Resposta enviada para a cliente.', 'sucesso');
+    }, 650);
+  } catch (error) {
+    console.error('[admin-v2] Falha ao responder mensagem:', error);
+    msg(
+      statusEl,
+      `Não foi possível enviar: ${error?.message || 'erro desconhecido'}`,
+      'erro'
+    );
+  } finally {
+    endFormBusy(form);
+  }
+}
+
 
 async function requireAdmin() {
   const {
@@ -222,6 +635,8 @@ async function requireAdmin() {
 
   $('login-screen').hidden = true;
   $('app').hidden = false;
+
+  await startAdminRealtime();
 
   // Pequena margem antes da primeira chamada à Data API.
   // Evita rejeição transitória do claim iat logo após o login.
@@ -306,6 +721,7 @@ $('login-form').addEventListener(
 $('logout-btn').addEventListener(
   'click',
   async () => {
+    await stopAdminRealtime();
     await supabase.auth.signOut();
     location.reload();
   }
@@ -3370,6 +3786,7 @@ async function loadMessages() {
     );
 
   if (error) {
+    messagesCache = [];
     list.innerHTML = `
       <div class="panel">
         <p class="section-eyebrow">Tabela ainda não criada</p>
@@ -3379,6 +3796,9 @@ async function loadMessages() {
   }
 
   const rows = data || [];
+  messagesCache = rows;
+
+  await refreshUnreadMessagesCount();
 
   if (!rows.length) {
     list.innerHTML = `
@@ -3396,20 +3816,32 @@ async function loadMessages() {
           <div class="msg-card-nome">${esc(m.nome)}</div>
           <div class="msg-card-meta">${esc(m.email || '')}${m.tipo ? ' · ' + esc(m.tipo) : ''}</div>
         </div>
-        <span class="msg-card-meta">${new Date(m.created_at).toLocaleString('pt-BR')}</span>
+        <span class="msg-card-meta">${new Date(m.created_at).toLocaleString('pt-PT')}</span>
       </div>
+
       <p class="msg-card-corpo">${esc(m.mensagem)}</p>
+
       <div class="card-actions">
-        ${m.lida ? '' : `<button class="small-btn" data-mark-read="${esc(m.id)}">Marcar como lida</button>`}
-        <button class="small-btn" data-del-msg="${esc(m.id)}">Excluir</button>
+        <button class="small-btn msg-reply-btn" data-reply-msg="${attr(m.id)}" type="button">Responder</button>
+        ${m.lida ? '' : `<button class="small-btn" data-mark-read="${attr(m.id)}" type="button">Marcar como lida</button>`}
+        <button class="small-btn danger-btn" data-del-msg="${attr(m.id)}" type="button">Excluir</button>
       </div>
     </article>`).join('');
 
-  list.querySelectorAll('[data-mark-read]').forEach(b =>
-    b.addEventListener('click', () => marcarLida(b.dataset.markRead))
+  list.querySelectorAll('[data-reply-msg]').forEach(b =>
+    b.addEventListener('click', () => openReplyMessage(b.dataset.replyMsg))
   );
+
+  list.querySelectorAll('[data-mark-read]').forEach(b =>
+    b.addEventListener('click', () =>
+      withOperationLock('message-read:' + b.dataset.markRead, () => marcarLida(b.dataset.markRead))
+    )
+  );
+
   list.querySelectorAll('[data-del-msg]').forEach(b =>
-    b.addEventListener('click', () => excluirMensagem(b.dataset.delMsg))
+    b.addEventListener('click', () =>
+      withOperationLock('message-delete:' + b.dataset.delMsg, () => excluirMensagem(b.dataset.delMsg))
+    )
   );
 }
 
@@ -3424,7 +3856,10 @@ async function marcarLida(id) {
     return;
   }
 
-  await loadMessages();
+  await Promise.all([
+    loadMessages(),
+    refreshUnreadMessagesCount()
+  ]);
 }
 
 async function excluirMensagem(id) {
@@ -3441,7 +3876,10 @@ async function excluirMensagem(id) {
   }
 
   flash('Mensagem excluída.', 'sucesso');
-  await loadMessages();
+  await Promise.all([
+    loadMessages(),
+    refreshUnreadMessagesCount()
+  ]);
 }
 
 
@@ -3484,6 +3922,8 @@ supabase.auth.onAuthStateChange(
   (_e, s) => {
 
     if (!s) {
+
+      stopAdminRealtime().catch(() => {});
 
       $('login-screen').hidden =
         false;
