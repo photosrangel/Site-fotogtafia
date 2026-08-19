@@ -6543,3 +6543,301 @@
 
 /* BUILD V39 — Conteúdo no Designer */
 .design-content-nav-group{display:grid;gap:2px}.design-content-nav-group.is-open .admin-nav-subgroup-toggle .admin-nav-chevron{transform:rotate(180deg)}.admin-nav-nested{display:grid;gap:2px;padding-left:13px}.admin-nav-nested[hidden]{display:none!important}.admin-nav-nested-item{min-height:31px!important;font-size:.49rem!important;opacity:.88}.admin-nav-nested-item.active{color:var(--accent)!important;border-left-color:var(--accent)!important;background:rgba(255,255,255,.035)!important}.design-content-host[hidden]{display:none!important}.design-content-host .content-panel{width:100%}.design-content-host .panel{width:100%;padding:0;border:0;background:transparent;box-shadow:none}.design-content-host .panel+.panel{margin-top:20px;padding-top:18px;border-top:1px solid var(--admin-line-soft)}.design-content-host .form-grid,.design-content-host .hero-media-workbench,.design-content-host .hero-static-workbench{grid-template-columns:1fr!important}.design-content-host .field-full{grid-column:auto!important}.design-content-host .form-actions{position:sticky;bottom:-12px;z-index:12;margin:18px -12px -12px;padding:12px;border-top:1px solid var(--admin-line-soft);background:rgba(14,14,12,.97);backdrop-filter:blur(14px)}.design-client-image-preview{width:100%;aspect-ratio:16/10;margin-top:8px;display:grid;place-items:center;overflow:hidden;border:1px solid var(--admin-line-soft);background:rgba(255,255,255,.012);background-position:center;background-size:cover}.design-client-image-preview span{padding:7px 9px;background:rgba(10,10,9,.68);color:var(--text-muted);font-family:var(--font-mono);font-size:.5rem;letter-spacing:.06em;text-transform:uppercase}.design-client-image-preview:not(.empty) span{opacity:0}.design-client-image-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.gallery-drag-handle{cursor:grab!important;user-select:none;touch-action:none}.gallery-admin-card.is-dragging .gallery-drag-handle{cursor:grabbing!important}
+
+
+/* =========================================================
+   BUILD V41 — CONTEÚDO EM TELA CHEIA + HERO CORRIGIDO
+   ========================================================= */
+
+/* Os editores de Início / Sobre / Contato têm muita informação.
+   Quando abertos pelo Designer, usam praticamente todo o viewport. */
+.design-controls-drawer.is-content-editor {
+  inset: 10px !important;
+  top: 10px !important;
+  right: 10px !important;
+  bottom: 10px !important;
+  left: 10px !important;
+
+  width: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+
+  padding: 16px !important;
+  overflow: auto !important;
+
+  border-radius: 14px;
+  transform: none !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-controls-drawer-head {
+  top: -16px;
+  margin: -16px -16px 16px;
+  padding: 14px 18px;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host {
+  width: min(100%, 1760px);
+  margin: 0 auto;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .content-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Recupera layouts amplos do conteúdo quando há espaço.
+   A antiga versão forçava tudo em uma coluna por estar num flyout de 390px. */
+.design-controls-drawer.is-content-editor
+.design-content-host .form-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .field-full {
+  grid-column: 1 / -1 !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .hero-static-preview-row {
+  grid-template-columns:
+    minmax(360px, 1.45fr)
+    minmax(260px, .8fr)
+    minmax(160px, .5fr) !important;
+  gap: clamp(14px, 2vw, 28px) !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .hero-static-desktop-column .focal-preview {
+  min-height: 320px !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .hero-static-mobile-preview {
+  width: min(100%, 180px) !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .hero-slideshow-admin-preview {
+  min-height: clamp(280px, 42vw, 620px) !important;
+  aspect-ratio: 16 / 9 !important;
+}
+
+.design-controls-drawer.is-content-editor
+.design-content-host .form-actions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 20;
+  margin: 24px -16px -16px;
+  padding: 14px 16px;
+}
+
+/* Modais de slideshow precisam ficar acima do editor full-screen. */
+#hero-slideshow-settings-modal,
+#hero-slides-manager-modal {
+  z-index: 12000 !important;
+}
+
+#hero-slideshow-settings-modal .modal-dialog,
+#hero-slides-manager-modal .modal-dialog {
+  z-index: 12001 !important;
+}
+
+body.modal-open {
+  overflow: hidden !important;
+}
+
+/* Em desktop largo, o gestor de slides aproveita melhor o espaço. */
+.hero-slides-manager-dialog {
+  width: min(1500px, calc(100vw - 36px)) !important;
+  max-width: 1500px !important;
+  max-height: calc(100dvh - 36px) !important;
+}
+
+.hero-slides-admin-manager {
+  grid-template-columns:
+    repeat(auto-fill, minmax(360px, 1fr)) !important;
+}
+
+/* Tablet */
+@media (max-width: 1050px) {
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-preview-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-mobile-column {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-focal-column {
+    grid-column: 1;
+  }
+}
+
+/* Celular: continua tela cheia, mas tudo vira uma coluna legível. */
+@media (max-width: 720px) {
+  .design-controls-drawer.is-content-editor {
+    inset: 4px !important;
+    top: 4px !important;
+    right: 4px !important;
+    bottom: 4px !important;
+    left: 4px !important;
+    padding: 10px !important;
+    border-radius: 10px;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-controls-drawer-head {
+    top: -10px;
+    margin: -10px -10px 12px;
+    padding: 12px;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .form-grid,
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-preview-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-mobile-column,
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-focal-column {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-desktop-column .focal-preview {
+    min-height: 220px !important;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-static-mobile-preview {
+    width: min(52vw, 170px) !important;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .hero-slideshow-admin-preview {
+    min-height: 210px !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+
+  .design-controls-drawer.is-content-editor
+  .design-content-host .form-actions {
+    bottom: -10px;
+    margin: 18px -10px -10px;
+    padding: 10px;
+  }
+
+  .hero-slides-manager-dialog,
+  .hero-slideshow-settings-dialog {
+    width: calc(100vw - 8px) !important;
+    max-height: calc(100dvh - 8px) !important;
+  }
+}
+
+
+/* =========================================================
+   BUILD V42 — PONTO FOCAL DA ÁREA DO CLIENTE
+   ========================================================= */
+
+.design-client-image-preview {
+  cursor: crosshair;
+}
+
+.design-client-image-preview.empty {
+  cursor: default;
+}
+
+.design-client-focal-marker {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+
+  width: 24px;
+  height: 24px;
+
+  border: 2px solid #fff;
+  border-radius: 50%;
+
+  transform: translate(-50%, -50%);
+
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.55),
+    0 4px 16px rgba(0,0,0,.35);
+
+  pointer-events: none;
+}
+
+.design-client-focal-marker::before,
+.design-client-focal-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.design-client-focal-marker::before {
+  width: 1px;
+  height: 32px;
+}
+
+.design-client-focal-marker::after {
+  width: 32px;
+  height: 1px;
+}
+
+.design-client-image-preview.empty
+.design-client-focal-marker {
+  display: none;
+}
+
+.design-client-focal-controls {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+.design-client-focal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 8px;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .52rem;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.design-client-focal-head strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.design-client-focal-row output {
+  float: right;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .54rem;
+}
+
+.design-client-focal-row input[type="range"] {
+  width: 100%;
+  margin-top: 7px;
+}
