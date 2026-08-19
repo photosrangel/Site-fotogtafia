@@ -72,7 +72,22 @@
 </div>
 
 <div id="hero-static-editor" class="field field-full hero-media-editor">
-<div class="panel-head compact"><div><p class="section-eyebrow">Imagem de segurança</p><h3>Foto estática / fallback</h3></div><label class="btn small-btn hero-upload-label">Escolher foto<input id="hero-static-upload" type="file" accept="image/*" hidden></label></div>
+<div class="panel-head compact">
+  <div>
+    <p class="section-eyebrow">Imagem de segurança</p>
+    <h3>Foto estática / fallback</h3>
+  </div>
+  <div class="hero-static-upload-actions">
+    <label class="btn small-btn hero-upload-label">
+      Foto principal
+      <input id="hero-static-upload" type="file" accept="image/*" hidden>
+    </label>
+    <label class="btn small-btn hero-upload-label">
+      Foto celular
+      <input id="hero-static-mobile-upload" type="file" accept="image/*" hidden>
+    </label>
+  </div>
+</div>
 <div class="form-grid">
 <div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" type="url" maxlength="2048" placeholder="https://..."></div>
 <div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" type="url" maxlength="2048" placeholder="https://..."></div>
@@ -86,17 +101,75 @@
 <p class="field-help">Clique diretamente na foto para marcar o ponto que deve permanecer visível quando a imagem for recortada em telas diferentes.</p>
 </div>
 </div>
+
+<div class="hero-mobile-fallback-preview-wrap">
+  <div>
+    <p class="section-eyebrow">Prévia celular</p>
+    <p class="field-help">Se nenhuma foto de celular for escolhida, o site usa automaticamente a foto principal.</p>
+  </div>
+  <div id="hero-static-mobile-preview" class="hero-static-mobile-preview empty" aria-label="Prévia da foto estática no celular"></div>
+</div>
 </div>
 
 <div id="hero-slideshow-editor" class="field field-full hero-media-editor">
-<div class="panel-head compact"><div><p class="section-eyebrow">Slideshow</p><h3>Fotos do slide</h3></div><label class="btn small-btn hero-upload-label">Adicionar fotos<input id="hero-slides-upload" type="file" accept="image/*" multiple hidden></label></div>
-<div class="form-grid hero-timing-grid">
-<div class="field"><label for="hero-slide-interval">Tempo de cada foto (segundos)</label><input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5"></div>
-<div class="field"><label for="hero-slide-transition">Duração do fade (segundos)</label><input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2"></div>
+  <div class="panel-head compact">
+    <div>
+      <p class="section-eyebrow">Slideshow</p>
+      <h3>Apresentação da página inicial</h3>
+    </div>
+  </div>
+
+  <div class="form-grid hero-timing-grid">
+    <div class="field">
+      <label for="hero-slide-interval">Tempo de cada foto (segundos)</label>
+      <input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5">
+    </div>
+    <div class="field">
+      <label for="hero-slide-transition">Duração do fade (segundos)</label>
+      <input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2">
+    </div>
+  </div>
+
+  <div class="hero-slideshow-overview">
+    <div id="hero-slideshow-admin-preview" class="hero-slideshow-admin-preview">
+      <div class="hero-slideshow-admin-empty">Nenhuma imagem no slideshow.</div>
+    </div>
+
+    <div class="hero-slideshow-overview-bar">
+      <div>
+        <strong id="hero-slideshow-summary">0 imagens</strong>
+        <span>Prévia automática do slideshow configurado.</span>
+      </div>
+      <button class="btn small-btn" id="btn-manage-hero-slides" type="button">Gerenciar imagens</button>
+    </div>
+  </div>
+
+  <p class="field-help">As imagens e controles ficam dentro de “Gerenciar imagens”, mantendo esta página mais limpa e compacta.</p>
 </div>
-<div id="hero-slides-list" class="hero-slides-admin"></div>
-<p class="field-help">Cada foto possui seu próprio ponto focal. Você pode ordenar, publicar/ocultar e remover fotos sem perder a configuração da foto estática.</p>
+
+<div id="hero-slides-manager-modal" class="modal hero-slides-manager-modal" hidden>
+  <div class="modal-backdrop" data-close-hero-slides></div>
+  <div class="modal-dialog hero-slides-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="hero-slides-manager-title">
+    <div class="modal-head">
+      <div>
+        <p class="section-eyebrow">Slideshow</p>
+        <h2 id="hero-slides-manager-title">Gerenciar imagens</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-hero-slides aria-label="Fechar">×</button>
+    </div>
+
+    <div class="hero-slides-manager-toolbar">
+      <p class="panel-copy">Adicione, ordene, publique, oculte ou remova as imagens. Clique na miniatura para ajustar o ponto focal.</p>
+      <label class="btn small-btn hero-upload-label">
+        Adicionar nova imagem
+        <input id="hero-slides-upload" type="file" accept="image/*" multiple hidden>
+      </label>
+    </div>
+
+    <div id="hero-slides-list" class="hero-slides-admin hero-slides-admin-manager"></div>
+  </div>
 </div>
+
 <div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text" maxlength="80"></div>
 <div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url" maxlength="2048"></div>
 <div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text" maxlength="80"></div>
@@ -217,33 +290,65 @@
   </div>
 </div>
 
-<div class="session-workflow">
-  <section class="session-stage-card">
-    <div class="session-stage-head">
+<div class="session-workflow session-workflow-accordion">
+  <section class="session-stage-card session-stage-accordion" data-session-stage="provas">
+    <button
+      class="session-stage-head session-stage-toggle"
+      id="toggle-session-provas"
+      type="button"
+      aria-expanded="false"
+      aria-controls="session-provas-body"
+    >
       <div>
         <p class="section-eyebrow">Seleção</p>
         <h3>Provas para a cliente</h3>
       </div>
-      <span class="session-stage-count"><span id="prova-count">0</span> enviadas</span>
-    </div>
-    <div class="session-stage-body">
-      <div class="upload-drop"><input id="upload-prova" type="file" multiple accept="image/*"><label for="upload-prova"><strong>Adicionar provas</strong><span>Selecione uma ou várias fotos</span></label></div>
+      <div class="session-stage-head-meta">
+        <span class="session-stage-count"><span id="prova-count">0</span> enviadas</span>
+        <span class="session-stage-chevron" aria-hidden="true">⌄</span>
+      </div>
+    </button>
+
+    <div class="session-stage-body" id="session-provas-body" hidden>
+      <div class="upload-drop">
+        <input id="upload-prova" type="file" multiple accept="image/*">
+        <label for="upload-prova">
+          <strong>Adicionar provas</strong>
+          <span>Qualquer nome de arquivo será exibido automaticamente como 0001, 0002, 0003...</span>
+        </label>
+      </div>
       <div id="prova-grid" class="session-grid"></div>
       <div id="selecionadas-box"></div>
       <div class="session-actions" id="selecao-actions"></div>
     </div>
   </section>
 
-  <section class="session-stage-card is-final">
-    <div class="session-stage-head">
+  <section class="session-stage-card session-stage-accordion is-final" data-session-stage="finais">
+    <button
+      class="session-stage-head session-stage-toggle"
+      id="toggle-session-finais"
+      type="button"
+      aria-expanded="false"
+      aria-controls="session-finais-body"
+    >
       <div>
         <p class="section-eyebrow">Entrega</p>
         <h3>Fotos finais tratadas</h3>
       </div>
-      <span class="session-stage-count"><span id="final-count">0</span> enviadas</span>
-    </div>
-    <div class="session-stage-body">
-      <div class="upload-drop"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>A cliente só vê depois de “Publicar fotos finais”</span></label></div>
+      <div class="session-stage-head-meta">
+        <span class="session-stage-count"><span id="final-count">0</span> enviadas</span>
+        <span class="session-stage-chevron" aria-hidden="true">⌄</span>
+      </div>
+    </button>
+
+    <div class="session-stage-body" id="session-finais-body" hidden>
+      <div class="upload-drop">
+        <input id="upload-final" type="file" multiple accept="image/*">
+        <label for="upload-final">
+          <strong>Adicionar fotos finais</strong>
+          <span>A cliente só vê depois de “Publicar fotos finais”</span>
+        </label>
+      </div>
       <div id="final-grid" class="session-grid"></div>
       <div class="session-actions">
         <button class="btn btn-accent" id="btn-entregar" type="button">Publicar fotos finais</button>
