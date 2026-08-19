@@ -4506,3 +4506,267 @@
     min-height: 96px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V15 — HERO ESTÁTICO ALINHADO + SLIDES COMPACTOS
+   ========================================================= */
+
+/* ---------- HERO ESTÁTICO: tudo na mesma linha ---------- */
+
+.hero-static-preview-row {
+  display: grid;
+  grid-template-columns:
+    minmax(300px, 1.45fr)
+    minmax(210px, .8fr)
+    minmax(135px, .5fr);
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.hero-static-desktop-column,
+.hero-static-focal-column,
+.hero-static-mobile-column {
+  min-width: 0;
+}
+
+.hero-preview-label {
+  margin: 0 0 7px !important;
+}
+
+.hero-static-desktop-column .focal-preview {
+  width: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 10 !important;
+  margin: 0 !important;
+}
+
+.hero-static-focal-column {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-height: 100%;
+  padding-top: 22px;
+}
+
+.hero-static-focal-column .field {
+  margin-bottom: 4px;
+}
+
+.hero-static-focal-column label {
+  font-size: .56rem;
+}
+
+.hero-static-focal-column output {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: .52rem;
+}
+
+.hero-static-mobile-column {
+  display: grid;
+  justify-items: center;
+}
+
+.hero-static-mobile-column .hero-preview-label {
+  justify-self: start;
+  width: 100%;
+}
+
+.hero-static-mobile-preview {
+  width: min(100%, 145px) !important;
+  aspect-ratio: 9 / 16 !important;
+  justify-self: center !important;
+  margin: 0 !important;
+}
+
+.hero-mobile-preview-help {
+  margin-top: 7px !important;
+  max-width: 160px;
+  text-align: center;
+  font-size: .48rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Neutraliza o layout antigo que colocava a prévia mobile abaixo. */
+.hero-mobile-fallback-preview-wrap {
+  display: contents !important;
+}
+
+/* ---------- GERENCIAR SLIDES: impedir vazamentos ---------- */
+
+.hero-slides-admin-manager {
+  grid-template-columns: repeat(auto-fill, minmax(315px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.hero-slides-admin-manager .hero-slide-card {
+  grid-template-columns: 118px minmax(0, 1fr) !important;
+  gap: 9px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  padding: 8px !important;
+}
+
+.hero-slides-admin-manager .hero-slide-preview {
+  width: 118px !important;
+  min-width: 118px !important;
+  height: 158px !important;
+  min-height: 158px !important;
+  aspect-ratio: auto !important;
+}
+
+.hero-slides-admin-manager .hero-slide-fields {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.hero-slides-admin-manager .hero-slide-fields .field {
+  margin-bottom: 5px !important;
+}
+
+.hero-slides-admin-manager .hero-slide-fields .field label {
+  font-size: .46rem !important;
+  letter-spacing: .08em !important;
+}
+
+.hero-slides-admin-manager .hero-slide-fields input {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
+  padding: 5px 7px !important;
+  font-size: .68rem !important;
+}
+
+.hero-slides-admin-manager .hero-slide-actions {
+  display: grid !important;
+  grid-template-columns:
+    28px
+    28px
+    minmax(56px, 1fr)
+    minmax(58px, 1fr) !important;
+  gap: 4px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 5px !important;
+}
+
+.hero-slides-admin-manager .hero-slide-actions .small-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 27px !important;
+  padding: 4px 3px !important;
+  font-size: .41rem !important;
+  letter-spacing: .015em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+}
+
+.hero-slides-admin-manager .hero-slide-fields .field-help {
+  margin-top: 6px !important;
+  font-size: .49rem !important;
+  line-height: 1.35 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.hero-slides-admin-manager .hero-slide-number {
+  font-size: .43rem !important;
+}
+
+.hero-slides-admin-manager .hero-slide-preview .status-pill {
+  max-width: calc(100% - 34px);
+  padding: 3px 4px !important;
+  font-size: .40rem !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ---------- JANELAS INTERMEDIÁRIAS ---------- */
+
+@media (max-width: 1080px) and (min-width: 681px) {
+  .hero-static-preview-row {
+    grid-template-columns:
+      minmax(260px, 1.2fr)
+      minmax(190px, .8fr)
+      125px;
+    gap: 13px;
+  }
+
+  .hero-static-mobile-preview {
+    width: 120px !important;
+  }
+
+  .hero-slides-admin-manager {
+    grid-template-columns: repeat(2, minmax(290px, 1fr)) !important;
+  }
+}
+
+/* ---------- CELULAR ---------- */
+
+@media (max-width: 680px) {
+  .hero-static-preview-row {
+    grid-template-columns: minmax(0, 1fr) 92px !important;
+    grid-template-areas:
+      "desktop mobile"
+      "focal focal";
+    gap: 10px !important;
+  }
+
+  .hero-static-desktop-column {
+    grid-area: desktop;
+  }
+
+  .hero-static-focal-column {
+    grid-area: focal;
+    padding-top: 0 !important;
+  }
+
+  .hero-static-mobile-column {
+    grid-area: mobile;
+  }
+
+  .hero-static-mobile-preview {
+    width: 86px !important;
+  }
+
+  .hero-mobile-preview-help {
+    font-size: .43rem !important;
+    max-width: 90px;
+  }
+
+  .hero-slides-admin-manager {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-card {
+    grid-template-columns: 96px minmax(0, 1fr) !important;
+    gap: 7px !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-preview {
+    width: 96px !important;
+    min-width: 96px !important;
+    height: 126px !important;
+    min-height: 126px !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-actions {
+    grid-template-columns:
+      27px
+      27px
+      minmax(52px, 1fr)
+      minmax(55px, 1fr) !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-actions .small-btn {
+    min-height: 30px !important;
+    font-size: .39rem !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-fields .field-help {
+    font-size: .45rem !important;
+  }
+}
