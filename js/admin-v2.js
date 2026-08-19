@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v23 — Design Studio seguro + previa desktop/mobile');
+console.log('[admin-v2] Build v25 — fundo público das galerias integrado');
 
 const $ = id => document.getElementById(id);
 
@@ -6008,15 +6008,68 @@ document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventL
 
 
 /* =========================================================
-   DESIGN STUDIO — PREVIA SEGURA (BUILD V23)
-   Não persiste nem publica alterações. Injeta apenas CSS no iframe.
+   DESIGN STUDIO — PREVIA FIEL (BUILD V24)
+   O iframe usa um viewport real de 1920x1080 ou 390x844 e é
+   apenas escalado visualmente para caber no painel do CMS.
    ========================================================= */
 let designStudioReady = false;
+let designPreviewDevice = 'desktop';
+let designPreviewResizeObserver = null;
+
+const DESIGN_VIEWPORTS = {
+  desktop: { width: 1920, height: 1080, label: 'Computador · 1920 × 1080' },
+  mobile: { width: 390, height: 844, label: 'Celular · 390 × 844' }
+};
 
 function getDesignPreviewDocument() {
   const frame = $('design-preview-frame');
   try { return frame?.contentDocument || frame?.contentWindow?.document || null; }
   catch (_) { return null; }
+}
+
+function getDesignPreviewViewport() {
+  return DESIGN_VIEWPORTS[designPreviewDevice] || DESIGN_VIEWPORTS.desktop;
+}
+
+function sizeDesignPreview() {
+  const stage = $('design-preview-stage');
+  const browser = stage?.querySelector('.design-browser-frame');
+  const frame = $('design-preview-frame');
+  if (!stage || !browser || !frame) return;
+
+  const viewport = getDesignPreviewViewport();
+  const browserBar = browser.querySelector('.design-browser-bar');
+  const barHeight = browserBar?.offsetHeight || 34;
+
+  // Espaço realmente disponível dentro do palco.
+  const styles = getComputedStyle(stage);
+  const availableWidth = Math.max(
+    260,
+    stage.clientWidth -
+      (parseFloat(styles.paddingLeft) || 0) -
+      (parseFloat(styles.paddingRight) || 0)
+  );
+
+  // Desktop é reduzido apenas visualmente. Mobile não é ampliado acima de 100%.
+  const maxScale = designPreviewDevice === 'mobile' ? 1 : 1;
+  const scale = Math.min(maxScale, availableWidth / viewport.width);
+
+  browser.style.width = `${viewport.width}px`;
+  browser.style.height = `${viewport.height + barHeight}px`;
+  browser.style.transform = `scale(${scale})`;
+  browser.style.transformOrigin = 'top center';
+
+  frame.style.width = `${viewport.width}px`;
+  frame.style.height = `${viewport.height}px`;
+
+  // O elemento transformado mantém seu tamanho de layout original.
+  // O stage recebe a altura visual real para não criar um vazio gigantesco.
+  stage.style.height = `${Math.ceil((viewport.height + barHeight) * scale + 36)}px`;
+  stage.style.minHeight = '0';
+
+  if ($('design-preview-label')) {
+    $('design-preview-label').textContent = viewport.label;
+  }
 }
 
 function applyDesignPreview() {
@@ -6030,6 +6083,7 @@ function applyDesignPreview() {
   const density = $('design-nav-density')?.value || 'normal';
   const navPadding = density === 'compact' ? 14 : density === 'airy' ? 30 : 22;
   const navSolidPadding = density === 'compact' ? 10 : density === 'airy' ? 22 : 16;
+  const scale = typeScale / 100;
 
   let style = doc.getElementById('admin-design-preview-overrides');
   if (!style) {
@@ -6037,10 +6091,21 @@ function applyDesignPreview() {
     style.id = 'admin-design-preview-overrides';
     doc.head.appendChild(style);
   }
+
+  // Em 100% a tipografia é exatamente a do site público.
+  // Quando o controle muda, preservamos as fórmulas responsivas originais
+  // em vez de substituir o título por 1em (problema da V23).
+  const titleRules = typeScale === 100
+    ? ''
+    : `
+      .hero-title{font-size:clamp(${(2.6*scale).toFixed(3)}rem,${(7*scale).toFixed(3)}vw,${(6*scale).toFixed(3)}rem) !important}
+      .section-title{font-size:clamp(${(2.6*scale).toFixed(3)}rem,${(10*scale).toFixed(3)}vw,${(4.4*scale).toFixed(3)}rem) !important}
+    `;
+
   style.textContent = `
     .container{max-width:${contentWidth}px !important}
     .section{padding-top:${sectionSpace}px !important;padding-bottom:${sectionSpace}px !important}
-    .section-title,.hero-title{font-size:calc(1em * ${typeScale/100}) !important}
+    ${titleRules}
     .grid{gap:${galleryGap}px !important}
     .nav{padding-top:${navPadding}px !important;padding-bottom:${navPadding}px !important}
     .nav.is-solid{padding-top:${navSolidPadding}px !important;padding-bottom:${navSolidPadding}px !important}
@@ -6050,17 +6115,23 @@ function applyDesignPreview() {
   if ($('design-content-width-out')) $('design-content-width-out').textContent = `${contentWidth} px`;
   if ($('design-section-space-out')) $('design-section-space-out').textContent = `${sectionSpace} px`;
   if ($('design-gallery-gap-out')) $('design-gallery-gap-out').textContent = `${galleryGap} px`;
+
+  sizeDesignPreview();
 }
 
 function setDesignDevice(device) {
-  const mobile = device === 'mobile';
+  designPreviewDevice = device === 'mobile' ? 'mobile' : 'desktop';
+  const mobile = designPreviewDevice === 'mobile';
+
   $('design-preview-stage')?.classList.toggle('is-mobile', mobile);
   $('design-preview-stage')?.classList.toggle('is-desktop', !mobile);
   $('design-device-desktop')?.classList.toggle('active', !mobile);
   $('design-device-mobile')?.classList.toggle('active', mobile);
   $('design-device-desktop')?.setAttribute('aria-pressed', String(!mobile));
   $('design-device-mobile')?.setAttribute('aria-pressed', String(mobile));
-  if ($('design-preview-label')) $('design-preview-label').textContent = mobile ? 'Celular · 390 px' : 'Computador · responsivo';
+
+  sizeDesignPreview();
+  setTimeout(sizeDesignPreview, 60);
 }
 
 function resetDesignPreview() {
@@ -6075,16 +6146,40 @@ function resetDesignPreview() {
 
 function initDesignStudio() {
   if (designStudioReady) {
-    setTimeout(applyDesignPreview, 50);
+    setTimeout(() => {
+      applyDesignPreview();
+      sizeDesignPreview();
+    }, 50);
     return;
   }
+
   designStudioReady = true;
+
   $('design-device-desktop')?.addEventListener('click', () => setDesignDevice('desktop'));
   $('design-device-mobile')?.addEventListener('click', () => setDesignDevice('mobile'));
+
   ['design-nav-density','design-type-scale','design-content-width','design-section-space','design-gallery-gap']
     .forEach(id => $(id)?.addEventListener('input', applyDesignPreview));
+
   $('design-reset')?.addEventListener('click', resetDesignPreview);
-  $('design-preview-frame')?.addEventListener('load', () => setTimeout(applyDesignPreview, 80));
+  $('design-preview-frame')?.addEventListener('load', () => {
+    setTimeout(() => {
+      applyDesignPreview();
+      sizeDesignPreview();
+    }, 100);
+  });
+
+  const stage = $('design-preview-stage');
+  if (stage && 'ResizeObserver' in window) {
+    designPreviewResizeObserver = new ResizeObserver(() => sizeDesignPreview());
+    designPreviewResizeObserver.observe(stage);
+  } else {
+    window.addEventListener('resize', sizeDesignPreview);
+  }
+
   setDesignDevice('desktop');
-  setTimeout(applyDesignPreview, 120);
+  setTimeout(() => {
+    applyDesignPreview();
+    sizeDesignPreview();
+  }, 140);
 }
