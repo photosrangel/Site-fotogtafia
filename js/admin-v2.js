@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v19 — ultrawide + botões cliente + arrastar slides');
+console.log('[admin-v2] Build v20 — ultrawide hero equilibrado + correções V19');
 
 const $ = id => document.getElementById(id);
 
