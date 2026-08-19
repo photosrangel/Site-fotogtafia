@@ -336,13 +336,45 @@
             <output id="design-hero-overlay-out">Padrão</output>
             <input id="design-hero-overlay" type="range" min="0" max="70" value="40">
           </label>
-          <div class="design-control-divider"></div>
-          <p class="design-control-kicker">WhatsApp flutuante</p>
-          <label class="design-control-row design-control-check"><span>Exibir botão</span><input id="design-whatsapp-enabled" type="checkbox" checked></label>
-          <label class="design-control-row">Número com indicativo do país<input id="design-whatsapp-number" type="tel" inputmode="tel" maxlength="20" placeholder="351912345678"></label>
-          <label class="design-control-row">Mensagem inicial<textarea id="design-whatsapp-message" rows="3" maxlength="500">Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.</textarea></label>
-          <label class="design-control-row">Posição<select id="design-whatsapp-position"><option value="right" selected>Direita</option><option value="left">Esquerda</option></select></label>
-          <div class="design-control-row"><span>Mostrar nas páginas</span><div class="design-page-checks"><label><input type="checkbox" id="design-whatsapp-page-inicio" checked> Início</label><label><input type="checkbox" id="design-whatsapp-page-galeria" checked> Galeria</label><label><input type="checkbox" id="design-whatsapp-page-sobre" checked> Sobre</label><label><input type="checkbox" id="design-whatsapp-page-contato" checked> Contato</label></div></div>
+        </div>
+      </section>
+
+
+      <section class="design-accordion" data-design-section="whatsapp">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>WhatsApp</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body">
+          <p class="design-control-kicker">Botão flutuante</p>
+          <p class="design-control-help">Configure o contacto direto que aparece no site público. As alterações são mostradas primeiro na prévia e só chegam ao site depois de publicar.</p>
+          <label class="design-control-row design-control-check">
+            <span>Exibir botão</span>
+            <input id="design-whatsapp-enabled" type="checkbox" checked>
+          </label>
+          <label class="design-control-row">
+            Número com indicativo do país
+            <input id="design-whatsapp-number" type="tel" inputmode="tel" maxlength="20" placeholder="351912345678">
+          </label>
+          <label class="design-control-row">
+            Mensagem inicial
+            <textarea id="design-whatsapp-message" rows="3" maxlength="500">Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.</textarea>
+          </label>
+          <label class="design-control-row">
+            Posição
+            <select id="design-whatsapp-position">
+              <option value="right" selected>Direita</option>
+              <option value="left">Esquerda</option>
+            </select>
+          </label>
+          <div class="design-control-row">
+            <span>Mostrar nas páginas</span>
+            <div class="design-page-checks">
+              <label><input type="checkbox" id="design-whatsapp-page-inicio" checked> Início</label>
+              <label><input type="checkbox" id="design-whatsapp-page-galeria" checked> Galeria</label>
+              <label><input type="checkbox" id="design-whatsapp-page-sobre" checked> Sobre</label>
+              <label><input type="checkbox" id="design-whatsapp-page-contato" checked> Contato</label>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -841,7 +873,10 @@ Um espaço reservado só para você.</textarea>
 <form id="form-hero">
 <div class="form-grid">
 <div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow" maxlength="120"></div>
-<div class="field"><label for="hero-title">Título</label><input id="hero-title" maxlength="180"></div>
+<div class="field">
+  <label for="hero-title">Título</label>
+  <textarea id="hero-title" rows="3" maxlength="180" spellcheck="true"></textarea>
+</div>
 <div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3" maxlength="1000"></textarea></div>
 <div class="field field-full hero-mode-field">
 <label>Modo da imagem principal</label>
