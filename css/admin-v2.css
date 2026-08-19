@@ -6118,3 +6118,123 @@
     text-align: left;
   }
 }
+
+
+/* =========================================================
+   BUILD V33 — CONTEÚDO MIGRADO + DESIGN FLYOUT LATERAL
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   CONTEÚDO
+   O menu lateral substitui definitivamente as tabs internas.
+   --------------------------------------------------------- */
+
+#content-tabs {
+  display: none !important;
+}
+
+.content-nav-group .admin-nav-subitem.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(255,255,255,.035);
+}
+
+.content-nav-group .admin-nav-subitem.active span {
+  color: var(--accent);
+}
+
+#view-content .content-panel {
+  width: 100%;
+}
+
+#view-content .content-panel[hidden] {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   DESIGN
+   O painel abre imediatamente à direita do subitem clicado.
+   Mostra apenas o grupo selecionado.
+   --------------------------------------------------------- */
+
+.design-controls-drawer {
+  top: 10px;
+  left: calc(var(--admin-sidebar-w, 250px) + 10px);
+  right: auto !important;
+  bottom: auto !important;
+
+  width: 360px;
+  max-height: calc(100vh - 20px);
+
+  padding: 12px;
+  overflow-y: auto;
+
+  transform:
+    translateX(-8px)
+    scale(.995);
+
+  transform-origin: left top;
+}
+
+.design-controls-drawer.is-open {
+  transform: none;
+}
+
+.design-controls-drawer .design-accordion {
+  display: none;
+}
+
+.design-controls-drawer .design-accordion.is-selected {
+  display: block;
+}
+
+.design-controls-drawer .design-accordion.is-selected
+.design-accordion-toggle {
+  display: none;
+}
+
+.design-controls-drawer .design-accordion.is-selected
+.design-accordion-body {
+  display: block !important;
+  border-top: 0;
+  padding-top: 4px;
+}
+
+/* Pequena seta visual ligando o submenu ao painel. */
+.design-controls-drawer::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 18px;
+
+  width: 12px;
+  height: 12px;
+
+  border-left:
+    1px solid var(--admin-line-strong);
+
+  border-bottom:
+    1px solid var(--admin-line-strong);
+
+  background:
+    rgba(14,14,12,.97);
+
+  transform: rotate(45deg);
+}
+
+@media (max-width: 900px) {
+  .design-controls-drawer {
+    position: fixed !important;
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+
+    width: auto !important;
+    max-height: none !important;
+  }
+
+  .design-controls-drawer::before {
+    display: none;
+  }
+}
