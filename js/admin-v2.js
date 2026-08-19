@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v22 — hero preenchendo largura em desktop e ultrawide');
+console.log('[admin-v2] Build v23 — Design Studio seguro + previa desktop/mobile');
 
 const $ = id => document.getElementById(id);
 
@@ -167,6 +167,7 @@ function setView(v) {
   const l = {
     dashboard: ['Painel', 'Dashboard'],
     content: ['Páginas', 'Conteúdo'],
+    design: ['Site', 'Design'],
     galleries: ['Conteúdo', 'Galerias'],
     categories: ['Organização', 'Categorias'],
     sessions: ['Clientes', 'Ensaios'],
@@ -179,6 +180,7 @@ function setView(v) {
 
   if (v === 'dashboard') loadDashboard();
   if (v === 'content') loadContent();
+  if (v === 'design') initDesignStudio();
   if (v === 'galleries') loadGalleries();
   if (v === 'categories') loadCategories();
   if (v === 'sessions') loadSessions();
@@ -6003,3 +6005,86 @@ $('upload-final').addEventListener('change', async e => {
   e.target.value = '';
 });
 document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventListener('click', closeSessionModal));
+
+
+/* =========================================================
+   DESIGN STUDIO — PREVIA SEGURA (BUILD V23)
+   Não persiste nem publica alterações. Injeta apenas CSS no iframe.
+   ========================================================= */
+let designStudioReady = false;
+
+function getDesignPreviewDocument() {
+  const frame = $('design-preview-frame');
+  try { return frame?.contentDocument || frame?.contentWindow?.document || null; }
+  catch (_) { return null; }
+}
+
+function applyDesignPreview() {
+  const doc = getDesignPreviewDocument();
+  if (!doc?.head) return;
+
+  const typeScale = clampNumber($('design-type-scale')?.value, 90, 115, 100);
+  const contentWidth = clampNumber($('design-content-width')?.value, 1040, 1500, 1200);
+  const sectionSpace = clampNumber($('design-section-space')?.value, 72, 160, 120);
+  const galleryGap = clampNumber($('design-gallery-gap')?.value, 0, 16, 2);
+  const density = $('design-nav-density')?.value || 'normal';
+  const navPadding = density === 'compact' ? 14 : density === 'airy' ? 30 : 22;
+  const navSolidPadding = density === 'compact' ? 10 : density === 'airy' ? 22 : 16;
+
+  let style = doc.getElementById('admin-design-preview-overrides');
+  if (!style) {
+    style = doc.createElement('style');
+    style.id = 'admin-design-preview-overrides';
+    doc.head.appendChild(style);
+  }
+  style.textContent = `
+    .container{max-width:${contentWidth}px !important}
+    .section{padding-top:${sectionSpace}px !important;padding-bottom:${sectionSpace}px !important}
+    .section-title,.hero-title{font-size:calc(1em * ${typeScale/100}) !important}
+    .grid{gap:${galleryGap}px !important}
+    .nav{padding-top:${navPadding}px !important;padding-bottom:${navPadding}px !important}
+    .nav.is-solid{padding-top:${navSolidPadding}px !important;padding-bottom:${navSolidPadding}px !important}
+  `;
+
+  if ($('design-type-scale-out')) $('design-type-scale-out').textContent = `${typeScale}%`;
+  if ($('design-content-width-out')) $('design-content-width-out').textContent = `${contentWidth} px`;
+  if ($('design-section-space-out')) $('design-section-space-out').textContent = `${sectionSpace} px`;
+  if ($('design-gallery-gap-out')) $('design-gallery-gap-out').textContent = `${galleryGap} px`;
+}
+
+function setDesignDevice(device) {
+  const mobile = device === 'mobile';
+  $('design-preview-stage')?.classList.toggle('is-mobile', mobile);
+  $('design-preview-stage')?.classList.toggle('is-desktop', !mobile);
+  $('design-device-desktop')?.classList.toggle('active', !mobile);
+  $('design-device-mobile')?.classList.toggle('active', mobile);
+  $('design-device-desktop')?.setAttribute('aria-pressed', String(!mobile));
+  $('design-device-mobile')?.setAttribute('aria-pressed', String(mobile));
+  if ($('design-preview-label')) $('design-preview-label').textContent = mobile ? 'Celular · 390 px' : 'Computador · responsivo';
+}
+
+function resetDesignPreview() {
+  if ($('design-nav-density')) $('design-nav-density').value = 'normal';
+  if ($('design-type-scale')) $('design-type-scale').value = '100';
+  if ($('design-content-width')) $('design-content-width').value = '1200';
+  if ($('design-section-space')) $('design-section-space').value = '120';
+  if ($('design-gallery-gap')) $('design-gallery-gap').value = '2';
+  applyDesignPreview();
+  flash('Prévia restaurada. Nenhuma alteração foi publicada.', 'sucesso');
+}
+
+function initDesignStudio() {
+  if (designStudioReady) {
+    setTimeout(applyDesignPreview, 50);
+    return;
+  }
+  designStudioReady = true;
+  $('design-device-desktop')?.addEventListener('click', () => setDesignDevice('desktop'));
+  $('design-device-mobile')?.addEventListener('click', () => setDesignDevice('mobile'));
+  ['design-nav-density','design-type-scale','design-content-width','design-section-space','design-gallery-gap']
+    .forEach(id => $(id)?.addEventListener('input', applyDesignPreview));
+  $('design-reset')?.addEventListener('click', resetDesignPreview);
+  $('design-preview-frame')?.addEventListener('load', () => setTimeout(applyDesignPreview, 80));
+  setDesignDevice('desktop');
+  setTimeout(applyDesignPreview, 120);
+}
