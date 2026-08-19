@@ -5300,3 +5300,90 @@
     max-width: 155px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V21 — ENSAIO ULTRAWIDE COM FLUXO NATURAL
+   Remove a rolagem interna do workflow em telas largas.
+   O modal inteiro passa a rolar, então Provas cresce e empurra
+   Fotos finais fisicamente para baixo.
+   ========================================================= */
+
+@media (min-width: 1380px) {
+  #session-editor-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px !important;
+  }
+
+  #session-editor-modal[hidden] {
+    display: none !important;
+  }
+
+  #session-editor-modal .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  #session-editor-modal .modal-dialog {
+    position: relative !important;
+    width: min(96vw, 1720px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    display: block !important;
+    overflow: visible !important;
+    padding-bottom: 30px !important;
+  }
+
+  #session-editor-modal .modal-head {
+    position: sticky !important;
+    top: -18px !important;
+    z-index: 30 !important;
+    margin-bottom: 20px !important;
+    background: rgba(15,15,13,.96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  #session-editor-modal .session-workflow,
+  #session-editor-modal .session-workflow-accordion {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+    gap: 14px !important;
+    align-content: start !important;
+  }
+
+  #session-editor-modal .session-stage-card,
+  #session-editor-modal .session-stage-accordion,
+  #session-editor-modal .session-stage-body {
+    position: static !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #session-editor-modal .session-stage-body[hidden] {
+    display: none !important;
+  }
+
+  #session-editor-modal .session-footer-actions {
+    margin-top: 8px !important;
+  }
+}
