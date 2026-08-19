@@ -1028,3 +1028,35 @@ html, body {
   .hero-meta { width:100%; min-width:0; }
   .hero-meta > div { min-width:0; }
 }
+
+
+/* =========================================================
+   GALERIA + CONTATO — ESPAÇAMENTO SUPERIOR MAIS EQUILIBRADO
+   ========================================================= */
+
+.inner-page-section {
+  padding-top: clamp(112px, 8vw, 148px) !important;
+}
+
+/* Campo anti-spam invisível do formulário de contato */
+.contact-honeypot {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 760px) {
+  .inner-page-section {
+    padding-top: 104px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .inner-page-section {
+    padding-top: 100px !important;
+  }
+}
