@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v38 — Área do Cliente premium no Designer');
+console.log('[admin-v2] Build v39 — Hero, drag e Conteúdo no Designer corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -1077,7 +1077,6 @@ document
   Eles precisam estar ativos desde a abertura do Admin,
   e não somente depois que a view Design for carregada.
 */
-initContentSidebarNavigation();
 initDesignSidebarNavigation();
 
 
@@ -1819,16 +1818,27 @@ function configurarOrdenacaoGalerias() {
   cards.forEach(card => {
 
 
+    const handle = card.querySelector('.gallery-drag-handle');
+
+    if (handle) {
+      handle.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        card.dataset.dragArmed = '1';
+        card.draggable = true;
+      });
+      handle.addEventListener('mousedown', () => {
+        card.dataset.dragArmed = '1';
+        card.draggable = true;
+      });
+    }
+
     card.addEventListener(
       'dragstart',
       event => {
 
-        if (
-          !event.target.closest('.gallery-drag-handle')
-        ) {
-
+        if (card.dataset.dragArmed !== '1') {
           event.preventDefault();
-
+          card.draggable = false;
           return;
         }
 
@@ -1956,6 +1966,8 @@ function configurarOrdenacaoGalerias() {
           });
 
         draggedCard = null;
+        card.dataset.dragArmed = '0';
+        card.draggable = false;
 
         await salvarOrdemGalerias();
 
@@ -3773,7 +3785,7 @@ function collectSpecs() {
 }
 
 async function upsertContent(slug, sectionKey, payload, msgId) {
-  msg($(msgId), 'Salvando...');
+  if (msgId && $(msgId)) msg($(msgId), 'Salvando...');
 
   const { data: existing } = await supabase
     .from('site_content')
@@ -3794,11 +3806,11 @@ async function upsertContent(slug, sectionKey, payload, msgId) {
     : await supabase.from('site_content').insert(row);
 
   if (r.error) {
-    msg($(msgId), 'Erro ao salvar: ' + r.error.message, 'erro');
+    if (msgId && $(msgId)) msg($(msgId), 'Erro ao salvar: ' + r.error.message, 'erro');
     return false;
   }
 
-  msg($(msgId), 'Salvo!', 'sucesso');
+  if (msgId && $(msgId)) msg($(msgId), 'Salvo!', 'sucesso');
   contentCache = null;
   return true;
 }
@@ -4674,115 +4686,13 @@ $('hero-slides-upload').addEventListener('change', async e => {
   e.target.value = '';
 });
 
-$('form-hero').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form = e.currentTarget;
-  if (!beginFormBusy(form)) return;
+$('form-hero').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!beginFormBusy(form))return;const y=window.scrollY;try{const payload=collectHeroContentPayload();if(!payload.desktop_image){msg($('hero-msg'),'Escolha uma foto estática. Ela também é a proteção/fallback do slideshow.','erro');return}if(payload.mode==='slideshow'&&!payload.slides.some(x=>x.published!==false&&x.url)){msg($('hero-msg'),'Para usar Slideshow, publique pelo menos uma foto.','erro');return}if(activeView==='design'){await saveDesignDraft();msg($('hero-msg'),'Herói salvo no rascunho. O site público ainda não foi alterado.','sucesso');applyDesignContentPreview()}else await upsertContent('inicio','hero',payload,'hero-msg')}finally{endFormBusy(form);requestAnimationFrame(()=>window.scrollTo(0,y))}});
 
-  try {
-    const mode = document.querySelector('input[name="hero-mode"]:checked')?.value || 'static';
-    const desktopRaw = safeText($('hero-desktop-image').value, 2048);
-    const mobileRaw = safeText($('hero-mobile-image').value, 2048);
-    const desktop = desktopRaw ? safeHttpUrl(desktopRaw, { allowRelative: false }) : '';
-    const mobile = mobileRaw ? safeHttpUrl(mobileRaw, { allowRelative: false }) : '';
+$('form-recent').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!beginFormBusy(form))return;const y=window.scrollY;try{const payload=collectRecentContentPayload();if(activeView==='design'){await saveDesignDraft();msg($('recent-msg'),'Seção salva no rascunho.','sucesso');applyDesignContentPreview()}else await upsertContent('inicio','recent_work',payload,'recent-msg')}finally{endFormBusy(form);requestAnimationFrame(()=>window.scrollTo(0,y))}});
 
-    if (desktopRaw && !desktop) {
-      msg($('hero-msg'), 'A URL da foto estática é inválida.', 'erro');
-      return;
-    }
-    if (mobileRaw && !mobile) {
-      msg($('hero-msg'), 'A URL alternativa de celular é inválida.', 'erro');
-      return;
-    }
-    if (!desktop) {
-      msg($('hero-msg'), 'Escolha uma foto estática. Ela também é a proteção/fallback do slideshow.', 'erro');
-      return;
-    }
-    if (mode === 'slideshow' && !heroSlidesDraft.some(s => s.published !== false && s.url)) {
-      msg($('hero-msg'), 'Para usar Slideshow, publique pelo menos uma foto.', 'erro');
-      return;
-    }
+$('form-sobre').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!beginFormBusy(form))return;const y=window.scrollY;try{const payload=collectSobreContentPayload();if(activeView==='design'){await saveDesignDraft();msg($('sobre-msg'),'Página Sobre salva no rascunho.','sucesso');applyDesignContentPreview()}else await upsertContent('sobre','conteudo',payload,'sobre-msg')}finally{endFormBusy(form);requestAnimationFrame(()=>window.scrollTo(0,y))}});
 
-    const meta = $('hero-meta').value.split('\n')
-      .map(l => l.trim()).filter(Boolean).slice(0, 12)
-      .map(l => {
-        const i = l.indexOf('|');
-        if (i === -1) return { label: safeText(l, 80), value: '' };
-        return { label: safeText(l.slice(0, i), 80), value: safeText(l.slice(i + 1), 160) };
-      });
-
-    await upsertContent('inicio', 'hero', {
-      eyebrow: safeText($('hero-eyebrow').value, 120),
-      title: safeText($('hero-title').value, 180),
-      description: safeText($('hero-description').value, 1000),
-      desktop_image: desktop,
-      mobile_image: mobile,
-      image_alt: safeText($('hero-image-alt').value, 240),
-      mode,
-      static_focus_x: clampNumber($('hero-static-focus-x').value, 0, 100, 50),
-      static_focus_y: clampNumber($('hero-static-focus-y').value, 0, 100, 50),
-      slide_interval: clampNumber($('hero-slide-interval').value, 2, 30, 5),
-      slide_transition: clampNumber($('hero-slide-transition').value, .3, 5, 1.2),
-      slide_width: $('hero-slide-width').value || HERO_SLIDESHOW_DEFAULTS.width,
-      slide_fit: $('hero-slide-fit').value || HERO_SLIDESHOW_DEFAULTS.fit,
-      slide_ratio: $('hero-slide-ratio').value || HERO_SLIDESHOW_DEFAULTS.ratio,
-      slide_animation: $('hero-slide-animation').value || HERO_SLIDESHOW_DEFAULTS.animation,
-      slide_order: $('hero-slide-order').value || HERO_SLIDESHOW_DEFAULTS.order,
-      slide_behind_menu: $('hero-slide-behind-menu').value !== 'no',
-      slides: heroSlidesDraft.slice(0, 30).map((s, index) => ({
-        id: safeText(s.id, 120), url: safeHttpUrl(s.url, { allowRelative: false }),
-        alt: safeText(s.alt, 240), focus_x: clampNumber(s.focus_x,0,100,50),
-        focus_y: clampNumber(s.focus_y,0,100,50), published: s.published !== false, sort_order: index
-      })).filter(s => s.url),
-      primary_button: { text: safeText($('hero-primary-text').value,80), url: safeHttpUrl($('hero-primary-url').value) || '/galeria' },
-      secondary_button: { text: safeText($('hero-secondary-text').value,80), url: safeHttpUrl($('hero-secondary-url').value) || '/contato' },
-      meta
-    }, 'hero-msg');
-  } finally { endFormBusy(form); }
-});
-
-$('form-recent').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form=e.currentTarget;
-  if (!beginFormBusy(form)) return;
-  try {
-    await upsertContent('inicio','recent_work',{
-      eyebrow:safeText($('recent-eyebrow').value,120), title:safeText($('recent-title').value,180),
-      gallery_limit:clampNumber($('recent-limit').value,1,24,6),
-      button:{text:safeText($('recent-btn-text').value,80),url:safeHttpUrl($('recent-btn-url').value)||'/galeria'}
-    },'recent-msg');
-  } finally { endFormBusy(form); }
-});
-
-$('form-sobre').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form=e.currentTarget;
-  if (!beginFormBusy(form)) return;
-  try {
-    await upsertContent('sobre','conteudo',{
-      eyebrow:safeText($('sobre-eyebrow').value,120),
-      paragraphs:$('sobre-paragraphs').value.split('\n').map(l=>safeText(l,1000)).filter(Boolean).slice(0,20),
-      specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),
-      portrait_url:safeHttpUrl($('sobre-portrait-url').value,{allowRelative:false}),
-      portrait_alt:safeText($('sobre-portrait-alt').value,240),
-      cta_text:safeText($('sobre-cta-text').value,80), cta_url:safeHttpUrl($('sobre-cta-url').value)||'/contato'
-    },'sobre-msg');
-  } finally { endFormBusy(form); }
-});
-
-$('form-contato').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form=e.currentTarget;
-  if (!beginFormBusy(form)) return;
-  try {
-    await upsertContent('contato','conteudo',{
-      eyebrow:safeText($('contato-eyebrow').value,120), title:safeText($('contato-title').value,180),
-      submit_label:safeText($('contato-submit-label').value,80),
-      tipos:$('contato-tipos').value.split('\n').map(l=>safeText(l,120)).filter(Boolean).slice(0,30),
-      atendimento:safeText($('contato-atendimento').value,1000)
-    },'contato-msg');
-  } finally { endFormBusy(form); }
-});
+$('form-contato').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!beginFormBusy(form))return;const y=window.scrollY;try{const payload=collectContatoContentPayload();if(activeView==='design'){await saveDesignDraft();msg($('contato-msg'),'Página Contato salva no rascunho.','sucesso');applyDesignContentPreview()}else await upsertContent('contato','conteudo',payload,'contato-msg')}finally{endFormBusy(form);requestAnimationFrame(()=>window.scrollTo(0,y))}});
 
 $('btn-add-spec').addEventListener('click', () => {
   const c = $('sobre-specs-editor');
@@ -6065,7 +5975,8 @@ const DESIGN_DEFAULTS = Object.freeze({
   client_photo_size: 'large',
   client_typography: 'classic',
   client_border: 'fine',
-  client_access_image: ''
+  client_access_image: '',
+  content: null
 });
 
 function normalizeDesignConfig(config = {}) {
@@ -6092,10 +6003,26 @@ function normalizeDesignConfig(config = {}) {
     client_photo_size: ['compact','medium','large'].includes(c.client_photo_size) ? c.client_photo_size : 'large',
     client_typography: ['classic','editorial','minimal'].includes(c.client_typography) ? c.client_typography : 'classic',
     client_border: ['fine','none','soft'].includes(c.client_border) ? c.client_border : 'fine',
-    client_access_image: safeHttpUrl(c.client_access_image || '', { allowRelative: true })
+    client_access_image: safeHttpUrl(c.client_access_image || '', { allowRelative: true }),
+    content: c.content && typeof c.content === 'object' ? JSON.parse(JSON.stringify(c.content)) : null
   };
 }
 
+
+function collectHeroContentPayload(){
+  const mode=document.querySelector('input[name="hero-mode"]:checked')?.value||'static';
+  const desktopRaw=safeText($('hero-desktop-image')?.value,2048), mobileRaw=safeText($('hero-mobile-image')?.value,2048);
+  const meta=($('hero-meta')?.value||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,12).map(line=>{const i=line.indexOf('|');return i<0?{label:safeText(line,80),value:''}:{label:safeText(line.slice(0,i),80),value:safeText(line.slice(i+1),160)}});
+  return {eyebrow:safeText($('hero-eyebrow')?.value,120),title:safeText($('hero-title')?.value,180),description:safeText($('hero-description')?.value,1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:false}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:false}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:false}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
+}
+function collectRecentContentPayload(){return {eyebrow:safeText($('recent-eyebrow')?.value,120),title:safeText($('recent-title')?.value,180),gallery_limit:clampNumber($('recent-limit')?.value,1,24,6),button:{text:safeText($('recent-btn-text')?.value,80),url:safeHttpUrl($('recent-btn-url')?.value)||'/galeria'}}}
+function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('sobre-portrait-url')?.value||''),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
+function collectContatoContentPayload(){return {eyebrow:safeText($('contato-eyebrow')?.value,120),title:safeText($('contato-title')?.value,180),submit_label:safeText($('contato-submit-label')?.value,80),tipos:($('contato-tipos')?.value||'').split('\n').map(x=>safeText(x,160)).filter(Boolean).slice(0,30),atendimento:safeText($('contato-atendimento')?.value,1000)}}
+function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()}}}
+function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){$('hero-eyebrow').value=h.eyebrow||'';$('hero-title').value=h.title||'';$('hero-description').value=h.description||'';$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
+  const r=s.inicio?.recent_work;if(r){$('recent-eyebrow').value=r.eyebrow||'';$('recent-title').value=r.title||'';$('recent-limit').value=r.gallery_limit??6;$('recent-btn-text').value=r.button?.text||'';$('recent-btn-url').value=r.button?.url||''}
+  const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[])}
+  const ct=s.contato?.conteudo;if(ct){$('contato-eyebrow').value=ct.eyebrow||'';$('contato-title').value=ct.title||'';$('contato-submit-label').value=ct.submit_label||'';$('contato-tipos').value=(ct.tipos||[]).join('\n');$('contato-atendimento').value=ct.atendimento||''}}
 function collectDesignConfig() {
   return normalizeDesignConfig({
     nav_style: $('design-nav-style')?.value,
@@ -6119,7 +6046,8 @@ function collectDesignConfig() {
     client_photo_size: $('design-client-photo-size')?.value,
     client_typography: $('design-client-typography')?.value,
     client_border: $('design-client-border')?.value,
-    client_access_image: $('design-client-access-image')?.value
+    client_access_image: $('design-client-access-image')?.value,
+    content: collectDesignContentSnapshot()
   });
 }
 
@@ -6156,7 +6084,10 @@ function applyDesignConfigToControls(config) {
   Object.entries(map).forEach(([id, value]) => {
     if ($(id)) $(id).value = String(value);
   });
+  if (c.content) applyDesignContentSnapshotToControls(c.content);
+  updateDesignClientImagePreview();
   applyDesignPreview();
+  applyDesignContentPreview();
   updateDesignPublicationState();
 }
 
@@ -6243,8 +6174,12 @@ async function fetchDesignPersistence() {
     }
   });
 
+  if (!contentCache) { const currentMap = await fetchContent(); contentCache = mergeContent(currentMap); }
+  const publicContent = JSON.parse(JSON.stringify(contentCache || CONTENT_DEFAULTS));
+  designPublishedSaved = published || normalizeDesignConfig({ ...DESIGN_DEFAULTS, content: publicContent });
+  if (!designPublishedSaved.content) designPublishedSaved.content = JSON.parse(JSON.stringify(publicContent));
   designDraftSaved = draft;
-  designPublishedSaved = published || normalizeDesignConfig(DESIGN_DEFAULTS);
+  if (designDraftSaved && !designDraftSaved.content) designDraftSaved.content = JSON.parse(JSON.stringify(publicContent));
   designPersistenceLoaded = true;
 
   const initial =
@@ -6344,6 +6279,9 @@ function restorePublishedDesign() {
   flash('Prévia restaurada para a versão publicada.', 'sucesso');
 }
 
+
+async function publishDesignContent(snapshot){if(!snapshot)return;for(const [slug,key,payload] of [['inicio','hero',snapshot.inicio?.hero],['inicio','recent_work',snapshot.inicio?.recent_work],['sobre','conteudo',snapshot.sobre?.conteudo],['contato','conteudo',snapshot.contato?.conteudo]]){if(!payload)continue;const ok=await upsertContent(slug,key,payload,null);if(!ok)throw new Error(`Falha ao publicar ${slug}/${key}.`)}contentCache=JSON.parse(JSON.stringify(snapshot))}
+
 async function publishDesign() {
   if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
 
@@ -6371,6 +6309,8 @@ async function publishDesign() {
   try {
     designDraftSaved = await upsertDesignRow('draft', current);
     designDraftUpdatedAt = new Date().toISOString();
+
+    await publishDesignContent(current.content);
 
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
@@ -7137,6 +7077,18 @@ function initContentSidebarNavigation() {
     });
 }
 
+
+function setDesignContentExpanded(expanded){const t=$('design-content-toggle'),s=$('design-content-submenu');if(!t||!s)return;t.setAttribute('aria-expanded',expanded?'true':'false');s.hidden=!expanded;t.closest('.design-content-nav-group')?.classList.toggle('is-open',!!expanded)}
+function initDesignContentMigration(){const host=$('design-content-host');if(!host)return;['content-panel-inicio','content-panel-sobre','content-panel-contato'].forEach(id=>{const panel=$(id);if(!panel)return;panel.hidden=true;if(panel.parentElement!==host)host.appendChild(panel)})}
+function routeDesignPreview(path){const frame=$('design-preview-frame');if(!frame)return;let current='';try{current=new URL(frame.src,location.origin).pathname}catch(_){}if(current!==path&&current!==`${path}.html`)frame.src=path;else setTimeout(applyDesignContentPreview,40)}
+function formatPreviewTitle(el,text){if(!el)return;const words=String(text||'').trim().split(/\s+/).filter(Boolean);if(words.length<2){el.textContent=words.join(' ');return}const last=words.pop();el.innerHTML=`${esc(words.join(' '))} <br><em>${esc(last)}</em>`}
+function applyInicioDesignPreview(doc,s){const h=s.inicio?.hero||{},r=s.inicio?.recent_work||{};const eb=doc.getElementById('hero-eyebrow');if(eb)eb.textContent=h.eyebrow||'';formatPreviewTitle(doc.getElementById('hero-title'),h.title);const d=doc.getElementById('hero-description');if(d)d.textContent=h.description||'';const img=doc.getElementById('hero-desktop-image');if(img&&h.desktop_image){img.src=h.desktop_image;img.alt=h.image_alt||''}const mob=doc.getElementById('hero-mobile-image');if(mob)mob.srcset=h.mobile_image||'';const p=doc.getElementById('hero-primary-button');if(p){p.textContent=h.primary_button?.text||'';p.href=h.primary_button?.url||'/galeria'}const sec=doc.getElementById('hero-secondary-button');if(sec){sec.textContent=h.secondary_button?.text||'';sec.href=h.secondary_button?.url||'/contato'}const re=doc.getElementById('recent-work-eyebrow');if(re)re.textContent=r.eyebrow||'';const rt=doc.getElementById('recent-work-title');if(rt)rt.textContent=r.title||'';const rb=doc.getElementById('recent-work-button');if(rb){rb.textContent=r.button?.text||'';rb.href=r.button?.url||'/galeria'}}
+function applySobreDesignPreview(doc,s){const d=s.sobre?.conteudo||{},text=doc.querySelector('.about-text');if(text){const eb=text.querySelector('.section-eyebrow');if(eb)eb.textContent=d.eyebrow||'';text.querySelectorAll(':scope > p:not(.section-eyebrow)').forEach(p=>p.remove());const specs=text.querySelector('.specs');(d.paragraphs||[]).forEach(x=>{const p=doc.createElement('p');p.textContent=x;text.insertBefore(p,specs||null)});if(specs)specs.innerHTML=(d.specs||[]).map(x=>`<div><dt>${esc(x.label||'')}</dt><dd>${esc(x.value||'')}</dd></div>`).join('');const cta=text.querySelector('.btn.btn-accent');if(cta){cta.textContent=d.cta_text||'';cta.href=d.cta_url||'/contato'}}const portrait=doc.querySelector('.about-portrait img');if(portrait&&d.portrait_url){portrait.src=d.portrait_url;portrait.alt=d.portrait_alt||''}}
+function applyContatoDesignPreview(doc,s){const d=s.contato?.conteudo||{},eb=doc.querySelector('.section-head .section-eyebrow'),title=doc.querySelector('.section-head .section-title');if(eb)eb.textContent=d.eyebrow||'';if(title)title.textContent=d.title||'';const form=doc.querySelector('.contact-grid form');if(form){const btn=form.querySelector('button[type="submit"]');if(btn)btn.textContent=d.submit_label||'Enviar mensagem';const sel=form.querySelector('select[name="tipo"],#tipo');if(sel)sel.innerHTML=(d.tipos||[]).map(x=>`<option>${esc(x)}</option>`).join('')}const info=doc.querySelector('.contact-info');if(info){const dt=[...info.querySelectorAll('dt')].find(n=>n.textContent.trim().toLowerCase()==='atendimento');if(dt?.nextElementSibling)dt.nextElementSibling.textContent=d.atendimento||''}}
+function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s)}
+function openDesignContentSection(page,trigger){const drawer=$('design-controls-drawer'),host=$('design-content-host'),controls=drawer?.querySelector('.design-controls');if(!drawer||!host)return;setView('design');drawer.hidden=false;drawer.classList.add('is-open');if(controls)controls.hidden=true;host.hidden=false;['inicio','sobre','contato'].forEach(name=>{const panel=$(`content-panel-${name}`);if(panel)panel.hidden=name!==page});document.querySelectorAll('[data-design-content]').forEach(b=>b.classList.toggle('active',b.dataset.designContent===page));if($('design-controls-drawer-title'))$('design-controls-drawer-title').textContent=page==='inicio'?'Conteúdo · Início':page==='sobre'?'Conteúdo · Sobre':'Conteúdo · Contato';positionDesignDrawerNearTrigger(drawer,trigger);drawer.scrollTop=0;routeDesignPreview(page==='inicio'?'/inicio':`/${page}`);setTimeout(applyDesignContentPreview,140)}
+function initDesignContentNavigation(){const t=$('design-content-toggle');if(t&&t.dataset.bound!=='1'){t.dataset.bound='1';t.addEventListener('click',e=>{e.stopPropagation();setDesignContentExpanded(t.getAttribute('aria-expanded')!=='true')})}document.querySelectorAll('[data-design-content]').forEach(b=>{if(b.dataset.bound==='1')return;b.dataset.bound='1';b.addEventListener('click',e=>{e.stopPropagation();openDesignContentSection(b.dataset.designContent,b)})})}
+
 function setDesignNavExpanded(expanded) {
   const toggle = $('design-nav-toggle');
   const submenu = $('design-nav-submenu');
@@ -7260,6 +7212,11 @@ function openDesignDrawer(sectionName, trigger = null) {
 
   drawer.hidden = false;
 
+  const contentHost = $('design-content-host');
+  const designControls = drawer.querySelector('.design-controls');
+  if (contentHost) contentHost.hidden = true;
+  if (designControls) designControls.hidden = false;
+
   document
     .querySelectorAll('.design-accordion')
     .forEach(section => {
@@ -7365,10 +7322,15 @@ function initDesignSidebarNavigation() {
   }
 }
 
+
+function updateDesignClientImagePreview(){const p=$('design-client-access-image-preview');if(!p)return;const url=safeText($('design-client-access-image')?.value,2048);p.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';p.classList.toggle('empty',!url);const span=p.querySelector('span');if(span)span.textContent=url?'Imagem adicionada':'Nenhuma imagem adicionada'}
+async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await supabase.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl||''}
+
 function initDesignStudio() {
   initDesignAccordions();
   initDesignSidebarNavigation();
-  initContentSidebarNavigation();
+  initDesignContentMigration();
+  initDesignContentNavigation();
 
   if (designStudioReady) {
     ensureDesignPersistenceLoaded().catch(() => {});
@@ -7429,8 +7391,11 @@ function initDesignStudio() {
   $('design-save-draft')?.addEventListener('click', saveDesignDraft);
   $('design-restore-published')?.addEventListener('click', restorePublishedDesign);
   $('design-publish')?.addEventListener('click', publishDesign);
-
-  ensureDesignPersistenceLoaded().catch(() => {});
+  $('design-client-access-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-client-access-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-client-access-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-client-image-upload',()=>uploadDesignClientImage(validos[0]));if(url?.skipped)return;$('design-client-access-image').value=url||'';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Fotografia adicionada ao rascunho.'}catch(error){$('design-client-access-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
+  $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho.'});
+  updateDesignClientImagePreview();
+  if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel'))return;applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
+  loadContent().then(()=>ensureDesignPersistenceLoaded()).catch(()=>{});
 
   $('design-preview-frame')?.addEventListener('load', () => {
     setTimeout(() => {
@@ -7439,6 +7404,7 @@ function initDesignStudio() {
       } catch (_) {}
 
       applyDesignPreview();
+      applyDesignContentPreview();
       sizeDesignPreview();
       installDesignPreviewNavigationGuard();
       runDesignPageTransition();
