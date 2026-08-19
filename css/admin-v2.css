@@ -6238,3 +6238,172 @@
     display: none;
   }
 }
+
+
+/* =========================================================
+   BUILD V34 — GALERIAS / ENSAIOS EM CARDS COMPACTOS
+   ========================================================= */
+
+#galleries-list,
+#sessions-list {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px !important;
+  align-items: stretch;
+}
+
+#galleries-list > .panel,
+#sessions-list > .panel {
+  grid-column: 1 / -1;
+}
+
+#galleries-list .gallery-admin-card,
+#sessions-list .gallery-admin-card {
+  grid-template-columns: 24px 118px minmax(0, 1fr) !important;
+  grid-template-rows: minmax(118px, auto) auto !important;
+  gap: 0 12px !important;
+  min-width: 0;
+  min-height: 0 !important;
+  height: 100%;
+  border-radius: 10px;
+}
+
+#galleries-list .gallery-drag-handle,
+#sessions-list .gallery-drag-handle {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 24px;
+  height: 58px;
+  align-self: center;
+}
+
+#galleries-list .gallery-thumb-wrap,
+#sessions-list .gallery-thumb-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  width: 118px !important;
+  height: 118px !important;
+  min-height: 118px !important;
+  align-self: center;
+}
+
+#galleries-list .gallery-admin-card .gallery-thumb,
+#sessions-list .gallery-admin-card .gallery-thumb {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+#galleries-list .gallery-card-content,
+#sessions-list .gallery-card-content {
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
+  padding: 14px 12px 12px 0;
+  align-self: center;
+}
+
+#galleries-list .gallery-card-title,
+#sessions-list .gallery-card-title {
+  font-size: clamp(.98rem, 1.05vw, 1.22rem);
+  line-height: 1.13;
+}
+
+#galleries-list .gallery-meta,
+#sessions-list .gallery-meta {
+  margin-top: 7px;
+  font-size: .5rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+#galleries-list .gallery-card-controls,
+#sessions-list .gallery-card-controls {
+  grid-column: 2 / 4 !important;
+  grid-row: 2;
+  min-width: 0 !important;
+  min-height: 52px;
+  padding: 10px 10px 11px 0 !important;
+  border-top: 1px solid var(--admin-line-soft);
+  display: flex;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#galleries-list .gallery-card-controls .status-pill,
+#sessions-list .gallery-card-controls .status-pill {
+  margin-right: 0 !important;
+}
+
+#galleries-list .gallery-card-actions,
+#sessions-list .gallery-card-actions {
+  flex: 1 1 auto;
+  margin: 0 !important;
+  display: flex;
+  justify-content: flex-end !important;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+#galleries-list .gallery-card-actions .small-btn,
+#sessions-list .gallery-card-actions .small-btn {
+  min-height: 28px;
+  padding: 6px 8px;
+  font-size: .48rem;
+}
+
+@media (max-width: 1500px) {
+  #galleries-list,
+  #sessions-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  #galleries-list,
+  #sessions-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px !important;
+  }
+
+  #galleries-list .gallery-admin-card,
+  #sessions-list .gallery-admin-card {
+    grid-template-columns: 22px 88px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(88px, auto) auto !important;
+  }
+
+  #galleries-list .gallery-thumb-wrap,
+  #sessions-list .gallery-thumb-wrap {
+    width: 88px !important;
+    height: 88px !important;
+    min-height: 88px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  #galleries-list,
+  #sessions-list {
+    grid-template-columns: 1fr;
+  }
+
+  #galleries-list .gallery-admin-card,
+  #sessions-list .gallery-admin-card {
+    grid-template-columns: 22px 82px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(82px, auto) auto !important;
+  }
+
+  #galleries-list .gallery-thumb-wrap,
+  #sessions-list .gallery-thumb-wrap {
+    width: 82px !important;
+    height: 82px !important;
+    min-height: 82px !important;
+  }
+
+  #galleries-list .gallery-card-controls,
+  #sessions-list .gallery-card-controls {
+    grid-column: 2 / 4 !important;
+  }
+}
