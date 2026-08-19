@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v53 — Sobre completo + slideshow corrigido');
+console.log('[admin-v2] Build v54 — editor visual: Enter e edição ao vivo corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -8466,34 +8466,106 @@ function decorateDesignInlinePreview(doc){
     el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,id);});
   });
 }
-function insertInlineEditorBreak(){
-  const sel=window.getSelection();
-  if(!sel||!sel.rangeCount)return;
-  const range=sel.getRangeAt(0);
+function insertInlineEditorBreak(editable){
+  if(!editable)return false;
+
+  const doc=
+    editable.ownerDocument ||
+    document;
+
+  const view=
+    doc.defaultView ||
+    window;
+
+  const sel=
+    view.getSelection?.();
+
+  if(
+    !sel ||
+    !sel.rangeCount
+  ){
+    return false;
+  }
+
+  const range=
+    sel.getRangeAt(0);
+
+  /*
+    A seleção precisa pertencer ao iframe da prévia.
+    Antes a função usava window.getSelection() do painel Admin,
+    então o Enter era bloqueado mas nenhum <br> era inserido.
+  */
+  if(
+    !editable.contains(
+      range.commonAncestorContainer
+    ) &&
+    range.commonAncestorContainer !== editable
+  ){
+    return false;
+  }
+
   range.deleteContents();
-  const br=document.createElement('br');
+
+  const br=
+    doc.createElement('br');
+
   range.insertNode(br);
-  range.setStartAfter(br);
-  range.collapse(true);
+
+  const after=
+    doc.createRange();
+
+  after.setStartAfter(br);
+  after.collapse(true);
+
   sel.removeAllRanges();
-  sel.addRange(range);
+  sel.addRange(after);
+
+  editable.dispatchEvent(
+    new view.Event(
+      'input',
+      {bubbles:true}
+    )
+  );
+
+  return true;
 }
 
 function openDesignInlineEditor(el,cfg,key){
   if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
   designInlineActive={el,cfg,key,originalText:(el.innerText||el.textContent||''),originalHTML:el.innerHTML,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
   el.contentEditable='true';
+  el.spellcheck=false;
   el.style.whiteSpace='pre-line';
   el.classList.add('design-inline-editing');
+
   el.onkeydown=event=>{
     if(event.key==='Enter'){
       event.preventDefault();
-      insertInlineEditorBreak();
+
+      const inserted=
+        insertInlineEditorBreak(el);
+
+      if(!inserted){
+        console.warn(
+          '[admin-v2] editor visual: não foi possível inserir quebra de linha'
+        );
+      }
     }
   };
+
+  /*
+    O próprio contenteditable é a prévia em tempo real.
+    Não chamamos applyDesignContentPreview() a cada tecla porque isso
+    recriaria o título e faria o cursor saltar. Apenas marcamos o
+    Designer como alterado enquanto o usuário digita.
+  */
+  el.oninput=()=>{
+    updateDesignPublicationState();
+  };
+
   el.focus();
   const box=$('design-inline-editor'); if(box)box.hidden=false;
-  if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=cfg.label;
+  if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
   const st=(window.__designInlineStyles||{})[key]||{};
   if($('design-inline-size'))$('design-inline-size').value=st.size||'inherit';
   document.querySelectorAll('[data-inline-command]').forEach(b=>b.classList.toggle('active',!!st[b.dataset.inlineCommand]));
@@ -8517,7 +8589,7 @@ function finishDesignInline(save){
     window.__designInlineStyles[a.key]=a.originalStyle;
     applyInlineStyleToElement(a.el,a.key);
   }
-  a.el.contentEditable='false';a.el.onkeydown=null;a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
+  a.el.contentEditable='false';a.el.onkeydown=null;a.el.oninput=null;a.el.removeAttribute('spellcheck');a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
   if($('design-inline-editor'))$('design-inline-editor').hidden=true;
   applyDesignContentPreview();updateDesignPublicationState();
 }
@@ -8595,6 +8667,13 @@ async function saveDesignInline() {
 
   active.el.onkeydown =
     null;
+
+  active.el.oninput =
+    null;
+
+  active.el.removeAttribute(
+    'spellcheck'
+  );
 
   active.el.style.removeProperty(
     'white-space'
