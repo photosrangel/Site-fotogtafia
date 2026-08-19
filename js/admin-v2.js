@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v33 — Conteúdo migrado + Design flyout lateral');
+console.log('[admin-v2] Build v34 — carrossel público + cards compactos');
 
 const $ = id => document.getElementById(id);
 
@@ -1869,28 +1869,32 @@ function configurarOrdenacaoGalerias() {
         const rect =
           card.getBoundingClientRect();
 
-        const mouseY =
-          event.clientY;
+        /*
+          Grade responsiva: considera eixo Y e X.
+          Assim o arrastar continua natural quando as galerias
+          ficam lado a lado, e não apenas em uma lista vertical.
+        */
+        const centerY =
+          rect.top + rect.height / 2;
 
-        const middle =
-          rect.top +
-          rect.height / 2;
+        const centerX =
+          rect.left + rect.width / 2;
 
-        if (mouseY < middle) {
+        const sameRow =
+          Math.abs(event.clientY - centerY) <
+          rect.height * .38;
 
-          container.insertBefore(
-            draggedCard,
-            card
+        const after =
+          event.clientY > centerY ||
+          (
+            sameRow &&
+            event.clientX > centerX
           );
 
-        } else {
-
-          container.insertBefore(
-            draggedCard,
-            card.nextSibling
-          );
-
-        }
+        container.insertBefore(
+          draggedCard,
+          after ? card.nextSibling : card
+        );
 
         container
           .querySelectorAll(

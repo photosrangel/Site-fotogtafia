@@ -472,59 +472,101 @@ function closeLightbox() {
 }
 
 
-function showPhoto() {
+function indiceCircular(index) {
+
+  const total =
+    currentEnsaio?.photos?.length || 0;
+
+  if (!total) return 0;
+
+  return (
+    (index % total) + total
+  ) % total;
+
+}
+
+
+function slideHTML(index, position) {
+
+  const photo =
+    currentEnsaio.photos[
+      indiceCircular(index)
+    ];
+
+  if (!photo) return '';
+
+  const realIndex =
+    indiceCircular(index);
+
+  const alt =
+    photo.alt ||
+    `${currentEnsaio.titulo} — foto ${realIndex + 1}`;
+
+  return `
+    <button
+      class="lightbox-slide lightbox-slide-${position}"
+      type="button"
+      data-carousel-position="${position}"
+      aria-label="${
+        position === 'current'
+          ? 'Foto atual'
+          : position === 'prev'
+            ? 'Ver foto anterior'
+            : 'Ver próxima foto'
+      }"
+    >
+      ${
+        photo.src
+          ? `<img src="${esc(photo.src)}" alt="${esc(alt)}" draggable="false">`
+          : `<span class="lightbox-placeholder">SUBSTITUA POR SUA FOTO<br>${esc(photo.placeholder || '')}</span>`
+      }
+    </button>
+  `;
+
+}
+
+
+function showPhoto(direction = 0) {
 
   if (!currentEnsaio) {
     return;
   }
 
+  const total =
+    currentEnsaio.photos.length;
 
-  const photo =
-    currentEnsaio.photos[
-      currentPhoto
-    ];
+  if (!total) return;
 
-
-  if (!photo) {
-    return;
-  }
-
+  currentPhoto =
+    indiceCircular(currentPhoto);
 
   if (lightboxStage) {
 
-    lightboxStage.innerHTML =
-      photo.src
+    lightboxStage.innerHTML = `
+      <div
+        class="lightbox-carousel ${direction > 0 ? 'is-next' : direction < 0 ? 'is-prev' : ''}"
+        role="group"
+        aria-label="Visualizador de fotografias"
+      >
+        ${slideHTML(currentPhoto - 1, 'prev')}
+        ${slideHTML(currentPhoto, 'current')}
+        ${slideHTML(currentPhoto + 1, 'next')}
+      </div>
+    `;
 
-        ? `
-          <img
-            src="${esc(photo.src)}"
-            alt="${esc(
-              currentEnsaio.titulo
-            )} — foto ${
-              currentPhoto + 1
-            }"
-          >
-        `
+    lightboxStage
+      .querySelector('[data-carousel-position="prev"]')
+      ?.addEventListener('click', prevPhoto);
 
-        : `
-          <div class="lightbox-placeholder">
-            SUBSTITUA POR SUA FOTO
-            <br>
-            ${
-              photo.placeholder || ''
-            }
-          </div>
-        `;
-
+    lightboxStage
+      .querySelector('[data-carousel-position="next"]')
+      ?.addEventListener('click', nextPhoto);
   }
-
 
   if (lightboxCounter) {
 
     lightboxCounter.textContent =
-      `${currentPhoto + 1} / ${
-        currentEnsaio.photos.length
-      }`;
+      `${currentPhoto + 1} / ${total}`;
 
   }
 
@@ -545,7 +587,7 @@ function nextPhoto() {
     currentEnsaio.photos.length;
 
 
-  showPhoto();
+  showPhoto(1);
 
 }
 
@@ -566,7 +608,7 @@ function prevPhoto() {
     currentEnsaio.photos.length;
 
 
-  showPhoto();
+  showPhoto(-1);
 
 }
 
@@ -618,6 +660,69 @@ lightbox?.addEventListener(
     }
 
   }
+);
+
+
+// ============================================
+// SWIPE NO CELULAR / TABLET
+// ============================================
+
+let lightboxTouchStartX = null;
+let lightboxTouchStartY = null;
+
+lightboxStage?.addEventListener(
+  'touchstart',
+  event => {
+
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    lightboxTouchStartX = touch.clientX;
+    lightboxTouchStartY = touch.clientY;
+
+  },
+  { passive: true }
+);
+
+lightboxStage?.addEventListener(
+  'touchend',
+  event => {
+
+    if (
+      lightboxTouchStartX === null ||
+      lightboxTouchStartY === null
+    ) {
+      return;
+    }
+
+    const touch = event.changedTouches?.[0];
+    if (!touch) return;
+
+    const dx =
+      touch.clientX - lightboxTouchStartX;
+
+    const dy =
+      touch.clientY - lightboxTouchStartY;
+
+    lightboxTouchStartX = null;
+    lightboxTouchStartY = null;
+
+    // Ignora movimentos verticais e toques muito curtos.
+    if (
+      Math.abs(dx) < 42 ||
+      Math.abs(dx) <= Math.abs(dy)
+    ) {
+      return;
+    }
+
+    if (dx < 0) {
+      nextPhoto();
+    } else {
+      prevPhoto();
+    }
+
+  },
+  { passive: true }
 );
 
 
