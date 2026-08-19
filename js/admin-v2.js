@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v29 — design accordions + transição única');
+console.log('[admin-v2] Build v31 — Conteúdo expansível + e-mail no topo');
 
 const $ = id => document.getElementById(id);
 
@@ -6597,8 +6597,282 @@ function initDesignAccordions() {
   });
 }
 
+
+
+function setContentNavExpanded(expanded) {
+  const toggle = $('content-nav-toggle');
+  const submenu = $('content-nav-submenu');
+
+  if (!toggle || !submenu) return;
+
+  toggle.setAttribute(
+    'aria-expanded',
+    expanded ? 'true' : 'false'
+  );
+
+  submenu.hidden = !expanded;
+
+  toggle
+    .closest('.content-nav-group')
+    ?.classList.toggle(
+      'is-open',
+      Boolean(expanded)
+    );
+}
+
+function openContentSection(sectionName) {
+  setView?.('content');
+
+  /*
+    A aba Conteúdo já possui os editores Início, Sobre e Contato.
+    Mantemos a estrutura existente e apenas navegamos até o bloco
+    correspondente, sem duplicar formulários.
+  */
+  const targetMap = {
+    home: [
+      '#home-content',
+      '#content-home',
+      '[data-content-section="home"]',
+      '#hero-editor',
+      '#hero-section'
+    ],
+    about: [
+      '#about-content',
+      '#content-about',
+      '[data-content-section="about"]',
+      '#about-editor'
+    ],
+    contact: [
+      '#contact-content',
+      '#content-contact',
+      '[data-content-section="contact"]',
+      '#contact-editor'
+    ]
+  };
+
+  const candidates = targetMap[sectionName] || [];
+
+  let target = null;
+
+  for (const selector of candidates) {
+    target = document.querySelector(selector);
+    if (target) break;
+  }
+
+  if (!target) {
+    /*
+      Fallback seguro: procura pelo texto do título dentro da view Conteúdo
+      e usa o bloco/painel mais próximo.
+    */
+    const wanted =
+      sectionName === 'home'
+        ? ['Início', 'Pagina inicial', 'Página inicial']
+        : sectionName === 'about'
+          ? ['Sobre', 'Sobre mim']
+          : ['Contato'];
+
+    const contentView =
+      document.querySelector(
+        '[data-view-section="content"], #view-content'
+      ) || document;
+
+    const headings = [
+      ...contentView.querySelectorAll(
+        'h1,h2,h3,.section-eyebrow,.panel-title'
+      )
+    ];
+
+    const heading = headings.find(el =>
+      wanted.some(text =>
+        el.textContent
+          ?.trim()
+          .toLowerCase()
+          .includes(text.toLowerCase())
+      )
+    );
+
+    target =
+      heading?.closest(
+        '.panel, .content-card, .field-full, section, article'
+      ) || heading;
+  }
+
+  if (target) {
+    target.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+
+    target.classList.add('content-nav-focus');
+
+    setTimeout(
+      () => target.classList.remove('content-nav-focus'),
+      1000
+    );
+  }
+}
+
+function initContentSidebarNavigation() {
+  const toggle = $('content-nav-toggle');
+
+  if (toggle && toggle.dataset.bound !== '1') {
+    toggle.dataset.bound = '1';
+
+    toggle.addEventListener('click', () => {
+      const expanded =
+        toggle.getAttribute('aria-expanded') === 'true';
+
+      setContentNavExpanded(!expanded);
+
+      if (!expanded) {
+        setView?.('content');
+      }
+    });
+  }
+
+  document
+    .querySelectorAll('[data-content-jump]')
+    .forEach(button => {
+      if (button.dataset.bound === '1') return;
+
+      button.dataset.bound = '1';
+
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+
+        openContentSection(
+          button.dataset.contentJump
+        );
+      });
+    });
+}
+
+function setDesignNavExpanded(expanded) {
+  const toggle = $('design-nav-toggle');
+  const submenu = $('design-nav-submenu');
+
+  if (!toggle || !submenu) return;
+
+  toggle.setAttribute(
+    'aria-expanded',
+    expanded ? 'true' : 'false'
+  );
+
+  submenu.hidden = !expanded;
+
+  toggle
+    .closest('.design-nav-group')
+    ?.classList.toggle(
+      'is-open',
+      Boolean(expanded)
+    );
+}
+
+function openDesignDrawer(sectionName) {
+  const drawer = $('design-controls-drawer');
+  if (!drawer) return;
+
+  // garante que a aba Design esteja ativa
+  setView?.('design');
+
+  drawer.hidden = false;
+  drawer.classList.add('is-open');
+
+  document
+    .querySelectorAll('.design-accordion')
+    .forEach(section => {
+      const shouldOpen =
+        section.dataset.designSection === sectionName;
+
+      setDesignAccordionOpen(
+        section,
+        shouldOpen
+      );
+    });
+
+  const selected =
+    document.querySelector(
+      `.design-accordion[data-design-section="${sectionName}"]`
+    );
+
+  const title =
+    selected
+      ?.querySelector('.design-accordion-toggle span')
+      ?.textContent
+      ?.trim();
+
+  if ($('design-controls-drawer-title')) {
+    $('design-controls-drawer-title').textContent =
+      title || 'Configurações';
+  }
+
+  requestAnimationFrame(() => {
+    selected?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest'
+    });
+  });
+}
+
+function closeDesignDrawer() {
+  const drawer = $('design-controls-drawer');
+  if (!drawer) return;
+
+  drawer.classList.remove('is-open');
+
+  setTimeout(() => {
+    if (!drawer.classList.contains('is-open')) {
+      drawer.hidden = true;
+    }
+  }, 180);
+}
+
+function initDesignSidebarNavigation() {
+  const toggle = $('design-nav-toggle');
+
+  if (toggle && toggle.dataset.bound !== '1') {
+    toggle.dataset.bound = '1';
+
+    toggle.addEventListener('click', () => {
+      const expanded =
+        toggle.getAttribute('aria-expanded') === 'true';
+
+      setDesignNavExpanded(!expanded);
+
+      if (!expanded) {
+        setView?.('design');
+      }
+    });
+  }
+
+  document
+    .querySelectorAll('[data-design-jump]')
+    .forEach(button => {
+      if (button.dataset.bound === '1') return;
+
+      button.dataset.bound = '1';
+
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+
+        openDesignDrawer(
+          button.dataset.designJump
+        );
+      });
+    });
+
+  const close = $('design-controls-close');
+
+  if (close && close.dataset.bound !== '1') {
+    close.dataset.bound = '1';
+    close.addEventListener('click', closeDesignDrawer);
+  }
+}
+
 function initDesignStudio() {
   initDesignAccordions();
+  initDesignSidebarNavigation();
+  initContentSidebarNavigation();
 
   if (designStudioReady) {
     setTimeout(() => {
