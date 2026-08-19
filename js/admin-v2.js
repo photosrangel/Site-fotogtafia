@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v27 — prévia desktop fiel ao layout público');
+console.log('[admin-v2] Build v28 — design avançado seguro');
 
 const $ = id => document.getElementById(id);
 
@@ -6082,43 +6082,60 @@ function sizeDesignPreview() {
 
 function applyDesignPreview() {
   const doc = getDesignPreviewDocument();
-  if (!doc?.head) return;
+  if (!doc?.head || !doc?.body) return;
 
   const typeScale = clampNumber($('design-type-scale')?.value, 90, 115, 100);
   const contentWidth = clampNumber($('design-content-width')?.value, 1040, 1500, 1200);
   const sectionSpace = clampNumber($('design-section-space')?.value, 72, 160, 120);
   const galleryGap = clampNumber($('design-gallery-gap')?.value, 0, 16, 2);
+
   const density = $('design-nav-density')?.value || 'normal';
+  const navStyle = $('design-nav-style')?.value || 'auto';
+  const navPosition = $('design-nav-position')?.value || 'fixed';
+  const navCta = $('design-nav-cta')?.value || 'outline';
+  const navBlur = clampNumber($('design-nav-blur')?.value, 0, 18, 0);
+  const logoScale = clampNumber($('design-logo-scale')?.value, 85, 120, 100);
+
+  const pageAnimation = $('design-page-animation')?.value || 'none';
+  const sectionAnimation = $('design-section-animation')?.value || 'none';
+  const imageHover = $('design-image-hover')?.value || 'site';
+  const motionSpeed = $('design-motion-speed')?.value || 'normal';
+
+  const heroOverlay = clampNumber($('design-hero-overlay')?.value, 0, 70, 40);
+  const imageRadius = clampNumber($('design-image-radius')?.value, 0, 18, 0);
+
   const navPadding = density === 'compact' ? 14 : density === 'airy' ? 30 : 22;
   const navSolidPadding = density === 'compact' ? 10 : density === 'airy' ? 22 : 16;
   const scale = typeScale / 100;
+  const logoScaleFactor = logoScale / 100;
+
+  const motionMs =
+    motionSpeed === 'fast'
+      ? 280
+      : motionSpeed === 'slow'
+        ? 900
+        : 520;
 
   let style = doc.getElementById('admin-design-preview-overrides');
+
   if (!style) {
     style = doc.createElement('style');
     style.id = 'admin-design-preview-overrides';
     doc.head.appendChild(style);
   }
 
-  // Em 100% a tipografia é exatamente a do site público.
-  // Quando o controle muda, preservamos as fórmulas responsivas originais
-  // em vez de substituir o título por 1em (problema da V23).
   const titleRules = typeScale === 100
     ? ''
     : `
-      .hero-title{font-size:clamp(${(2.6*scale).toFixed(3)}rem,${(7*scale).toFixed(3)}vw,${(6*scale).toFixed(3)}rem) !important}
-      .section-title{font-size:clamp(${(2.6*scale).toFixed(3)}rem,${(10*scale).toFixed(3)}vw,${(4.4*scale).toFixed(3)}rem) !important}
+      .hero-title{
+        font-size:clamp(${(2.6 * scale).toFixed(3)}rem,${(7 * scale).toFixed(3)}vw,${(6 * scale).toFixed(3)}rem) !important
+      }
+
+      .section-title{
+        font-size:clamp(${(2.6 * scale).toFixed(3)}rem,${(10 * scale).toFixed(3)}vw,${(4.4 * scale).toFixed(3)}rem) !important
+      }
     `;
 
-  /*
-    O site público já possui um layout responsivo de tela cheia.
-    Na posição padrão do controle (1200), NÃO substituímos .container.
-    Assim menu, Trabalhos recentes e demais seções usam exatamente
-    a largura definida pelo style.css público.
-
-    O max-width só entra quando o usuário move deliberadamente
-    o controle "Largura do conteúdo".
-  */
   const containerRule =
     contentWidth === 1200
       ? ''
@@ -6128,26 +6145,265 @@ function applyDesignPreview() {
           margin-right:auto !important;
         }`;
 
+  const navStyleRules =
+    navStyle === 'transparent'
+      ? `
+        .nav{
+          background:transparent !important;
+          border-color:transparent !important;
+        }
+      `
+      : navStyle === 'solid'
+        ? `
+          .nav{
+            background:rgba(8,8,7,.94) !important;
+            border-color:rgba(255,255,255,.10) !important;
+          }
+        `
+        : '';
+
+  const navPositionRules =
+    navPosition === 'static'
+      ? `
+        .nav{
+          position:absolute !important;
+        }
+        .nav.is-hidden{
+          transform:none !important;
+          opacity:1 !important;
+          pointer-events:auto !important;
+        }
+      `
+      : '';
+
+  const ctaRules =
+    navCta === 'filled'
+      ? `
+        .nav-cta{
+          background:#f3f0e9 !important;
+          color:#0b0b0a !important;
+          border-color:#f3f0e9 !important;
+        }
+      `
+      : navCta === 'hidden'
+        ? `.nav-cta{display:none !important}`
+        : '';
+
+  const imageHoverRules =
+    imageHover === 'none'
+      ? `
+        .frame:hover img{
+          transform:none !important;
+          filter:none !important;
+        }
+        .frame:hover{
+          transform:none !important;
+        }
+      `
+      : imageHover === 'zoom'
+        ? `
+          .frame img{
+            transition:transform ${motionMs}ms ease !important;
+          }
+          .frame:hover img{
+            transform:scale(1.07) !important;
+          }
+        `
+        : imageHover === 'lift'
+          ? `
+            .frame{
+              transition:transform ${motionMs}ms ease, box-shadow ${motionMs}ms ease !important;
+            }
+            .frame:hover{
+              transform:translateY(-8px) !important;
+              box-shadow:0 18px 42px rgba(0,0,0,.35) !important;
+            }
+            .frame:hover img{
+              transform:none !important;
+            }
+          `
+          : '';
+
+  const pageAnimationRules =
+    pageAnimation === 'fade'
+      ? `
+        @keyframes adminDesignPageIn{
+          from{opacity:0}
+          to{opacity:1}
+        }
+        body.design-preview-animate-page{
+          animation:adminDesignPageIn ${motionMs}ms ease both !important;
+        }
+      `
+      : pageAnimation === 'fade-up'
+        ? `
+          @keyframes adminDesignPageIn{
+            from{opacity:0;transform:translateY(18px)}
+            to{opacity:1;transform:none}
+          }
+          body.design-preview-animate-page{
+            animation:adminDesignPageIn ${motionMs}ms cubic-bezier(.22,.61,.36,1) both !important;
+          }
+        `
+        : pageAnimation === 'soft'
+          ? `
+          @keyframes adminDesignPageIn{
+            from{opacity:0;filter:blur(4px);transform:scale(.992)}
+            to{opacity:1;filter:none;transform:none}
+          }
+          body.design-preview-animate-page{
+            animation:adminDesignPageIn ${Math.round(motionMs * 1.25)}ms ease both !important;
+          }
+        `
+          : '';
+
+  const sectionAnimationRules =
+    sectionAnimation === 'fade'
+      ? `
+        @keyframes adminDesignSectionIn{
+          from{opacity:0}
+          to{opacity:1}
+        }
+        body.design-preview-animate-sections .section{
+          animation:adminDesignSectionIn ${motionMs}ms ease both !important;
+        }
+      `
+      : sectionAnimation === 'fade-up'
+        ? `
+          @keyframes adminDesignSectionIn{
+            from{opacity:0;transform:translateY(24px)}
+            to{opacity:1;transform:none}
+          }
+          body.design-preview-animate-sections .section{
+            animation:adminDesignSectionIn ${motionMs}ms cubic-bezier(.22,.61,.36,1) both !important;
+          }
+        `
+        : '';
+
   style.textContent = `
     ${containerRule}
-    .section{padding-top:${sectionSpace}px !important;padding-bottom:${sectionSpace}px !important}
     ${titleRules}
-    .grid{gap:${galleryGap}px !important}
-    .nav{padding-top:${navPadding}px !important;padding-bottom:${navPadding}px !important}
-    .nav.is-solid{padding-top:${navSolidPadding}px !important;padding-bottom:${navSolidPadding}px !important}
+    ${navStyleRules}
+    ${navPositionRules}
+    ${ctaRules}
+    ${imageHoverRules}
+    ${pageAnimationRules}
+    ${sectionAnimationRules}
+
+    .section{
+      padding-top:${sectionSpace}px !important;
+      padding-bottom:${sectionSpace}px !important;
+    }
+
+    .grid{
+      gap:${galleryGap}px !important;
+    }
+
+    .frame{
+      border-radius:${imageRadius}px !important;
+    }
+
+    .frame img{
+      border-radius:${imageRadius}px !important;
+    }
+
+    .nav{
+      padding-top:${navPadding}px !important;
+      padding-bottom:${navPadding}px !important;
+      backdrop-filter:blur(${navBlur}px) !important;
+      -webkit-backdrop-filter:blur(${navBlur}px) !important;
+    }
+
+    .nav.is-solid{
+      padding-top:${navSolidPadding}px !important;
+      padding-bottom:${navSolidPadding}px !important;
+    }
+
+    .nav-logo{
+      transform:scale(${logoScaleFactor.toFixed(3)}) !important;
+      transform-origin:left center !important;
+    }
+
+    .hero-overlay{
+      opacity:${(heroOverlay / 100).toFixed(2)} !important;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      body.design-preview-animate-page,
+      body.design-preview-animate-sections .section{
+        animation:none !important;
+      }
+    }
   `;
 
-  if ($('design-type-scale-out')) $('design-type-scale-out').textContent = `${typeScale}%`;
+  doc.body.classList.toggle(
+    'design-preview-animate-page',
+    pageAnimation !== 'none'
+  );
+
+  doc.body.classList.toggle(
+    'design-preview-animate-sections',
+    sectionAnimation !== 'none'
+  );
+
+  if ($('design-type-scale-out')) {
+    $('design-type-scale-out').textContent = `${typeScale}%`;
+  }
+
   if ($('design-content-width-out')) {
     $('design-content-width-out').textContent =
       contentWidth === 1200
         ? 'Padrão do site'
         : `${contentWidth} px`;
   }
-  if ($('design-section-space-out')) $('design-section-space-out').textContent = `${sectionSpace} px`;
-  if ($('design-gallery-gap-out')) $('design-gallery-gap-out').textContent = `${galleryGap} px`;
+
+  if ($('design-section-space-out')) {
+    $('design-section-space-out').textContent = `${sectionSpace} px`;
+  }
+
+  if ($('design-gallery-gap-out')) {
+    $('design-gallery-gap-out').textContent = `${galleryGap} px`;
+  }
+
+  if ($('design-logo-scale-out')) {
+    $('design-logo-scale-out').textContent = `${logoScale}%`;
+  }
+
+  if ($('design-nav-blur-out')) {
+    $('design-nav-blur-out').textContent = `${navBlur} px`;
+  }
+
+  if ($('design-hero-overlay-out')) {
+    $('design-hero-overlay-out').textContent =
+      heroOverlay === 40
+        ? 'Padrão'
+        : `${heroOverlay}%`;
+  }
+
+  if ($('design-image-radius-out')) {
+    $('design-image-radius-out').textContent = `${imageRadius} px`;
+  }
 
   sizeDesignPreview();
+}
+
+function replayDesignAnimations() {
+  const doc = getDesignPreviewDocument();
+  if (!doc?.body) return;
+
+  doc.body.classList.remove(
+    'design-preview-animate-page',
+    'design-preview-animate-sections'
+  );
+
+  // força reflow para reiniciar as keyframes
+  void doc.body.offsetWidth;
+
+  applyDesignPreview();
+
+  try {
+    $('design-preview-frame')?.contentWindow?.scrollTo(0, 0);
+  } catch (_) {}
 }
 
 function setDesignDevice(device) {
@@ -6179,13 +6435,32 @@ function setDesignDevice(device) {
 }
 
 function resetDesignPreview() {
+  if ($('design-nav-style')) $('design-nav-style').value = 'auto';
+  if ($('design-nav-position')) $('design-nav-position').value = 'fixed';
   if ($('design-nav-density')) $('design-nav-density').value = 'normal';
+  if ($('design-logo-scale')) $('design-logo-scale').value = '100';
+  if ($('design-nav-cta')) $('design-nav-cta').value = 'outline';
+  if ($('design-nav-blur')) $('design-nav-blur').value = '0';
+
+  if ($('design-page-animation')) $('design-page-animation').value = 'none';
+  if ($('design-section-animation')) $('design-section-animation').value = 'none';
+  if ($('design-image-hover')) $('design-image-hover').value = 'site';
+  if ($('design-motion-speed')) $('design-motion-speed').value = 'normal';
+
   if ($('design-type-scale')) $('design-type-scale').value = '100';
   if ($('design-content-width')) $('design-content-width').value = '1200';
   if ($('design-section-space')) $('design-section-space').value = '120';
+  if ($('design-hero-overlay')) $('design-hero-overlay').value = '40';
+
   if ($('design-gallery-gap')) $('design-gallery-gap').value = '2';
+  if ($('design-image-radius')) $('design-image-radius').value = '0';
+
   applyDesignPreview();
-  flash('Prévia restaurada. Nenhuma alteração foi publicada.', 'sucesso');
+
+  flash(
+    'Prévia restaurada. Nenhuma alteração foi publicada.',
+    'sucesso'
+  );
 }
 
 function initDesignStudio() {
@@ -6202,8 +6477,32 @@ function initDesignStudio() {
   $('design-device-desktop')?.addEventListener('click', () => setDesignDevice('desktop'));
   $('design-device-mobile')?.addEventListener('click', () => setDesignDevice('mobile'));
 
-  ['design-nav-density','design-type-scale','design-content-width','design-section-space','design-gallery-gap']
-    .forEach(id => $(id)?.addEventListener('input', applyDesignPreview));
+  [
+    'design-nav-style',
+    'design-nav-position',
+    'design-nav-density',
+    'design-logo-scale',
+    'design-nav-cta',
+    'design-nav-blur',
+    'design-page-animation',
+    'design-section-animation',
+    'design-image-hover',
+    'design-motion-speed',
+    'design-type-scale',
+    'design-content-width',
+    'design-section-space',
+    'design-hero-overlay',
+    'design-gallery-gap',
+    'design-image-radius'
+  ].forEach(id => {
+    $(id)?.addEventListener('input', applyDesignPreview);
+    $(id)?.addEventListener('change', applyDesignPreview);
+  });
+
+  $('design-replay-animation')?.addEventListener(
+    'click',
+    replayDesignAnimations
+  );
 
   $('design-reset')?.addEventListener('click', resetDesignPreview);
   $('design-preview-frame')?.addEventListener('load', () => {
