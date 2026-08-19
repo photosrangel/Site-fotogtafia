@@ -9,9 +9,29 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v60 — salvamento forçado do hero-title');
+console.log('[admin-v2] Build v61 — hero-title com fonte única da verdade (sem releitura do DOM)');
 
 const $ = id => document.getElementById(id);
+
+/*
+  Fonte única da verdade para o texto do hero-title.
+  Motivo: o campo <textarea id="hero-title"> perdia a quebra de linha
+  (\n) manual entre o momento em que era escrita e o momento em que o
+  próprio código a relia de volta do DOM, em pontos como
+  collectHeroContentPayload(). Como collectDesignConfig() /
+  collectDesignContentSnapshot() são chamados várias vezes durante um
+  único salvamento (e também a cada atualização da prévia), qualquer
+  perda no DOM era propagada e persistida.
+  A partir de agora, sempre que o título é definido por um caminho
+  legítimo do código (editor visual, carregar rascunho/publicado,
+  digitação direta no campo), atualizamos heroTitleAuthoritative.
+  collectHeroContentPayload() usa esse valor em vez de reler o DOM.
+*/
+let heroTitleAuthoritative = null;
+
+function setHeroTitleAuthoritative(text) {
+  heroTitleAuthoritative = typeof text === 'string' ? text : '';
+}
 
 let currentGallery = null;
 let categoriesCache = [];
@@ -4435,6 +4455,7 @@ async function loadContent() {
   const h = contentCache.inicio.hero;
   $('hero-eyebrow').value = h.eyebrow || '';
   $('hero-title').value = h.title || '';
+  setHeroTitleAuthoritative(h.title || '');
   $('hero-description').value = h.description || '';
   $('hero-desktop-image').value = h.desktop_image || '';
   $('hero-mobile-image').value = h.mobile_image || '';
@@ -5309,6 +5330,16 @@ document.querySelectorAll('[data-close-hero-settings]').forEach(element =>
 document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
   element.addEventListener('click', closeHeroSlidesManager)
 );
+
+/*
+  Mantém heroTitleAuthoritative sincronizado quando o utilizador
+  digita diretamente no campo (fora do editor visual da aba Design).
+  Sem isto, um valor antigo em memória poderia sobrepor uma edição
+  direta legítima.
+*/
+$('hero-title')?.addEventListener('input', () => {
+  setHeroTitleAuthoritative($('hero-title')?.value || '');
+});
 
 [
   'hero-slide-interval',
@@ -6872,13 +6903,23 @@ function collectHeroContentPayload(){
   const mode=document.querySelector('input[name="hero-mode"]:checked')?.value||'static';
   const desktopRaw=safeText($('hero-desktop-image')?.value,2048), mobileRaw=safeText($('hero-mobile-image')?.value,2048);
   const meta=($('hero-meta')?.value||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,12).map(line=>{const i=line.indexOf('|');return i<0?{label:safeText(line,80),value:''}:{label:safeText(line.slice(0,i),80),value:safeText(line.slice(i+1),160)}});
-  return {eyebrow:safeText($('hero-eyebrow')?.value,120),title:safeText($('hero-title')?.value,180),description:safeText($('hero-description')?.value,1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
+  /*
+    O título usa heroTitleAuthoritative (fonte única da verdade) quando
+    disponível, em vez de reler $('hero-title').value diretamente — ver
+    comentário junto da declaração da variável, no topo do arquivo.
+    safeText() faz apenas trim() nas pontas, então a quebra de linha
+    interna (\n) criada pelo editor visual é preservada.
+  */
+  const heroTitleRaw = heroTitleAuthoritative != null
+    ? heroTitleAuthoritative
+    : ($('hero-title')?.value ?? '');
+  return {eyebrow:safeText($('hero-eyebrow')?.value,120),title:safeText(heroTitleRaw,180),description:safeText($('hero-description')?.value,1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
 }
 function collectRecentContentPayload(){return {eyebrow:safeText($('recent-eyebrow')?.value,120),title:safeText($('recent-title')?.value,180),gallery_limit:clampNumber($('recent-limit')?.value,1,24,6),button:{text:safeText($('recent-btn-text')?.value,80),url:safeHttpUrl($('recent-btn-url')?.value)||'/galeria'}}}
 function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('sobre-portrait-url')?.value||''),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
 function collectContatoContentPayload(){return {eyebrow:safeText($('contato-eyebrow')?.value,120),title:safeText($('contato-title')?.value,180),submit_label:safeText($('contato-submit-label')?.value,80),tipos:($('contato-tipos')?.value||'').split('\n').map(x=>safeText(x,160)).filter(Boolean).slice(0,30),atendimento:safeText($('contato-atendimento')?.value,1000)}}
 function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()}}}
-function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){$('hero-eyebrow').value=h.eyebrow||'';$('hero-title').value=h.title||'';$('hero-description').value=h.description||'';$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
+function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){$('hero-eyebrow').value=h.eyebrow||'';$('hero-title').value=h.title||'';setHeroTitleAuthoritative(h.title||'');$('hero-description').value=h.description||'';$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
   const r=s.inicio?.recent_work;if(r){$('recent-eyebrow').value=r.eyebrow||'';$('recent-title').value=r.title||'';$('recent-limit').value=r.gallery_limit??6;$('recent-btn-text').value=r.button?.text||'';$('recent-btn-url').value=r.button?.url||''}
   const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[])}
   const ct=s.contato?.conteudo;if(ct){$('contato-eyebrow').value=ct.eyebrow||'';$('contato-title').value=ct.title||'';$('contato-submit-label').value=ct.submit_label||'';$('contato-tipos').value=(ct.tipos||[]).join('\n');$('contato-atendimento').value=ct.atendimento||''}}
@@ -8908,6 +8949,10 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
       input.value =
         sourceValue;
     }
+
+    if (key === 'hero-title') {
+      setHeroTitleAuthoritative(sourceValue);
+    }
   }
 
   designInlineActive={
@@ -9171,11 +9216,13 @@ function finishDesignInline(save){
       input.value = a.key === 'hero-title'
         ? (a.textBuffer || input.value || '')
         : (a.el.textContent||'').trim();
+      if (a.key === 'hero-title') setHeroTitleAuthoritative(input.value);
       input.dispatchEvent(new Event('input',{bubbles:true}));
     }
   }else{
     if (input && 'originalInputValue' in a) {
       input.value = a.originalInputValue;
+      if (a.key === 'hero-title') setHeroTitleAuthoritative(a.originalInputValue);
     }
     a.el.innerHTML=a.originalHTML;
     window.__designInlineStyles=window.__designInlineStyles||{};
@@ -9251,12 +9298,43 @@ async function saveDesignInline() {
   }
 
   /*
+    Fixa a fonte única da verdade ANTES de qualquer outra coisa.
+    A partir daqui, collectHeroContentPayload() (usado tanto por
+    collectDesignConfig() quanto por collectDesignContentSnapshot(),
+    ou seja, tanto o salvamento quanto a prévia) vai usar este valor
+    em memória em vez de reler $('hero-title').value — eliminando o
+    ponto onde a quebra de linha se perdia.
+  */
+  if (active.key === 'hero-title') {
+    setHeroTitleAuthoritative(newText);
+  }
+
+  /*
     O input do CMS é a fonte do rascunho.
     É importante atualizá-lo ANTES de fechar a edição e
     antes de coletar collectDesignConfig().
   */
   input.value =
     newText;
+
+  /*
+    Verificação defensiva: se por qualquer motivo o próprio campo do
+    DOM não preservar o valor exatamente como foi escrito (ex.: alguma
+    normalização do navegador ou de outro listener), reforçamos a
+    escrita uma segunda vez. heroTitleAuthoritative (já fixado acima)
+    continua correto de qualquer forma, mas isto mantém o campo visível
+    coerente com o que o utilizador digitou.
+  */
+  if (
+    active.key === 'hero-title' &&
+    input.value !== newText
+  ) {
+    console.warn(
+      '[admin-v2] editor visual: campo hero-title divergiu após escrita, reforçando valor.',
+      { esperado: newText, obtido: input.value }
+    );
+    input.value = newText;
+  }
 
   /*
     Para o hero-title não disparámos os listeners genéricos aqui.
