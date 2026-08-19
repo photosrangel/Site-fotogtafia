@@ -7118,3 +7118,155 @@ body .design-controls-drawer.is-content-editor
     padding: 10px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V44 — ÁREA DO CLIENTE / FOCO VISUAL + TEXTOS
+   ========================================================= */
+
+.design-client-image-preview {
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: auto;
+
+  overflow: hidden;
+
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  background-position: 50% 50%;
+
+  cursor: crosshair;
+}
+
+.design-client-image-preview.empty {
+  aspect-ratio: 16 / 10;
+  min-height: 150px !important;
+  cursor: default;
+}
+
+.design-client-image-preview
+.design-client-image-empty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+
+  display: grid;
+  place-items: center;
+
+  padding: 12px;
+
+  background: transparent;
+  opacity: 1 !important;
+}
+
+.design-client-image-preview:not(.empty)
+.design-client-image-empty {
+  display: none;
+}
+
+/* O mesmo marcador visual usado nas fotografias do slideshow. */
+.design-client-image-preview .focal-marker {
+  z-index: 5;
+}
+
+.design-client-image-preview.empty
+.focal-marker {
+  display: none;
+}
+
+.design-client-image-actions {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  margin-top: 10px;
+}
+
+.design-client-focal-help {
+  margin: 9px 0 0;
+  line-height: 1.5;
+}
+
+/* Neutraliza os sliders antigos da V42. */
+.design-client-focal-controls,
+.design-client-focal-head,
+.design-client-focal-row {
+  display: none !important;
+}
+
+.design-client-texts-section {
+  margin-top: 16px;
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+.design-client-texts-section > summary {
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 2px;
+
+  cursor: pointer;
+  list-style: none;
+
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.design-client-texts-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.design-client-texts-section > summary::after {
+  content: "⌄";
+  color: var(--text-muted);
+  transition: transform .18s ease;
+}
+
+.design-client-texts-section[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.design-client-texts-body {
+  display: grid;
+  gap: 11px;
+  padding: 4px 0 8px;
+}
+
+.design-client-texts-body textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 82px;
+}
+
+.design-client-stage-text-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.design-client-status-texts {
+  display: grid;
+  gap: 9px;
+
+  margin-top: 5px;
+  padding-top: 11px;
+
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+@media (max-width: 560px) {
+  .design-client-stage-text-grid {
+    grid-template-columns: 1fr;
+  }
+}
