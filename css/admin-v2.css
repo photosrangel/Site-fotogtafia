@@ -7583,3 +7583,24 @@ body .design-controls-drawer.is-client-area-editor {
 
 /* BUILD V47 — editor visual inline */
 .design-inline-editor{position:sticky;bottom:14px;z-index:80;margin-top:-2px;border:1px solid rgba(255,255,255,.16);background:rgba(15,15,14,.96);backdrop-filter:blur(18px);box-shadow:0 18px 60px rgba(0,0,0,.36);border-radius:10px;padding:10px 12px}.design-inline-editor[hidden]{display:none}.design-inline-editor-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:8px;font-size:.72rem}.design-inline-editor-head span{color:var(--text-muted);font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em}.design-inline-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.design-inline-toolbar select,.design-inline-toolbar button{min-height:34px;border:1px solid rgba(255,255,255,.12);background:#111;color:var(--text);border-radius:6px;padding:0 10px}.design-inline-toolbar button{min-width:36px;cursor:pointer}.design-inline-toolbar button.active{background:#f2efe8;color:#111}.design-inline-separator{width:1px;height:24px;background:rgba(255,255,255,.12);margin:0 3px}.design-inline-spacer{flex:1}.design-inline-toolbar .design-inline-discard{color:var(--text-muted)}.design-inline-toolbar .design-inline-save{background:#f2efe8;color:#111;border-color:#f2efe8}.design-control-divider{height:1px;background:rgba(255,255,255,.10);margin:14px 0}.design-control-kicker{font-family:var(--font-mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.12em}.design-control-check{display:flex!important;flex-direction:row!important;justify-content:space-between;align-items:center}.design-page-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.design-page-checks label{display:flex;gap:6px;align-items:center;font-size:.75rem}.design-preview-panel iframe{--inline-editor-ready:1}
+
+
+/* V62 — painel dedicado do WhatsApp */
+.design-accordion[data-design-section="whatsapp"] .design-control-help{
+  margin:0 0 16px;
+  max-width:62ch;
+  font-size:12px;
+  line-height:1.55;
+  opacity:.72;
+}
+.design-accordion[data-design-section="whatsapp"] .design-page-checks{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin-top:8px;
+}
+.design-accordion[data-design-section="whatsapp"] .design-page-checks label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
