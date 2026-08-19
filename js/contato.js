@@ -103,12 +103,22 @@ function preencherFormulario(content) {
 async function enviarMensagem(e) {
   e.preventDefault();
 
+  const form = e.currentTarget;
   const msgEl = document.getElementById('contato-msg');
   const btn = document.getElementById('contato-submit');
 
+  // Honeypot simples contra robôs. Uma pessoa real nunca vê/preenche este campo.
+  const website = String(document.getElementById('website')?.value || '').trim();
+  if (website) {
+    form.reset();
+    msgEl.textContent = 'Mensagem enviada! Em breve entro em contato.';
+    msgEl.className = 'msg sucesso';
+    return;
+  }
+
   const nome = document.getElementById('nome').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const tipo = document.getElementById('tipo').value;
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const tipo = document.getElementById('tipo').value.trim();
   const mensagem = document.getElementById('mensagem').value.trim();
 
   if (!nome || !email || !mensagem) {
@@ -117,34 +127,72 @@ async function enviarMensagem(e) {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = 'Enviando...';
-  msgEl.textContent = '';
-  msgEl.className = 'msg';
-
-  const { error } = await supabase
-    .from('mensagens')
-    .insert({ nome, email, tipo, mensagem });
-
-  btn.disabled = false;
-  btn.textContent =
-    document.getElementById('contato-submit').dataset.original ||
-    'Enviar mensagem';
-
-  if (error) {
-    msgEl.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
+  if (nome.length > 120 || email.length > 254 || tipo.length > 100 || mensagem.length > 3000) {
+    msgEl.textContent = 'Revise os campos: há informação acima do limite permitido.';
     msgEl.className = 'msg erro';
     return;
   }
 
-  msgEl.textContent = 'Mensagem enviada! Em breve entro em contato.';
-  msgEl.className = 'msg sucesso';
-  e.target.reset();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    msgEl.textContent = 'Informe um e-mail válido.';
+    msgEl.className = 'msg erro';
+    return;
+  }
+
+  // Evita clique duplo/triplo no envio.
+  if (btn.disabled) return;
+
+  const original = btn.dataset.original || 'Enviar mensagem';
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+  btn.textContent = 'Enviando...';
+  msgEl.textContent = '';
+  msgEl.className = 'msg';
+
+  try {
+    const { data, error } = await supabase.functions.invoke(
+      'contact-notifications',
+      {
+        body: {
+          nome,
+          email,
+          tipo,
+          mensagem,
+          website: ''
+        }
+      }
+    );
+
+    if (error) throw error;
+    if (!data?.ok) {
+      throw new Error(data?.error || 'Não foi possível enviar a mensagem.');
+    }
+
+    msgEl.textContent = 'Mensagem enviada! Em breve entro em contato.';
+    msgEl.className = 'msg sucesso';
+    form.reset();
+
+    // Se a mensagem foi salva mas alguma notificação por e-mail falhou,
+    // não assusta a cliente: o contato continua disponível no Admin V2.
+    if (data?.saved && data?.notifications?.photographer === false) {
+      console.warn('[contato] Mensagem salva; notificação do fotógrafo não foi enviada.');
+    }
+    if (data?.saved && data?.notifications?.client === false) {
+      console.warn('[contato] Mensagem salva; confirmação da cliente não foi enviada.');
+    }
+  } catch (error) {
+    console.error('[contato] Falha no envio:', error);
+    msgEl.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
+    msgEl.className = 'msg erro';
+  } finally {
+    btn.disabled = false;
+    btn.removeAttribute('aria-busy');
+    btn.textContent = original;
+  }
 }
 
 async function iniciarContato() {
   const submit = document.getElementById('contato-submit');
-  submit.dataset.original = submit.textContent;
 
   const { settings } = await initSite();
   const sections = await getPageContent('contato');
@@ -152,6 +200,7 @@ async function iniciarContato() {
 
   preencherFormulario(content);
   preencherInfoContato(settings, content);
+  submit.dataset.original = submit.textContent;
 
   document
     .getElementById('contato-form')
