@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v32 — menus expansíveis corrigidos + header alinhado');
+console.log('[admin-v2] Build v33 — Conteúdo migrado + Design flyout lateral');
 
 const $ = id => document.getElementById(id);
 
@@ -4795,16 +4795,7 @@ $('btn-add-spec').addEventListener('click', () => {
   c.appendChild(div);
 });
 
-document.querySelectorAll('#content-tabs .tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('#content-tabs .tab').forEach(t =>
-      t.classList.toggle('active', t === tab)
-    );
-    ['inicio', 'sobre', 'contato'].forEach(p =>
-      $('content-panel-' + p).hidden = p !== tab.dataset.tab
-    );
-  });
-});
+
 
 /* =========================================================
    MENSAGENS
@@ -6639,95 +6630,71 @@ function setContentNavExpanded(expanded) {
     );
 }
 
-function openContentSection(sectionName) {
+function openContentSection(sectionName = 'home') {
   setView?.('content');
 
-  /*
-    A aba Conteúdo já possui os editores Início, Sobre e Contato.
-    Mantemos a estrutura existente e apenas navegamos até o bloco
-    correspondente, sem duplicar formulários.
-  */
-  const targetMap = {
-    home: [
-      '#home-content',
-      '#content-home',
-      '[data-content-section="home"]',
-      '#hero-editor',
-      '#hero-section'
-    ],
-    about: [
-      '#about-content',
-      '#content-about',
-      '[data-content-section="about"]',
-      '#about-editor'
-    ],
-    contact: [
-      '#contact-content',
-      '#content-contact',
-      '[data-content-section="contact"]',
-      '#contact-editor'
-    ]
+  const panelMap = {
+    home: 'inicio',
+    about: 'sobre',
+    contact: 'contato'
   };
 
-  const candidates = targetMap[sectionName] || [];
+  const panelName =
+    panelMap[sectionName] || 'inicio';
 
-  let target = null;
+  /*
+    O menu lateral passa a ser o seletor real das páginas.
+    Os antigos botões Início / Sobre / Contato da área direita
+    foram removidos para não existir navegação duplicada.
+  */
+  ['inicio', 'sobre', 'contato'].forEach(name => {
+    const panel = $(`content-panel-${name}`);
 
-  for (const selector of candidates) {
-    target = document.querySelector(selector);
-    if (target) break;
-  }
+    if (panel) {
+      panel.hidden = name !== panelName;
+    }
+  });
 
-  if (!target) {
-    /*
-      Fallback seguro: procura pelo texto do título dentro da view Conteúdo
-      e usa o bloco/painel mais próximo.
-    */
-    const wanted =
-      sectionName === 'home'
-        ? ['Início', 'Pagina inicial', 'Página inicial']
-        : sectionName === 'about'
-          ? ['Sobre', 'Sobre mim']
-          : ['Contato'];
-
-    const contentView =
-      document.querySelector(
-        '[data-view-section="content"], #view-content'
-      ) || document;
-
-    const headings = [
-      ...contentView.querySelectorAll(
-        'h1,h2,h3,.section-eyebrow,.panel-title'
-      )
-    ];
-
-    const heading = headings.find(el =>
-      wanted.some(text =>
-        el.textContent
-          ?.trim()
-          .toLowerCase()
-          .includes(text.toLowerCase())
-      )
-    );
-
-    target =
-      heading?.closest(
-        '.panel, .content-card, .field-full, section, article'
-      ) || heading;
-  }
-
-  if (target) {
-    target.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
+  document
+    .querySelectorAll('[data-content-jump]')
+    .forEach(button => {
+      button.classList.toggle(
+        'active',
+        button.dataset.contentJump === sectionName
+      );
     });
 
-    target.classList.add('content-nav-focus');
+  const titles = {
+    home: ['Página inicial', 'Início'],
+    about: ['Página Sobre', 'Sobre'],
+    contact: ['Página Contato', 'Contato']
+  };
 
-    setTimeout(
-      () => target.classList.remove('content-nav-focus'),
-      1000
-    );
+  const [eyebrow, title] =
+    titles[sectionName] || titles.home;
+
+  $('view-eyebrow').textContent = eyebrow;
+  $('view-title').textContent = title;
+
+  const target =
+    $(`content-panel-${panelName}`);
+
+  if (target) {
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+
+      target.classList.add(
+        'content-nav-focus'
+      );
+
+      setTimeout(
+        () => target.classList.remove('content-nav-focus'),
+        700
+      );
+    });
   }
 }
 
@@ -6744,7 +6711,7 @@ function initContentSidebarNavigation() {
       setContentNavExpanded(!expanded);
 
       if (!expanded) {
-        setView?.('content');
+        openContentSection('home');
       }
     });
   }
@@ -6787,25 +6754,108 @@ function setDesignNavExpanded(expanded) {
     );
 }
 
-function openDesignDrawer(sectionName) {
+function positionDesignDrawerNearTrigger(drawer, trigger) {
+  if (!drawer || !trigger) return;
+
+  const sidebar =
+    document.querySelector('.admin-sidebar');
+
+  const sidebarRect =
+    sidebar?.getBoundingClientRect();
+
+  const triggerRect =
+    trigger.getBoundingClientRect();
+
+  const gap = 10;
+  const margin = 10;
+
+  const drawerWidth =
+    Math.min(
+      390,
+      Math.max(
+        300,
+        window.innerWidth -
+          (sidebarRect?.right || triggerRect.right) -
+          gap -
+          margin
+      )
+    );
+
+  drawer.style.width =
+    `${drawerWidth}px`;
+
+  const left =
+    Math.min(
+      window.innerWidth -
+        drawerWidth -
+        margin,
+      (sidebarRect?.right || triggerRect.right) + gap
+    );
+
+  drawer.style.left =
+    `${Math.max(margin, left)}px`;
+
+  drawer.style.right = 'auto';
+  drawer.style.bottom = 'auto';
+
+  /*
+    O topo acompanha exatamente o subitem clicado,
+    criando a sensação de que o painel "nasce" à direita do nome.
+  */
+  const desiredTop =
+    triggerRect.top - 4;
+
+  requestAnimationFrame(() => {
+    const drawerHeight =
+      Math.min(
+        drawer.scrollHeight,
+        window.innerHeight - margin * 2
+      );
+
+    const maxTop =
+      Math.max(
+        margin,
+        window.innerHeight -
+          drawerHeight -
+          margin
+      );
+
+    drawer.style.top =
+      `${Math.max(
+        margin,
+        Math.min(
+          desiredTop,
+          maxTop
+        )
+      )}px`;
+
+    drawer.style.maxHeight =
+      `${window.innerHeight - margin * 2}px`;
+  });
+}
+
+function openDesignDrawer(sectionName, trigger = null) {
   const drawer = $('design-controls-drawer');
   if (!drawer) return;
 
-  // garante que a aba Design esteja ativa
   setView?.('design');
 
   drawer.hidden = false;
-  drawer.classList.add('is-open');
 
   document
     .querySelectorAll('.design-accordion')
     .forEach(section => {
-      const shouldOpen =
+      const selected =
         section.dataset.designSection === sectionName;
+
+      section.classList.toggle(
+        'is-selected',
+        selected
+      );
 
       setDesignAccordionOpen(
         section,
-        shouldOpen
+        selected
       );
     });
 
@@ -6825,12 +6875,20 @@ function openDesignDrawer(sectionName) {
       title || 'Configurações';
   }
 
-  requestAnimationFrame(() => {
-    selected?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest'
-    });
-  });
+  drawer.classList.add('is-open');
+
+  const source =
+    trigger ||
+    document.querySelector(
+      `[data-design-jump="${sectionName}"]`
+    );
+
+  positionDesignDrawerNearTrigger(
+    drawer,
+    source
+  );
+
+  drawer.scrollTop = 0;
 }
 
 function closeDesignDrawer() {
@@ -6875,7 +6933,8 @@ function initDesignSidebarNavigation() {
         event.stopPropagation();
 
         openDesignDrawer(
-          button.dataset.designJump
+          button.dataset.designJump,
+          button
         );
       });
     });
@@ -6953,7 +7012,40 @@ function initDesignStudio() {
     designPreviewResizeObserver.observe(stage);
   }
 
-  window.addEventListener('resize', sizeDesignPreview);
+  window.addEventListener('resize', () => {
+    sizeDesignPreview();
+
+    const drawer =
+      $('design-controls-drawer');
+
+    if (
+      drawer &&
+      !drawer.hidden &&
+      drawer.classList.contains('is-open')
+    ) {
+      const selected =
+        drawer.querySelector(
+          '.design-accordion.is-selected'
+        );
+
+      const name =
+        selected?.dataset.designSection;
+
+      const trigger =
+        name
+          ? document.querySelector(
+              `[data-design-jump="${name}"]`
+            )
+          : null;
+
+      if (trigger) {
+        positionDesignDrawerNearTrigger(
+          drawer,
+          trigger
+        );
+      }
+    }
+  });
   window.addEventListener('orientationchange', () => {
     setTimeout(sizeDesignPreview, 120);
   });
