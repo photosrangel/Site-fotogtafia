@@ -1289,7 +1289,7 @@ html, body {
 
 
 /* =========================================================
-   BUILD V34 — LIGHTBOX EM CARROSSEL COM PRÉVIA LATERAL
+   BUILD V35 — LIGHTBOX COM PRÉVIAS LATERAIS MAIORES
    ========================================================= */
 
 #lightbox {
@@ -1312,11 +1312,11 @@ html, body {
   min-height: 0;
   display: grid;
   grid-template-columns:
-    minmax(120px, .62fr)
-    minmax(280px, 1.2fr)
-    minmax(120px, .62fr);
+    minmax(160px, .82fr)
+    minmax(300px, 1.2fr)
+    minmax(160px, .82fr);
   align-items: center;
-  gap: clamp(18px, 3vw, 48px);
+  gap: clamp(12px, 2vw, 32px);
 }
 
 #lightbox .lightbox-slide {
@@ -1376,12 +1376,12 @@ html, body {
 
 #lightbox .lightbox-slide-prev {
   justify-content: flex-end;
-  transform: translateX(-12%);
+  transform: translateX(-6%);
 }
 
 #lightbox .lightbox-slide-next {
   justify-content: flex-start;
-  transform: translateX(12%);
+  transform: translateX(6%);
 }
 
 #lightbox .lightbox-carousel.is-next .lightbox-slide-current,
@@ -1433,7 +1433,7 @@ html, body {
   }
 
   #lightbox .lightbox-carousel {
-    grid-template-columns: 15vw minmax(0, 70vw) 15vw;
+    grid-template-columns: 20vw minmax(0, 60vw) 20vw;
     gap: 8px;
   }
 
@@ -1442,11 +1442,11 @@ html, body {
   }
 
   #lightbox .lightbox-slide-prev {
-    transform: translateX(-38%);
+    transform: translateX(-24%);
   }
 
   #lightbox .lightbox-slide-next {
-    transform: translateX(38%);
+    transform: translateX(24%);
   }
 
   #lightbox .lightbox-slide-prev,
@@ -1473,7 +1473,7 @@ html, body {
 
 @media (max-width: 420px) {
   #lightbox .lightbox-carousel {
-    grid-template-columns: 12vw minmax(0, 76vw) 12vw;
+    grid-template-columns: 18vw minmax(0, 64vw) 18vw;
     gap: 5px;
   }
 
