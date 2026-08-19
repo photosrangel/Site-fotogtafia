@@ -7270,3 +7270,216 @@ body .design-controls-drawer.is-content-editor
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   BUILD V45 — ÁREA DO CLIENTE AMPLA + CENTRAL DE CONFIGURAÇÕES
+   ========================================================= */
+
+/* Somente Área do Cliente ganha largura extra.
+   Os outros flyouts do Designer continuam compactos. */
+body .design-controls-drawer.is-client-area-editor {
+  width: min(610px, calc(100vw - 28px)) !important;
+  max-width: 610px !important;
+}
+
+/* Evita labels espremidos ao lado dos inputs. */
+.design-controls-drawer.is-client-area-editor
+.design-client-texts-body
+.design-control-row,
+.design-controls-drawer.is-client-area-editor
+.design-client-stage-text-grid
+.design-control-row,
+.design-controls-drawer.is-client-area-editor
+.design-client-status-texts
+.design-control-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 7px !important;
+  align-items: stretch !important;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-texts-body
+.design-control-row input,
+.design-controls-drawer.is-client-area-editor
+.design-client-texts-body
+.design-control-row textarea,
+.design-controls-drawer.is-client-area-editor
+.design-client-stage-text-grid
+.design-control-row input,
+.design-controls-drawer.is-client-area-editor
+.design-client-status-texts
+.design-control-row input {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-stage-text-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+
+  gap: 12px !important;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-status-texts {
+  gap: 12px !important;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-status-texts
+.design-control-row {
+  padding-bottom: 2px;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-texts-section > summary {
+  min-height: 48px;
+}
+
+.design-controls-drawer.is-client-area-editor
+.design-client-texts-body {
+  gap: 14px;
+}
+
+/* Configurações como central do CMS */
+.settings-hub-head {
+  margin-bottom: 18px;
+}
+
+.settings-hub-head h2 {
+  margin: 4px 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 400;
+}
+
+.settings-hub-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-section {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.settings-section-summary {
+  min-height: 72px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+
+  padding: 18px 20px;
+
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-section-summary h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+
+.settings-section-summary > span {
+  color: var(--text-muted);
+  transition: transform .18s ease;
+}
+
+.settings-section[open]
+.settings-section-summary > span {
+  transform: rotate(180deg);
+}
+
+.settings-section-body {
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+.settings-section-body form {
+  padding-top: 18px;
+}
+
+.admin-interface-intro {
+  margin: 18px 0 0;
+}
+
+.admin-interface-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-settings-group {
+  min-width: 0;
+  margin: 0;
+  padding: 16px;
+
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 10px;
+
+  background: rgba(255,255,255,.012);
+}
+
+.admin-settings-group legend {
+  padding: 0 8px;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-ui-nav-grid {
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 900px) {
+  .admin-ui-nav-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 620px) {
+  body .design-controls-drawer.is-client-area-editor {
+    width: calc(100vw - 8px) !important;
+    max-width: none !important;
+  }
+
+  .design-controls-drawer.is-client-area-editor
+  .design-client-stage-text-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .settings-section-summary {
+    min-height: 64px;
+    padding: 15px 14px;
+  }
+
+  .settings-section-body {
+    padding: 0 14px 14px;
+  }
+
+  .admin-ui-nav-grid {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  .admin-settings-group {
+    padding: 12px;
+  }
+}
