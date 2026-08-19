@@ -166,6 +166,22 @@
       </div>
     </div>
 
+    <div id="design-inline-editor" class="design-inline-editor" hidden>
+      <div class="design-inline-editor-head"><strong id="design-inline-editor-label">Editar texto</strong><span>Alteração no rascunho</span></div>
+      <div class="design-inline-toolbar" role="toolbar" aria-label="Formatação do texto">
+        <select id="design-inline-size" aria-label="Tamanho"><option value="inherit">Tamanho normal</option><option value="small">Menor</option><option value="large">Maior</option></select>
+        <button type="button" data-inline-command="bold" title="Negrito"><b>B</b></button>
+        <button type="button" data-inline-command="italic" title="Itálico"><i>I</i></button>
+        <span class="design-inline-separator"></span>
+        <button type="button" data-inline-align="left" title="Alinhar à esquerda">≡</button>
+        <button type="button" data-inline-align="center" title="Centralizar">≣</button>
+        <button type="button" data-inline-align="right" title="Alinhar à direita">≡</button>
+        <span class="design-inline-spacer"></span>
+        <button type="button" class="design-inline-discard" id="design-inline-discard">Descartar</button>
+        <button type="button" class="design-inline-save" id="design-inline-save">Salvar</button>
+      </div>
+    </div>
+
     <section class="panel design-publication-panel" aria-labelledby="design-publication-title">
       <div class="design-publication-head">
         <div>
@@ -320,6 +336,13 @@
             <output id="design-hero-overlay-out">Padrão</output>
             <input id="design-hero-overlay" type="range" min="0" max="70" value="40">
           </label>
+          <div class="design-control-divider"></div>
+          <p class="design-control-kicker">WhatsApp flutuante</p>
+          <label class="design-control-row design-control-check"><span>Exibir botão</span><input id="design-whatsapp-enabled" type="checkbox" checked></label>
+          <label class="design-control-row">Número com indicativo do país<input id="design-whatsapp-number" type="tel" inputmode="tel" maxlength="20" placeholder="351912345678"></label>
+          <label class="design-control-row">Mensagem inicial<textarea id="design-whatsapp-message" rows="3" maxlength="500">Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.</textarea></label>
+          <label class="design-control-row">Posição<select id="design-whatsapp-position"><option value="right" selected>Direita</option><option value="left">Esquerda</option></select></label>
+          <div class="design-control-row"><span>Mostrar nas páginas</span><div class="design-page-checks"><label><input type="checkbox" id="design-whatsapp-page-inicio" checked> Início</label><label><input type="checkbox" id="design-whatsapp-page-galeria" checked> Galeria</label><label><input type="checkbox" id="design-whatsapp-page-sobre" checked> Sobre</label><label><input type="checkbox" id="design-whatsapp-page-contato" checked> Contato</label></div></div>
         </div>
       </section>
 
