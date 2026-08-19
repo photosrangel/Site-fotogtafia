@@ -3049,256 +3049,155 @@
 
 
 /* =========================================================
-   HOME HERO MANAGER — FOTO ESTÁTICA / SLIDESHOW
+   CORREÇÃO MOBILE FINAL — DASHBOARD + MODAL DE ENSAIOS
    ========================================================= */
-.hero-mode-switch { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
-.hero-mode-switch label { display:flex; align-items:center; gap:8px; min-height:42px; padding:9px 14px; border:1px solid var(--admin-line-strong); border-radius:8px; cursor:pointer; font-family:var(--font-mono); font-size:.65rem; }
-.hero-media-editor { padding:18px; border:1px solid var(--admin-line-soft); border-radius:12px; background:rgba(255,255,255,.012); }
-.hero-media-editor.is-primary-mode { border-color:rgba(255,255,255,.32); box-shadow:inset 0 0 0 1px rgba(255,255,255,.04); }
-.panel-head.compact { margin-bottom:16px; }
-.panel-head.compact h3 { margin:2px 0 0; font-family:var(--font-display); font-size:1.35rem; font-weight:400; }
-.field-help { margin:7px 0 0; color:var(--text-muted); font-family:var(--font-mono); font-size:.59rem; line-height:1.55; }
-.focal-editor { display:grid; grid-template-columns:minmax(260px,1.35fr) minmax(220px,.65fr); gap:18px; margin-top:16px; }
-.focal-preview { position:relative; min-height:280px; overflow:hidden; border:1px solid var(--admin-line-strong); border-radius:10px; background-color:#0b0b0a; background-size:cover; background-repeat:no-repeat; cursor:crosshair; }
-.focal-preview.empty::after { content:'Escolha uma imagem para definir o ponto focal'; position:absolute; inset:0; display:grid; place-items:center; padding:20px; color:var(--text-muted); font-family:var(--font-mono); font-size:.62rem; text-align:center; }
-.focal-marker { position:absolute; width:18px; height:18px; border:2px solid #fff; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 3px rgba(0,0,0,.5); pointer-events:none; }
-.focal-marker::before,.focal-marker::after { content:''; position:absolute; background:#fff; left:50%; top:50%; transform:translate(-50%,-50%); }
-.focal-marker::before { width:26px; height:1px; } .focal-marker::after { width:1px; height:26px; }
-.focal-controls output { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); }
-.hero-slides-admin { display:grid; gap:12px; }
-.hero-slides-empty { padding:28px 18px; border:1px dashed var(--admin-line-strong); border-radius:10px; color:var(--text-muted); text-align:center; font-family:var(--font-mono); font-size:.62rem; }
-.hero-slide-card { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(260px,1.3fr); gap:16px; padding:12px; border:1px solid var(--admin-line-soft); border-radius:10px; }
-.hero-slide-preview { min-height:190px; }
-.hero-slide-preview .status-pill { position:absolute; right:10px; top:10px; }
-.hero-slide-number { position:absolute; left:10px; top:10px; padding:5px 7px; background:rgba(0,0,0,.7); font-family:var(--font-mono); font-size:.58rem; }
-.hero-slide-actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
-.small-btn.danger { border-color:rgba(209,139,133,.35); color:#d18b85; }
-.hero-upload-label { cursor:pointer; }
-@media (max-width:760px) { .focal-editor,.hero-slide-card { grid-template-columns:1fr; } .focal-preview { min-height:230px; } .hero-slide-preview { min-height:210px; } }
-
-/* =========================================================
-   HOME HERO MANAGER — VERSÃO COMPACTA / MINIMALISTA
-   Reduz altura das fotos, botões e espaços internos.
-   ========================================================= */
-
-.hero-mode-field {
-  margin-bottom: 0;
-}
-
-.hero-mode-switch {
-  gap: 6px !important;
-  margin-top: 6px !important;
-}
-
-.hero-mode-switch label {
-  min-height: 34px !important;
-  padding: 6px 10px !important;
-  border-radius: 6px !important;
-  font-size: .58rem !important;
-}
-
-.hero-media-editor {
-  padding: 12px !important;
-  border-radius: 8px !important;
-}
-
-.hero-media-editor .panel-head.compact {
-  min-height: 0;
-  margin-bottom: 10px !important;
-  gap: 10px;
-}
-
-.hero-media-editor .panel-head.compact h3 {
-  font-size: 1.08rem !important;
-}
-
-.hero-media-editor .section-eyebrow {
-  margin-bottom: 3px;
-  font-size: .52rem;
-}
-
-.hero-media-editor .field {
-  gap: 5px;
-}
-
-.hero-media-editor .field label {
-  font-size: .55rem;
-}
-
-.hero-media-editor input[type="text"],
-.hero-media-editor input[type="url"],
-.hero-media-editor input[type="number"],
-.hero-media-editor input:not([type]) {
-  min-height: 35px;
-  padding: 7px 9px;
-}
-
-.hero-upload-label,
-.hero-media-editor .small-btn {
-  min-height: 31px !important;
-  padding: 6px 9px !important;
-  font-size: .52rem !important;
-}
-
-.focal-editor {
-  grid-template-columns:
-    minmax(190px, .85fr)
-    minmax(190px, 1.15fr) !important;
-  gap: 12px !important;
-  margin-top: 10px !important;
-}
-
-.focal-preview {
-  min-height: 165px !important;
-  max-height: 190px;
-  border-radius: 7px !important;
-}
-
-.focal-marker {
-  width: 14px !important;
-  height: 14px !important;
-}
-
-.focal-marker::before {
-  width: 21px !important;
-}
-
-.focal-marker::after {
-  height: 21px !important;
-}
-
-.focal-controls {
-  display: grid;
-  align-content: center;
-  gap: 7px;
-}
-
-.focal-controls .field {
-  margin: 0;
-}
-
-.focal-controls output {
-  font-size: .55rem !important;
-}
-
-.field-help {
-  margin-top: 5px !important;
-  font-size: .53rem !important;
-  line-height: 1.4 !important;
-}
-
-.hero-timing-grid {
-  margin-bottom: 10px !important;
-}
-
-.hero-slides-admin {
-  gap: 8px !important;
-}
-
-.hero-slides-empty {
-  padding: 18px 12px !important;
-  border-radius: 7px !important;
-  font-size: .56rem !important;
-}
-
-.hero-slide-card {
-  grid-template-columns:
-    150px
-    minmax(0, 1fr) !important;
-  gap: 10px !important;
-  padding: 8px !important;
-  border-radius: 7px !important;
-}
-
-.hero-slide-preview {
-  min-height: 105px !important;
-  max-height: 125px;
-  border-radius: 6px !important;
-}
-
-.hero-slide-number {
-  left: 6px !important;
-  top: 6px !important;
-  padding: 3px 5px !important;
-  font-size: .5rem !important;
-}
-
-.hero-slide-preview .status-pill {
-  right: 6px !important;
-  top: 6px !important;
-  min-height: 22px;
-  padding: 4px 6px;
-  font-size: .48rem;
-}
-
-.hero-slide-fields .field {
-  margin-bottom: 4px;
-}
-
-.hero-slide-fields input {
-  min-height: 33px !important;
-  padding: 6px 8px !important;
-}
-
-.hero-slide-actions {
-  gap: 4px !important;
-  margin-top: 6px !important;
-}
-
-.hero-slide-actions .small-btn {
-  min-width: 0;
-  min-height: 28px !important;
-  padding: 5px 7px !important;
-  font-size: .49rem !important;
-}
 
 @media (max-width: 760px) {
-
-  .focal-editor {
-    grid-template-columns: 1fr !important;
+  .panel-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+    width: 100% !important;
+    grid-template-columns: none !important;
   }
 
-  .focal-preview {
-    min-height: 180px !important;
-    max-height: 220px;
+  .panel-grid > * {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    overflow: hidden;
   }
 
-  .hero-slide-card {
-    grid-template-columns: 110px minmax(0, 1fr) !important;
+  .panel-grid > .panel {
+    flex: 0 0 auto !important;
   }
 
-  .hero-slide-preview {
-    min-height: 95px !important;
-    max-height: 115px;
+  .panel,
+  .panel * {
+    min-width: 0;
+    box-sizing: border-box;
   }
 
-  .hero-slide-actions {
+  #session-editor-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    display: block;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 !important;
+  }
+
+  #session-editor-modal[hidden] {
+    display: none !important;
+  }
+
+  #session-editor-modal .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  #session-editor-modal .modal-dialog {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding:
+      14px
+      14px
+      max(34px, env(safe-area-inset-bottom)) !important;
+    display: block !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  #session-editor-modal .modal-head {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 30 !important;
+    margin: -14px -14px 15px !important;
+    padding:
+      max(14px, env(safe-area-inset-top))
+      14px
+      14px !important;
+    background: rgba(15, 15, 13, .96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  #session-editor-modal .session-workflow {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+    gap: 14px !important;
   }
 
-  .hero-slide-actions .small-btn {
-    width: 100%;
+  #session-editor-modal .session-access-panel,
+  #session-editor-modal .session-progress-panel,
+  #session-editor-modal .session-stage-card,
+  #session-editor-modal .session-stage-body,
+  #session-editor-modal .session-footer-actions {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #session-editor-modal .session-progress-panel {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  #session-editor-modal .session-progress {
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  #session-editor-modal .session-progress::-webkit-scrollbar {
+    display: none;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  #session-editor-modal .session-actions,
+  #session-editor-modal .session-footer-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  #session-editor-modal .session-actions .btn,
+  #session-editor-modal .session-actions .small-btn,
+  #session-editor-modal .session-footer-actions .btn,
+  #session-editor-modal .session-footer-actions .small-btn {
+    width: 100% !important;
   }
 }
 
-@media (max-width: 480px) {
-
-  .hero-media-editor {
-    padding: 10px !important;
+@media (max-width: 430px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .hero-slide-card {
-    grid-template-columns: 92px minmax(0, 1fr) !important;
-    gap: 8px !important;
-  }
-
-  .hero-slide-preview {
-    min-height: 88px !important;
-  }
-
-  .hero-mode-switch label {
-    flex: 1 1 auto;
-    justify-content: center;
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
