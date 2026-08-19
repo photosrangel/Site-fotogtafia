@@ -4015,3 +4015,160 @@
     width: 100%;
   }
 }
+
+
+/* =========================================================
+   V13 — SIDEBAR ALINHADA + BADGES + ANEXOS DE RESPOSTA
+   ========================================================= */
+
+/* Mensagens e Ensaios voltam a seguir exatamente o mesmo alinhamento
+   das outras opções da sidebar. O número fica imediatamente após o nome. */
+.sidebar-link[data-view="messages"],
+.sidebar-link[data-view="sessions"] {
+  justify-content: flex-start !important;
+}
+
+.sidebar-live-badge {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px !important;
+  height: 18px !important;
+  margin-left: 2px;
+  padding: 0 5px !important;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07) !important;
+  color: var(--accent) !important;
+  font-size: .5rem !important;
+  line-height: 1;
+}
+
+.sidebar-live-badge[hidden] {
+  display: none !important;
+}
+
+.reply-attachments-box {
+  margin: 0 0 18px;
+  padding: 13px;
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 8px;
+  background: rgba(255,255,255,.012);
+}
+
+.reply-attachments-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.reply-attachments-head .section-eyebrow {
+  margin: 0 0 5px;
+}
+
+.reply-attachments-summary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .72rem;
+}
+
+.reply-attachment-picker {
+  flex: 0 0 auto;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.reply-attachments-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.reply-attachment-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 8px 8px 10px;
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 7px;
+  background: rgba(0,0,0,.14);
+}
+
+.reply-attachment-chip-info {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.reply-attachment-chip-info strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: .7rem;
+  font-weight: 400;
+}
+
+.reply-attachment-chip-info span {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .5rem;
+}
+
+.reply-attachment-remove {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.reply-attachment-remove:hover {
+  color: var(--accent);
+  border-color: rgba(255,255,255,.35);
+}
+
+@media (max-width: 680px) {
+  .reply-attachments-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .reply-attachment-picker {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .reply-attachment-chip {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .reply-attachment-remove {
+    width: 44px;
+    height: 44px;
+  }
+
+  .reply-attachment-chip-info {
+    display: grid;
+    gap: 3px;
+  }
+
+  .sidebar-live-badge {
+    min-width: 17px !important;
+    height: 17px !important;
+    font-size: .48rem !important;
+  }
+}
