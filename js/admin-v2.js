@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v12 — Realtime + respostas no painel');
+console.log('[admin-v2] Build v13 — badges alinhados + anexos + resposta pronta');
 
 const $ = id => document.getElementById(id);
 
@@ -23,6 +23,7 @@ let heroSlidesDraft = [];
 let messagesCache = [];
 let activeView = 'dashboard';
 let adminRealtimeChannel = null;
+let replyAttachmentsDraft = [];
 
 
 const slugify = v =>
@@ -236,11 +237,12 @@ function liveToast({
   }
 }
 
-function ensureMessagesBadge() {
-  const button = document.querySelector('.sidebar-link[data-view="messages"]');
+function ensureSidebarBadge(view) {
+  const button = document.querySelector(`.sidebar-link[data-view="${view}"]`);
   if (!button) return null;
 
   let badge = button.querySelector('.sidebar-live-badge');
+
   if (!badge) {
     badge = document.createElement('span');
     badge.className = 'sidebar-live-badge';
@@ -251,6 +253,24 @@ function ensureMessagesBadge() {
   return badge;
 }
 
+function ensureMessagesBadge() {
+  return ensureSidebarBadge('messages');
+}
+
+function ensureSessionsBadge() {
+  return ensureSidebarBadge('sessions');
+}
+
+function updateSidebarBadge(badge, total, title = '') {
+  if (!badge) return;
+
+  const value = Number(total || 0);
+  badge.textContent = value > 99 ? '99+' : String(value);
+  badge.hidden = value < 1;
+
+  if (title) badge.title = title;
+}
+
 async function refreshUnreadMessagesCount() {
   const { count, error } = await supabase
     .from('mensagens')
@@ -258,23 +278,58 @@ async function refreshUnreadMessagesCount() {
     .eq('lida', false);
 
   if (error) {
-    console.warn('[admin-v2] Não foi possível atualizar contador de mensagens:', error.message);
+    console.warn(
+      '[admin-v2] Não foi possível atualizar contador de mensagens:',
+      error.message
+    );
     return;
   }
 
   const total = Number(count || 0);
   const badge = ensureMessagesBadge();
 
-  if (badge) {
-    badge.textContent = total > 99 ? '99+' : String(total);
-    badge.hidden = total < 1;
-  }
+  updateSidebarBadge(
+    badge,
+    total,
+    `${total} mensagem(ns) não lida(s)`
+  );
 
   const dashboardCount = $('stat-messages');
   if (dashboardCount) {
     dashboardCount.textContent = total;
     dashboardCount.style.color = total ? 'var(--accent)' : '';
   }
+}
+
+async function refreshCompletedSelectionsCount() {
+  const statuses = [
+    'selecao_finalizada',
+    'selecionado',
+    'em_edicao',
+    'fotos_disponiveis',
+    'entregue'
+  ];
+
+  const { count, error } = await supabase
+    .from('ensaios')
+    .select('id', { count: 'exact', head: true })
+    .in('status', statuses);
+
+  if (error) {
+    console.warn(
+      '[admin-v2] Não foi possível atualizar contador de seleções:',
+      error.message
+    );
+    return;
+  }
+
+  const total = Number(count || 0);
+
+  updateSidebarBadge(
+    ensureSessionsBadge(),
+    total,
+    `${total} seleção(ões) finalizada(s)`
+  );
 }
 
 function normalizarRealtimeStatus(status) {
@@ -314,6 +369,8 @@ async function handleRealtimeMessage(payload) {
 async function handleRealtimeEnsaio(payload) {
   const novo = payload?.new || {};
   if (!novo?.id) return;
+
+  await refreshCompletedSelectionsCount();
 
   const cacheAntes = sessionsCache.find(s => s.id === novo.id);
   const statusAntes = normalizarRealtimeStatus(cacheAntes?.status);
@@ -366,7 +423,12 @@ async function startAdminRealtime() {
   if (adminRealtimeChannel) return;
 
   ensureMessagesBadge();
-  await refreshUnreadMessagesCount();
+  ensureSessionsBadge();
+
+  await Promise.all([
+    refreshUnreadMessagesCount(),
+    refreshCompletedSelectionsCount()
+  ]);
 
   adminRealtimeChannel = supabase
     .channel('admin-v2-live')
@@ -417,6 +479,192 @@ async function stopAdminRealtime() {
    RESPOSTA DE MENSAGENS
 ========================================================= */
 
+
+const REPLY_ATTACHMENT_MAX_FILES = 5;
+const REPLY_ATTACHMENT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+const REPLY_ATTACHMENT_MAX_TOTAL_BYTES = 8 * 1024 * 1024;
+
+const REPLY_ATTACHMENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+]);
+
+function defaultContactReply(message) {
+  const primeiroNome =
+    safeText(message?.nome || 'Olá', 120)
+      .trim()
+      .split(/\s+/)[0] || 'Olá';
+
+  const interesse =
+    safeText(message?.tipo || 'o ensaio', 100);
+
+  return `Olá, ${primeiroNome}.
+
+Obrigado pela sua mensagem e pelo interesse no meu trabalho.
+
+Será um prazer conversar consigo sobre ${interesse} e perceber melhor aquilo que procura, para que possamos construir uma experiência pensada para si.
+
+Estou à disposição para esclarecer todas as suas dúvidas e explicar com calma como funciona a sessão, preparação, valores e disponibilidade.
+
+Se desejar, podemos continuar por aqui e alinhar todos os detalhes.
+
+Até breve,
+Rangel Santos
+Fotografia`;
+}
+
+function humanFileSize(bytes) {
+  const value = Number(bytes || 0);
+
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function renderReplyAttachments() {
+  const list = document.getElementById('message-reply-attachments-list');
+  const summary = document.getElementById('message-reply-attachments-summary');
+
+  if (!list || !summary) return;
+
+  const totalBytes = replyAttachmentsDraft
+    .reduce((sum, file) => sum + Number(file.size || 0), 0);
+
+  summary.textContent = replyAttachmentsDraft.length
+    ? `${replyAttachmentsDraft.length} anexo(s) · ${humanFileSize(totalBytes)}`
+    : 'Nenhum anexo selecionado.';
+
+  if (!replyAttachmentsDraft.length) {
+    list.innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = replyAttachmentsDraft.map((file, index) => `
+    <div class="reply-attachment-chip">
+      <div class="reply-attachment-chip-info">
+        <strong>${esc(file.name)}</strong>
+        <span>${esc(humanFileSize(file.size))}</span>
+      </div>
+      <button
+        class="reply-attachment-remove"
+        type="button"
+        data-remove-reply-attachment="${index}"
+        aria-label="Remover ${attr(file.name)}"
+      >×</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-remove-reply-attachment]').forEach(button => {
+    button.addEventListener('click', () => {
+      const index = Number(button.dataset.removeReplyAttachment);
+
+      if (Number.isInteger(index)) {
+        replyAttachmentsDraft.splice(index, 1);
+        renderReplyAttachments();
+      }
+    });
+  });
+}
+
+function addReplyAttachments(fileList) {
+  const statusEl = $('message-reply-msg');
+  const incoming = Array.from(fileList || []);
+
+  if (!incoming.length) return;
+
+  const draft = [...replyAttachmentsDraft];
+
+  for (const file of incoming) {
+    if (draft.length >= REPLY_ATTACHMENT_MAX_FILES) {
+      msg(
+        statusEl,
+        `É possível anexar no máximo ${REPLY_ATTACHMENT_MAX_FILES} arquivos.`,
+        'erro'
+      );
+      break;
+    }
+
+    if (!REPLY_ATTACHMENT_TYPES.has(file.type)) {
+      msg(
+        statusEl,
+        `Formato não permitido: ${file.name}`,
+        'erro'
+      );
+      continue;
+    }
+
+    if (file.size > REPLY_ATTACHMENT_MAX_FILE_BYTES) {
+      msg(
+        statusEl,
+        `${file.name} ultrapassa 5 MB.`,
+        'erro'
+      );
+      continue;
+    }
+
+    const currentTotal = draft
+      .reduce((sum, current) => sum + Number(current.size || 0), 0);
+
+    if (currentTotal + file.size > REPLY_ATTACHMENT_MAX_TOTAL_BYTES) {
+      msg(
+        statusEl,
+        'Os anexos juntos não podem ultrapassar 8 MB.',
+        'erro'
+      );
+      break;
+    }
+
+    draft.push(file);
+  }
+
+  replyAttachmentsDraft = draft;
+  renderReplyAttachments();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const comma = result.indexOf(',');
+
+      resolve({
+        filename: safeText(file.name, 180),
+        content: comma >= 0 ? result.slice(comma + 1) : result
+      });
+    };
+
+    reader.onerror = () =>
+      reject(new Error(`Não foi possível ler ${file.name}.`));
+
+    reader.readAsDataURL(file);
+  });
+}
+
+async function serializeReplyAttachments() {
+  const serialized = [];
+
+  for (const file of replyAttachmentsDraft) {
+    serialized.push(await fileToBase64(file));
+  }
+
+  return serialized;
+}
+
+
 function ensureReplyModal() {
   let modal = document.getElementById('message-reply-modal');
   if (modal) return modal;
@@ -461,6 +709,38 @@ function ensureReplyModal() {
           ></textarea>
         </div>
 
+        <div class="reply-attachments-box">
+          <div class="reply-attachments-head">
+            <div>
+              <p class="section-eyebrow">Anexos</p>
+              <p class="reply-attachments-summary" id="message-reply-attachments-summary">
+                Nenhum anexo selecionado.
+              </p>
+            </div>
+
+            <label class="small-btn reply-attachment-picker">
+              Anexar arquivos
+              <input
+                id="message-reply-attachments"
+                type="file"
+                multiple
+                hidden
+                accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              >
+            </label>
+          </div>
+
+          <div
+            class="reply-attachments-list"
+            id="message-reply-attachments-list"
+          ></div>
+
+          <p class="field-help">
+            Até 5 arquivos. Máximo de 5 MB por arquivo e 8 MB no total.
+            Fotos, PDF, Word, Excel, PowerPoint, TXT e CSV.
+          </p>
+        </div>
+
         <div class="form-actions">
           <button class="btn btn-accent" type="submit">Enviar resposta</button>
           <button class="btn" type="button" data-close-reply>Cancelar</button>
@@ -478,6 +758,12 @@ function ensureReplyModal() {
 
   modal.querySelector('#message-reply-form')
     ?.addEventListener('submit', sendReplyMessage);
+
+  modal.querySelector('#message-reply-attachments')
+    ?.addEventListener('change', event => {
+      addReplyAttachments(event.target.files);
+      event.target.value = '';
+    });
 
   return modal;
 }
@@ -502,7 +788,12 @@ function openReplyMessage(id) {
   $('message-reply-title').textContent =
     `Responder ${message.nome || 'cliente'}`;
 
-  $('message-reply-text').value = '';
+  replyAttachmentsDraft = [];
+  renderReplyAttachments();
+
+  $('message-reply-text').value =
+    defaultContactReply(message);
+
   msg($('message-reply-msg'), '');
 
   modal.hidden = false;
@@ -515,8 +806,13 @@ function closeReplyModal() {
   if (!modal) return;
 
   modal.hidden = true;
+
+  replyAttachmentsDraft = [];
+  renderReplyAttachments();
+
   const form = document.getElementById('message-reply-form');
   form?.reset();
+
   msg($('message-reply-msg'), '');
 }
 
@@ -536,16 +832,24 @@ async function sendReplyMessage(event) {
     return;
   }
 
-  msg(statusEl, 'Enviando...');
+  msg(
+    statusEl,
+    replyAttachmentsDraft.length
+      ? 'Preparando anexos e enviando...'
+      : 'Enviando...'
+  );
 
   try {
+    const attachments = await serializeReplyAttachments();
+
     const { data, error } = await supabase.functions.invoke(
       'contact-notifications',
       {
         body: {
           action: 'reply',
           message_id: messageId,
-          reply_text: replyText
+          reply_text: replyText,
+          attachments
         }
       }
     );
@@ -3973,6 +4277,8 @@ async function loadSessions() {
 
   sessionsCache = data || [];
 
+
+  await refreshCompletedSelectionsCount();
   // Busca as fotografias apenas para obter a capa de cada ensaio.
   // Não altera a estrutura da tabela ensaios nem a lógica das sessões.
   if (sessionsCache.length) {
