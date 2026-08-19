@@ -93,21 +93,39 @@
 <div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" type="url" maxlength="2048" placeholder="https://..."></div>
 <div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt" maxlength="240"></div>
 </div>
-<div class="focal-editor">
-<div id="hero-static-preview" class="focal-preview" title="Clique no ponto que deve permanecer em destaque"><span class="focal-marker"></span></div>
-<div class="focal-controls">
-<div class="field"><label for="hero-static-focus-x">Ponto focal horizontal</label><input id="hero-static-focus-x" type="range" min="0" max="100" value="50"><output id="hero-static-focus-x-out">50%</output></div>
-<div class="field"><label for="hero-static-focus-y">Ponto focal vertical</label><input id="hero-static-focus-y" type="range" min="0" max="100" value="50"><output id="hero-static-focus-y-out">50%</output></div>
-<p class="field-help">Clique diretamente na foto para marcar o ponto que deve permanecer visível quando a imagem for recortada em telas diferentes.</p>
-</div>
-</div>
-
-<div class="hero-mobile-fallback-preview-wrap">
-  <div>
-    <p class="section-eyebrow">Prévia celular</p>
-    <p class="field-help">Se nenhuma foto de celular for escolhida, o site usa automaticamente a foto principal.</p>
+<div class="hero-static-preview-row">
+  <div class="hero-static-desktop-column">
+    <p class="section-eyebrow hero-preview-label">Prévia principal</p>
+    <div id="hero-static-preview" class="focal-preview" title="Clique no ponto que deve permanecer em destaque">
+      <span class="focal-marker"></span>
+    </div>
   </div>
-  <div id="hero-static-mobile-preview" class="hero-static-mobile-preview empty" aria-label="Prévia da foto estática no celular"></div>
+
+  <div class="focal-controls hero-static-focal-column">
+    <div class="field">
+      <label for="hero-static-focus-x">Ponto focal horizontal</label>
+      <input id="hero-static-focus-x" type="range" min="0" max="100" value="50">
+      <output id="hero-static-focus-x-out">50%</output>
+    </div>
+
+    <div class="field">
+      <label for="hero-static-focus-y">Ponto focal vertical</label>
+      <input id="hero-static-focus-y" type="range" min="0" max="100" value="50">
+      <output id="hero-static-focus-y-out">50%</output>
+    </div>
+
+    <p class="field-help">
+      Clique diretamente na foto principal para marcar o ponto que deve permanecer visível quando a imagem for recortada.
+    </p>
+  </div>
+
+  <div class="hero-static-mobile-column">
+    <p class="section-eyebrow hero-preview-label">Prévia celular</p>
+    <div id="hero-static-mobile-preview" class="hero-static-mobile-preview empty" aria-label="Prévia da foto estática no celular"></div>
+    <p class="field-help hero-mobile-preview-help">
+      Se nenhuma foto de celular for escolhida, o site usa automaticamente a foto principal.
+    </p>
+  </div>
 </div>
 </div>
 
