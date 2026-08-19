@@ -1202,3 +1202,57 @@ html, body {
     padding-top: 100px !important;
   }
 }
+
+
+/* =========================================================
+   ÁREA DO CLIENTE — BOTÕES COM CONTRASTE
+   Evita botão branco com texto branco.
+   ========================================================= */
+
+.cliente-wrap .btn.btn-accent,
+#lightbox-selecao .btn.btn-accent {
+  border: 1px solid rgba(255,255,255,.88) !important;
+  background: rgba(8,8,7,.88) !important;
+  color: #f4f1eb !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.22);
+  text-shadow: none !important;
+}
+
+.cliente-wrap .btn.btn-accent:hover,
+.cliente-wrap .btn.btn-accent:focus-visible,
+#lightbox-selecao .btn.btn-accent:hover,
+#lightbox-selecao .btn.btn-accent:focus-visible {
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0b0b0a !important;
+}
+
+.cliente-wrap .btn.btn-accent:active,
+#lightbox-selecao .btn.btn-accent:active {
+  transform: translateY(1px);
+}
+
+.cliente-wrap .btn.btn-accent:disabled,
+#lightbox-selecao .btn.btn-accent:disabled {
+  border-color: rgba(255,255,255,.32) !important;
+  background: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.56) !important;
+  opacity: 1 !important;
+  cursor: not-allowed;
+}
+
+/* Botões sobre as fotografias finais precisam continuar legíveis
+   independentemente da luminosidade da imagem. */
+.cliente-wrap .frame .frame-caption .btn.btn-accent {
+  background: rgba(8,8,7,.86) !important;
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.92) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.cliente-wrap .frame .frame-caption .btn.btn-accent:hover,
+.cliente-wrap .frame .frame-caption .btn.btn-accent:focus-visible {
+  background: #ffffff !important;
+  color: #0b0b0a !important;
+}

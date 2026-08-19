@@ -5148,3 +5148,84 @@
     transform: none !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V18 — ARRASTAR SLIDES CORRIGIDO
+   ========================================================= */
+
+.hero-slide-drag-handle {
+  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+.hero-slide-card.is-pointer-dragging {
+  opacity: .94 !important;
+  transform: scale(.985);
+  box-shadow:
+    0 22px 60px rgba(0,0,0,.48),
+    0 0 0 1px rgba(255,255,255,.25);
+  cursor: grabbing !important;
+}
+
+.hero-slide-drop-placeholder {
+  min-width: 0;
+  border: 1px dashed rgba(255,255,255,.42);
+  border-radius: 8px;
+  background: rgba(255,255,255,.035);
+}
+
+.hero-slide-card.drag-over {
+  border-color: rgba(255,255,255,.68) !important;
+}
+
+
+/* =========================================================
+   BUILD V19 — ENSAIOS ULTRAWIDE
+   Accordions sempre em fluxo vertical.
+   Ao abrir Provas, Fotos finais é empurrado para baixo.
+   ========================================================= */
+
+#session-editor-modal .session-workflow,
+#session-editor-modal .session-workflow-accordion {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: auto !important;
+  align-items: start !important;
+  align-content: start !important;
+  gap: 10px !important;
+}
+
+#session-editor-modal .session-stage-card,
+#session-editor-modal .session-stage-accordion {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-self: start !important;
+}
+
+#session-editor-modal .session-stage-body {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+#session-editor-modal .session-stage-body[hidden] {
+  display: none !important;
+}
+
+/* Neutraliza especificamente a regra antiga de duas colunas
+   que entrava em ação a partir de 1380px. */
+@media (min-width: 1380px) {
+  #session-editor-modal .session-workflow,
+  #session-editor-modal .session-workflow-accordion {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
