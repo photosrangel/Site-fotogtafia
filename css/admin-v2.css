@@ -5995,3 +5995,126 @@
     font-size: .48rem !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V32 — CORREÇÕES DE NAVEGAÇÃO, HEADER E DASHBOARD
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   CONTEÚDO / DESIGN
+   Os botões pai voltam a herdar exatamente a aparência dos
+   outros itens do menu lateral.
+   --------------------------------------------------------- */
+
+.content-nav-group > .sidebar-link,
+.design-nav-group > .sidebar-link {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .66rem;
+  letter-spacing: .09em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.content-nav-group > .sidebar-link::before,
+.design-nav-group > .sidebar-link::before {
+  content: "";
+  width: 3px;
+  height: 3px;
+  flex: 0 0 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .35;
+}
+
+.content-nav-group > .sidebar-link:hover,
+.design-nav-group > .sidebar-link:hover {
+  color: var(--text);
+  background: rgba(255,255,255,.035);
+  border-color: var(--admin-line-soft);
+}
+
+.content-nav-group > .sidebar-link.active,
+.design-nav-group > .sidebar-link.active {
+  color: var(--accent);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,.075),
+      rgba(255,255,255,.025)
+    );
+  border-color: var(--admin-line-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* O submenu continua discreto e integrado ao menu principal. */
+.content-nav-group .admin-nav-submenu,
+.design-nav-group .admin-nav-submenu {
+  margin-top: 2px;
+  padding-left: 17px;
+}
+
+/* ---------------------------------------------------------
+   HEADER
+   O e-mail real de login ocupa sozinho o extremo direito.
+   --------------------------------------------------------- */
+
+.admin-topbar {
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) auto !important;
+  align-items: end !important;
+}
+
+.admin-topbar > .admin-user {
+  justify-self: end;
+  align-self: center;
+  margin-left: auto;
+  max-width: min(420px, 42vw);
+  text-align: right;
+}
+
+/* ---------------------------------------------------------
+   DASHBOARD
+   Atalho Galeria e Ambiente seguro com a mesma altura.
+   --------------------------------------------------------- */
+
+#view-dashboard .panel-grid {
+  align-items: stretch !important;
+}
+
+#view-dashboard .panel-grid > .panel {
+  height: 100% !important;
+  margin-bottom: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+#view-dashboard .panel-grid > .panel .panel-copy {
+  margin-bottom: 0;
+}
+
+@media (max-width: 680px) {
+  .admin-topbar {
+    display: flex !important;
+    align-items: flex-start !important;
+  }
+
+  .admin-topbar > .admin-user {
+    justify-self: auto;
+    align-self: auto;
+    margin-left: 0;
+    max-width: 100%;
+    text-align: left;
+  }
+}
