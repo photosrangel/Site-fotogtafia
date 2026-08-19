@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v57 — editor visual: cursor e salvamento corrigidos');
+console.log('[admin-v2] Build v58 — primeiro clique + rascunho antigo corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -6765,8 +6765,48 @@ const DESIGN_DEFAULTS = Object.freeze({
   content: null
 });
 
+function repairPersistedHeroTitle(content) {
+  if (
+    !content ||
+    typeof content !== 'object'
+  ) {
+    return content;
+  }
+
+  const cloned =
+    JSON.parse(
+      JSON.stringify(content)
+    );
+
+  const title =
+    cloned?.inicio?.hero?.title;
+
+  if (
+    typeof title === 'string' &&
+    /\bcomosempre\b/i.test(title)
+  ) {
+    cloned.inicio.hero.title =
+      title.replace(
+        /\bcomosempre\b/gi,
+        'como sempre'
+      );
+
+    console.warn(
+      '[admin-v2] rascunho antigo: “comosempre” reparado para “como sempre”.'
+    );
+  }
+
+  return cloned;
+}
+
 function normalizeDesignConfig(config = {}) {
   const c = { ...DESIGN_DEFAULTS, ...(config || {}) };
+
+  const repairedContent =
+    repairPersistedHeroTitle(
+      c.content
+    );
+
   return {
     nav_style: ['auto','transparent','solid'].includes(c.nav_style) ? c.nav_style : 'auto',
     nav_position: ['fixed','static'].includes(c.nav_position) ? c.nav_position : 'fixed',
@@ -6819,7 +6859,11 @@ function normalizeDesignConfig(config = {}) {
     whatsapp_position: c.whatsapp_position === 'left' ? 'left' : 'right',
     whatsapp_pages: Array.isArray(c.whatsapp_pages) ? c.whatsapp_pages.filter(x => ['inicio','galeria','sobre','contato'].includes(x)) : ['inicio','galeria','sobre','contato'],
     inline_styles: c.inline_styles && typeof c.inline_styles === 'object' ? JSON.parse(JSON.stringify(c.inline_styles)) : {},
-    content: c.content && typeof c.content === 'object' ? JSON.parse(JSON.stringify(c.content)) : null
+    content:
+      repairedContent &&
+      typeof repairedContent === 'object'
+        ? repairedContent
+        : null
   };
 }
 
@@ -7063,6 +7107,21 @@ async function fetchDesignPersistence() {
     draft && designFingerprint(draft) !== designFingerprint(designPublishedSaved)
       ? draft
       : designPublishedSaved;
+
+  console.log(
+    '[admin-v2] Design inicial:',
+    {
+      source:
+        initial === draft
+          ? 'draft'
+          : 'published',
+      heroTitle:
+        initial?.content
+          ?.inicio
+          ?.hero
+          ?.title || ''
+    }
+  );
 
   applyDesignConfigToControls(initial);
   updateDesignPublicationState();
@@ -8502,25 +8561,11 @@ function getDesignEditableOffsetFromPoint(
   let offset = 0;
 
   try {
+    /*
+      Chrome/Brave é mais consistente com caretRangeFromPoint
+      quando o texto AINDA não está em contenteditable.
+    */
     if (
-      typeof doc.caretPositionFromPoint ===
-      'function'
-    ) {
-      const position =
-        doc.caretPositionFromPoint(
-          clientX,
-          clientY
-        );
-
-      node =
-        position?.offsetNode ||
-        null;
-
-      offset =
-        Number(
-          position?.offset || 0
-        );
-    } else if (
       typeof doc.caretRangeFromPoint ===
       'function'
     ) {
@@ -8537,6 +8582,24 @@ function getDesignEditableOffsetFromPoint(
       offset =
         Number(
           range?.startOffset || 0
+        );
+    } else if (
+      typeof doc.caretPositionFromPoint ===
+      'function'
+    ) {
+      const position =
+        doc.caretPositionFromPoint(
+          clientX,
+          clientY
+        );
+
+      node =
+        position?.offsetNode ||
+        null;
+
+      offset =
+        Number(
+          position?.offset || 0
         );
     }
   } catch (_) {}
@@ -8858,38 +8921,61 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
   el.style.whiteSpace='pre-wrap';
   el.classList.add('design-inline-editing');
 
+  /*
+    Foca primeiro. Só depois o bloco do hero-title restaura
+    a posição calculada a partir do clique.
+  */
+  el.focus({
+    preventScroll:true
+  });
+
   if (isHeroTitle) {
     /*
-      Editamos a mesma prévia, mas o texto passa a ser guiado pelo valor
-      real do textarea hero-title. O último termo continua em itálico.
-      Só as quebras manuais geram <br> durante a edição.
-    */
-    renderHeroTitleForEditing(
-      el,
-      sourceValue
-    );
+      IMPORTANTE:
+      no primeiro clique NÃO reconstruímos o innerHTML.
+      Mantemos exatamente o título que já está na prévia e apenas
+      ativamos contenteditable. Isso preserva a geometria usada
+      para calcular o ponto clicado.
 
-    /*
-      Reposiciona o cursor exatamente no ponto clicado.
-      Antes o innerHTML era reconstruído e o navegador perdia a seleção,
-      mandando o cursor para o início do título.
+      O HTML editorial só é reconstruído depois da primeira quebra
+      ou ao salvar/atualizar a prévia.
     */
+    const wantedOffset =
+      Number(
+        initialOffset
+      );
+
     if (
       Number.isFinite(
-        Number(
-          initialOffset
-        )
+        wantedOffset
       )
     ) {
-      requestAnimationFrame(
+      const restoreCaret =
         () => {
           setDesignEditableCaretOffset(
             el,
-            Number(
-              initialOffset
-            )
+            wantedOffset
           );
-        }
+        };
+
+      /*
+        Uma aplicação imediata + dois ciclos evita o browser
+        sobrescrever a seleção no fim do evento de clique.
+      */
+      restoreCaret();
+
+      requestAnimationFrame(
+        restoreCaret
+      );
+
+      setTimeout(
+        restoreCaret,
+        0
+      );
+
+      setTimeout(
+        restoreCaret,
+        35
       );
     }
   }
@@ -8995,10 +9081,6 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
 
     updateDesignPublicationState();
   };
-
-  el.focus({
-    preventScroll:true
-  });
 
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
