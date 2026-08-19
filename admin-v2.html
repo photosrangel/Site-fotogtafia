@@ -26,25 +26,25 @@
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor">Ver site</a><button id="logout-btn" class="sidebar-link">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div><span id="build-version-bar" style="font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;margin-left:12px;">v8</span></header><div id="flash" class="flash" hidden></div>
 <section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
-<div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2>Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery">Nova galeria</button></div><p class="panel-copy">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2>Ambiente seguro</h2></div><span class="status-pill online">PROTEGIDO</span></div><p class="panel-copy">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
-<section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" class="btn btn-accent">Nova galeria</button></div>
+<div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2>Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button">Nova galeria</button></div><p class="panel-copy">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2>Ambiente seguro</h2></div><span class="status-pill online">PROTEGIDO</span></div><p class="panel-copy">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
+<section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" type="button" class="btn btn-accent">Nova galeria</button></div>
 <div id="gallery-form-wrap" class="panel" hidden><div class="panel-head"><div><p class="section-eyebrow">Galeria</p><h2 id="gallery-form-title">Nova galeria</h2></div><button class="icon-btn" id="close-gallery-form" type="button">×</button></div>
-<form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required placeholder="retratos-ana"></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" placeholder="Será preenchida ao escolher uma foto"></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
-<section id="view-categories" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Organização</p><h2>Categorias</h2></div></div><form id="category-form" class="inline-form"><input type="hidden" id="category-id"><input id="category-name" placeholder="Nome da categoria" required><input id="category-slug" placeholder="slug" required><input id="category-order" type="number" min="0" value="0"><button class="btn btn-accent" type="submit">Salvar</button><button class="btn" id="cancel-category" type="button" hidden>Cancelar</button></form><p id="category-msg" class="msg"></p><div id="categories-list" class="category-list"></div></div></section>
-<section id="view-settings" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Site</p><h2>Configurações gerais</h2></div></div><form id="settings-form"><div class="form-grid"><div class="field"><label for="settings-site-name">Nome do site</label><input id="settings-site-name"></div><div class="field"><label for="settings-email">E-mail</label><input id="settings-email" type="email"></div><div class="field"><label for="settings-whatsapp">WhatsApp</label><input id="settings-whatsapp"></div><div class="field"><label for="settings-instagram">Instagram</label><input id="settings-instagram"></div><div class="field"><label for="settings-location">Localização</label><input id="settings-location"></div><div class="field"><label for="settings-specialty">Especialidade</label><input id="settings-specialty"></div><div class="field"><label for="settings-availability">Disponibilidade</label><input id="settings-availability"></div><div class="field field-full"><label for="settings-footer">Texto do rodapé</label><textarea id="settings-footer" rows="3"></textarea></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar configurações</button><span id="settings-msg" class="msg"></span></div></form></div></section>
+<form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required maxlength="120" placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required maxlength="120" placeholder="retratos-ana"></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" max="9999" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4" maxlength="2000"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" type="url" maxlength="2048" placeholder="Será preenchida ao escolher uma foto"></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
+<section id="view-categories" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Organização</p><h2>Categorias</h2></div></div><form id="category-form" class="inline-form"><input type="hidden" id="category-id"><input id="category-name" maxlength="80" placeholder="Nome da categoria" required><input id="category-slug" maxlength="120" placeholder="slug" required><input id="category-order" type="number" min="0" max="9999" value="0"><button class="btn btn-accent" type="submit">Salvar</button><button class="btn" id="cancel-category" type="button" hidden>Cancelar</button></form><p id="category-msg" class="msg"></p><div id="categories-list" class="category-list"></div></div></section>
+<section id="view-settings" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Site</p><h2>Configurações gerais</h2></div></div><form id="settings-form"><div class="form-grid"><div class="field"><label for="settings-site-name">Nome do site</label><input id="settings-site-name" maxlength="120"></div><div class="field"><label for="settings-email">E-mail</label><input id="settings-email" type="email" maxlength="254"></div><div class="field"><label for="settings-whatsapp">WhatsApp</label><input id="settings-whatsapp" inputmode="tel" maxlength="20"></div><div class="field"><label for="settings-instagram">Instagram</label><input id="settings-instagram" maxlength="2048"></div><div class="field"><label for="settings-location">Localização</label><input id="settings-location" maxlength="160"></div><div class="field"><label for="settings-specialty">Especialidade</label><input id="settings-specialty" maxlength="160"></div><div class="field"><label for="settings-availability">Disponibilidade</label><input id="settings-availability" maxlength="160"></div><div class="field field-full"><label for="settings-footer">Texto do rodapé</label><textarea id="settings-footer" rows="3" maxlength="1000"></textarea></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar configurações</button><span id="settings-msg" class="msg"></span></div></form></div></section>
 <section id="view-sessions" class="admin-view" hidden>
-<div class="toolbar"><p class="panel-copy">Gerencie as sessões de clientes. As provas aparecem na Área do Cliente para a cliente escolher; as fotos finais só aparecem após a entrega.</p><button id="new-session-btn" class="btn btn-accent">Novo ensaio</button></div>
+<div class="toolbar"><p class="panel-copy">Gerencie as sessões de clientes. As provas aparecem na Área do Cliente para a cliente escolher; as fotos finais só aparecem após a entrega.</p><button id="new-session-btn" type="button" class="btn btn-accent">Novo ensaio</button></div>
 <div id="session-form-wrap" class="panel" hidden>
 <div class="panel-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="session-form-title">Novo ensaio</h2></div><button class="icon-btn" id="close-session-form" type="button">×</button></div>
 <form id="session-form">
 <div class="form-grid">
-<div class="field"><label for="session-titulo">Título (ex: Sessão Autoestima — Maria)</label><input id="session-titulo" required></div>
-<div class="field"><label for="session-cliente">Nome do cliente</label><input id="session-cliente"></div>
-<div class="field"><label for="session-telefone">WhatsApp do cliente (com código do país — ex: 351912345678)</label><input id="session-telefone"></div>
-<div class="field"><label for="session-email">E-mail da cliente</label><input id="session-email" type="email" required placeholder="cliente@email.com"></div>
+<div class="field"><label for="session-titulo">Título (ex: Sessão Autoestima — Maria)</label><input id="session-titulo" required maxlength="160"></div>
+<div class="field"><label for="session-cliente">Nome do cliente</label><input id="session-cliente" maxlength="160"></div>
+<div class="field"><label for="session-telefone">WhatsApp do cliente (com código do país — ex: 351912345678)</label><input id="session-telefone" inputmode="tel" maxlength="20"></div>
+<div class="field"><label for="session-email">E-mail da cliente</label><input id="session-email" type="email" required maxlength="254" placeholder="cliente@email.com"></div>
 <div class="field"><label for="session-categoria">Categoria</label><select id="session-categoria"><option value="autoestima">Autoestima</option><option value="estudio">Estúdio</option><option value="externo">Externo</option></select></div>
-<div class="field"><label for="session-login">Login do cliente</label><input id="session-login" required><button type="button" class="small-btn" id="btn-gerar-login">Gerar login aleatório</button></div>
-<div class="field"><label for="session-codigo">Senha do cliente</label><input id="session-codigo" required><button type="button" class="small-btn" id="btn-gerar-codigo">Gerar senha aleatória</button></div>
+<div class="field"><label for="session-login">Login do cliente</label><input id="session-login" required maxlength="80"><button type="button" class="small-btn" id="btn-gerar-login">Gerar login aleatório</button></div>
+<div class="field"><label for="session-codigo">Senha do cliente</label><input id="session-codigo" required maxlength="64"><button type="button" class="small-btn" id="btn-gerar-codigo">Gerar senha aleatória</button></div>
 </div>
 <div class="form-actions"><button class="btn btn-accent" type="submit">Criar ensaio</button><button class="btn" type="button" id="cancel-session-form">Cancelar</button><span id="session-form-msg" class="msg"></span></div>
 </form>
@@ -59,9 +59,9 @@
 <div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Herói</h2></div></div>
 <form id="form-hero">
 <div class="form-grid">
-<div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow"></div>
-<div class="field"><label for="hero-title">Título</label><input id="hero-title"></div>
-<div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3"></textarea></div>
+<div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow" maxlength="120"></div>
+<div class="field"><label for="hero-title">Título</label><input id="hero-title" maxlength="180"></div>
+<div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3" maxlength="1000"></textarea></div>
 <div class="field field-full hero-mode-field">
 <label>Modo da imagem principal</label>
 <div class="hero-mode-switch" role="radiogroup" aria-label="Modo do herói">
@@ -74,9 +74,9 @@
 <div id="hero-static-editor" class="field field-full hero-media-editor">
 <div class="panel-head compact"><div><p class="section-eyebrow">Imagem de segurança</p><h3>Foto estática / fallback</h3></div><label class="btn small-btn hero-upload-label">Escolher foto<input id="hero-static-upload" type="file" accept="image/*" hidden></label></div>
 <div class="form-grid">
-<div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" placeholder="https://..."></div>
-<div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" placeholder="https://..."></div>
-<div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt"></div>
+<div class="field field-full"><label for="hero-desktop-image">Imagem principal — URL</label><input id="hero-desktop-image" type="url" maxlength="2048" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-mobile-image">Imagem alternativa para celular — URL (opcional)</label><input id="hero-mobile-image" type="url" maxlength="2048" placeholder="https://..."></div>
+<div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt" maxlength="240"></div>
 </div>
 <div class="focal-editor">
 <div id="hero-static-preview" class="focal-preview" title="Clique no ponto que deve permanecer em destaque"><span class="focal-marker"></span></div>
@@ -97,11 +97,11 @@
 <div id="hero-slides-list" class="hero-slides-admin"></div>
 <p class="field-help">Cada foto possui seu próprio ponto focal. Você pode ordenar, publicar/ocultar e remover fotos sem perder a configuração da foto estática.</p>
 </div>
-<div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text"></div>
-<div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url"></div>
-<div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text"></div>
-<div class="field"><label for="hero-secondary-url">Botão secundário — link</label><input id="hero-secondary-url"></div>
-<div class="field field-full"><label for="hero-meta">Informações do rodapé do herói (uma por linha, formato: Rótulo | Valor)</label><textarea id="hero-meta" rows="3" placeholder="Baseado em | Vale de Cambra, Portugal"></textarea></div>
+<div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text" maxlength="80"></div>
+<div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url" maxlength="2048"></div>
+<div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text" maxlength="80"></div>
+<div class="field"><label for="hero-secondary-url">Botão secundário — link</label><input id="hero-secondary-url" maxlength="2048"></div>
+<div class="field field-full"><label for="hero-meta">Informações do rodapé do herói (uma por linha, formato: Rótulo | Valor)</label><textarea id="hero-meta" rows="3" maxlength="1000" placeholder="Baseado em | Vale de Cambra, Portugal"></textarea></div>
 </div>
 <div class="form-actions"><button class="btn btn-accent" type="submit">Salvar herói</button><span id="hero-msg" class="msg"></span></div>
 </form>
@@ -109,11 +109,11 @@
 <div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Trabalhos recentes</h2></div></div>
 <form id="form-recent">
 <div class="form-grid">
-<div class="field"><label for="recent-eyebrow">Texto acima do título</label><input id="recent-eyebrow"></div>
-<div class="field"><label for="recent-title">Título da seção</label><input id="recent-title"></div>
+<div class="field"><label for="recent-eyebrow">Texto acima do título</label><input id="recent-eyebrow" maxlength="120"></div>
+<div class="field"><label for="recent-title">Título da seção</label><input id="recent-title" maxlength="180"></div>
 <div class="field"><label for="recent-limit">Quantidade de fotos</label><input id="recent-limit" type="number" min="1" max="24"></div>
-<div class="field"><label for="recent-btn-text">Botão — texto</label><input id="recent-btn-text"></div>
-<div class="field"><label for="recent-btn-url">Botão — link</label><input id="recent-btn-url"></div>
+<div class="field"><label for="recent-btn-text">Botão — texto</label><input id="recent-btn-text" maxlength="80"></div>
+<div class="field"><label for="recent-btn-url">Botão — link</label><input id="recent-btn-url" maxlength="2048"></div>
 </div>
 <div class="form-actions"><button class="btn btn-accent" type="submit">Salvar seção</button><span id="recent-msg" class="msg"></span></div>
 </form>
@@ -124,12 +124,12 @@
 <div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Sobre</p><h2>Conteúdo</h2></div></div>
 <form id="form-sobre">
 <div class="form-grid">
-<div class="field"><label for="sobre-eyebrow">Texto acima do título</label><input id="sobre-eyebrow"></div>
-<div class="field field-full"><label for="sobre-paragraphs">Parágrafos (um por linha)</label><textarea id="sobre-paragraphs" rows="6"></textarea></div>
-<div class="field"><label for="sobre-portrait-url">Retrato — URL da imagem</label><input id="sobre-portrait-url"></div>
-<div class="field"><label for="sobre-portrait-alt">Retrato — texto alternativo</label><input id="sobre-portrait-alt"></div>
-<div class="field"><label for="sobre-cta-text">Botão — texto</label><input id="sobre-cta-text"></div>
-<div class="field"><label for="sobre-cta-url">Botão — link</label><input id="sobre-cta-url"></div>
+<div class="field"><label for="sobre-eyebrow">Texto acima do título</label><input id="sobre-eyebrow" maxlength="120"></div>
+<div class="field field-full"><label for="sobre-paragraphs">Parágrafos (um por linha)</label><textarea id="sobre-paragraphs" rows="6" maxlength="5000"></textarea></div>
+<div class="field"><label for="sobre-portrait-url">Retrato — URL da imagem</label><input id="sobre-portrait-url" maxlength="2048"></div>
+<div class="field"><label for="sobre-portrait-alt">Retrato — texto alternativo</label><input id="sobre-portrait-alt" maxlength="240"></div>
+<div class="field"><label for="sobre-cta-text">Botão — texto</label><input id="sobre-cta-text" maxlength="80"></div>
+<div class="field"><label for="sobre-cta-url">Botão — link</label><input id="sobre-cta-url" maxlength="2048"></div>
 </div>
 <div class="panel" style="border:none;padding:0;margin:0;">
 <p class="panel-copy">Itens da lista de detalhes (Ex.: Prazo de entrega). "Baseado em", "Especialidade" e "Atende" são preenchidos pelas Configurações do site.</p>
@@ -145,11 +145,11 @@
 <div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Contato</p><h2>Conteúdo</h2></div></div>
 <form id="form-contato">
 <div class="form-grid">
-<div class="field"><label for="contato-eyebrow">Texto acima do título</label><input id="contato-eyebrow"></div>
-<div class="field"><label for="contato-title">Título</label><input id="contato-title"></div>
-<div class="field"><label for="contato-submit-label">Botão do formulário</label><input id="contato-submit-label"></div>
-<div class="field field-full"><label for="contato-tipos">Tipos de sessão (um por linha)</label><textarea id="contato-tipos" rows="5"></textarea></div>
-<div class="field field-full"><label for="contato-atendimento">Texto de atendimento</label><textarea id="contato-atendimento" rows="2"></textarea></div>
+<div class="field"><label for="contato-eyebrow">Texto acima do título</label><input id="contato-eyebrow" maxlength="120"></div>
+<div class="field"><label for="contato-title">Título</label><input id="contato-title" maxlength="180"></div>
+<div class="field"><label for="contato-submit-label">Botão do formulário</label><input id="contato-submit-label" maxlength="80"></div>
+<div class="field field-full"><label for="contato-tipos">Tipos de sessão (um por linha)</label><textarea id="contato-tipos" rows="5" maxlength="2000"></textarea></div>
+<div class="field field-full"><label for="contato-atendimento">Texto de atendimento</label><textarea id="contato-atendimento" rows="2" maxlength="1000"></textarea></div>
 </div>
 <p class="panel-copy">E-mail, WhatsApp e Instagram desta página vêm das Configurações do site.</p>
 <div class="form-actions"><button class="btn btn-accent" type="submit">Salvar página</button><span id="contato-msg" class="msg"></span></div>
@@ -187,7 +187,7 @@
   <div class="session-client-email-row">
     <div class="field">
       <label for="session-client-email">E-mail da cliente</label>
-      <input id="session-client-email" type="email" placeholder="cliente@email.com">
+      <input id="session-client-email" type="email" maxlength="254" placeholder="cliente@email.com">
     </div>
     <button class="small-btn" id="btn-save-session-email" type="button">Salvar e-mail</button>
   </div>
@@ -199,7 +199,7 @@
       <p class="section-eyebrow">Acesso da cliente</p>
       <p class="panel-copy">Dados privados usados para entrar na Área do Cliente.</p>
     </div>
-    <button class="small-btn" id="btn-copy-session">Copiar tudo</button>
+    <button class="small-btn" id="btn-copy-session" type="button">Copiar tudo</button>
   </div>
   <div class="session-credentials">
     <div class="session-credential">
@@ -246,7 +246,7 @@
       <div class="upload-drop"><input id="upload-final" type="file" multiple accept="image/*"><label for="upload-final"><strong>Adicionar fotos finais</strong><span>A cliente só vê depois de “Publicar fotos finais”</span></label></div>
       <div id="final-grid" class="session-grid"></div>
       <div class="session-actions">
-        <button class="btn btn-accent" id="btn-entregar">Publicar fotos finais</button>
+        <button class="btn btn-accent" id="btn-entregar" type="button">Publicar fotos finais</button>
         <a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
       </div>
     </div>
@@ -255,7 +255,7 @@
 
 <div class="session-footer-actions">
   <p class="msg" id="session-msg"></p>
-  <button class="btn" id="btn-excluir-session" style="border-color:#8c877e;">Excluir permanentemente</button>
+  <button class="btn" id="btn-excluir-session" type="button" style="border-color:#8c877e;">Excluir permanentemente</button>
 </div>
 </div>
 </div>
