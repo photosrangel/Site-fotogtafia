@@ -7570,6 +7570,11 @@ body .design-controls-drawer.is-client-area-editor {
 }
 
 @media (max-width: 620px) {
+  #login-form input,
+  #login-form button {
+    min-height: 44px;
+  }
+
   .design-content-order-item {
     grid-template-columns: 30px minmax(0, 1fr);
   }

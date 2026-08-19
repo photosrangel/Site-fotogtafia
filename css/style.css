@@ -1497,3 +1497,41 @@ html, body {
 [contenteditable="true"].design-inline-editing{outline:2px solid rgba(255,255,255,.85)!important;outline-offset:7px!important;background:rgba(15,15,14,.18)!important;cursor:text!important}
 [data-design-inline-editable="1"]{cursor:text}
 [data-design-inline-editable="1"]:hover{outline:1px dashed rgba(255,255,255,.48);outline-offset:6px}
+
+/* Alvos de toque confortáveis e consistentes em celulares. */
+@media (max-width: 760px) {
+  .nav-toggle,
+  .nav-links a,
+  .btn,
+  .filter-btn,
+  .footer-links a,
+  .contact-form input,
+  .contact-form select,
+  .contact-form textarea,
+  .contact-form button,
+  #contato-form input:not(#website),
+  #contato-form select,
+  #contato-form textarea,
+  #contato-form button,
+  .client-access-form input,
+  .client-access-form button,
+  #btn-toggle-senha {
+    min-height: 44px;
+  }
+
+  .nav-toggle,
+  .nav-links a,
+  #btn-toggle-senha {
+    min-width: 44px;
+  }
+
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .nav-links a {
+    display: flex;
+    align-items: center;
+  }
+}
