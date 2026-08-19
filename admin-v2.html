@@ -45,32 +45,150 @@
     <aside class="panel design-controls">
       <div class="design-control-group">
         <p class="section-eyebrow">Menu</p>
-        <label class="design-control-row">Densidade do menu
-          <select id="design-nav-density"><option value="compact">Compacto</option><option value="normal" selected>Normal</option><option value="airy">Espaçado</option></select>
+
+        <label class="design-control-row">
+          Aparência do menu
+          <select id="design-nav-style">
+            <option value="auto" selected>Automático do site</option>
+            <option value="transparent">Transparente</option>
+            <option value="solid">Sólido</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Comportamento
+          <select id="design-nav-position">
+            <option value="fixed" selected>Fixo no topo</option>
+            <option value="static">Acompanha a página</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Densidade do menu
+          <select id="design-nav-density">
+            <option value="compact">Compacto</option>
+            <option value="normal" selected>Normal</option>
+            <option value="airy">Espaçado</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Escala da marca
+          <output id="design-logo-scale-out">100%</output>
+          <input id="design-logo-scale" type="range" min="85" max="120" value="100">
+        </label>
+
+        <label class="design-control-row">
+          Área do Cliente
+          <select id="design-nav-cta">
+            <option value="outline" selected>Contorno</option>
+            <option value="filled">Preenchido</option>
+            <option value="hidden">Ocultar</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Desfoque do menu
+          <output id="design-nav-blur-out">0 px</output>
+          <input id="design-nav-blur" type="range" min="0" max="18" value="0">
         </label>
       </div>
+
+      <div class="design-control-group">
+        <p class="section-eyebrow">Animações</p>
+
+        <label class="design-control-row">
+          Entrada da página
+          <select id="design-page-animation">
+            <option value="none" selected>Nenhuma</option>
+            <option value="fade">Esmaecer</option>
+            <option value="fade-up">Subir suavemente</option>
+            <option value="soft">Suave premium</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Entrada das seções
+          <select id="design-section-animation">
+            <option value="none" selected>Nenhuma</option>
+            <option value="fade">Esmaecer</option>
+            <option value="fade-up">Subir suavemente</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Movimento nas fotos
+          <select id="design-image-hover">
+            <option value="site" selected>Padrão do site</option>
+            <option value="none">Sem movimento</option>
+            <option value="zoom">Zoom suave</option>
+            <option value="lift">Elevar</option>
+          </select>
+        </label>
+
+        <label class="design-control-row">
+          Velocidade
+          <select id="design-motion-speed">
+            <option value="fast">Rápida</option>
+            <option value="normal" selected>Normal</option>
+            <option value="slow">Lenta</option>
+          </select>
+        </label>
+
+        <button class="small-btn design-replay-btn" id="design-replay-animation" type="button">
+          Repetir animações
+        </button>
+      </div>
+
       <div class="design-control-group">
         <p class="section-eyebrow">Estilo geral</p>
-        <label class="design-control-row">Escala dos títulos <output id="design-type-scale-out">100%</output>
+
+        <label class="design-control-row">
+          Escala dos títulos
+          <output id="design-type-scale-out">100%</output>
           <input id="design-type-scale" type="range" min="90" max="115" value="100">
         </label>
-        <label class="design-control-row">Largura do conteúdo <output id="design-content-width-out">1200 px</output>
+
+        <label class="design-control-row">
+          Largura do conteúdo
+          <output id="design-content-width-out">Padrão do site</output>
           <input id="design-content-width" type="range" min="1040" max="1500" step="20" value="1200">
         </label>
-        <label class="design-control-row">Espaço entre seções <output id="design-section-space-out">120 px</output>
+
+        <label class="design-control-row">
+          Espaço entre seções
+          <output id="design-section-space-out">120 px</output>
           <input id="design-section-space" type="range" min="72" max="160" step="4" value="120">
         </label>
-      </div>
-      <div class="design-control-group">
-        <p class="section-eyebrow">Galerias</p>
-        <label class="design-control-row">Espaço entre fotos <output id="design-gallery-gap-out">2 px</output>
-          <input id="design-gallery-gap" type="range" min="0" max="16" value="2">
+
+        <label class="design-control-row">
+          Intensidade do Hero
+          <output id="design-hero-overlay-out">Padrão</output>
+          <input id="design-hero-overlay" type="range" min="0" max="70" value="40">
         </label>
       </div>
+
+      <div class="design-control-group">
+        <p class="section-eyebrow">Galerias</p>
+
+        <label class="design-control-row">
+          Espaço entre fotos
+          <output id="design-gallery-gap-out">2 px</output>
+          <input id="design-gallery-gap" type="range" min="0" max="16" value="2">
+        </label>
+
+        <label class="design-control-row">
+          Cantos das imagens
+          <output id="design-image-radius-out">0 px</output>
+          <input id="design-image-radius" type="range" min="0" max="18" value="0">
+        </label>
+      </div>
+
       <div class="design-safety-note">
         <strong>Modo seguro</strong>
-        <p>Estas opções alteram somente a prévia. Nada é publicado no site nesta etapa.</p>
+        <p>Estas opções continuam alterando somente a prévia. Nenhuma configuração avançada é publicada no site nesta versão.</p>
       </div>
+
       <button class="btn" id="design-reset" type="button">Restaurar prévia</button>
     </aside>
 
