@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v26 — prévia inteira fiel ao viewport real');
+console.log('[admin-v2] Build v27 — prévia desktop fiel ao layout público');
 
 const $ = id => document.getElementById(id);
 
@@ -6052,30 +6052,14 @@ function sizeDesignPreview() {
   );
 
   /*
-    O viewport interno continua REAL:
-    Desktop = 1920×1080
-    Mobile  = 390×844
-
-    A diferença da V26 é que a escala visual considera tanto a
-    largura quanto a altura disponível no monitor. Assim o usuário
-    vê o dispositivo inteiro dentro do painel sem alterar nenhum
-    breakpoint, clamp(), vw, vh ou object-fit do site público.
+    V27: volta ao comportamento visual anterior.
+    O viewport continua real (1920×1080 / 390×844), mas a prévia
+    é dimensionada pela largura do painel e pode ser rolada verticalmente.
+    Isso mantém o site grande e legível dentro do Design Studio.
   */
-  const visualHeightLimit =
-    designPreviewDevice === 'mobile'
-      ? Math.max(430, Math.min(window.innerHeight * 0.72, 760))
-      : Math.max(460, Math.min(window.innerHeight * 0.68, 760));
-
-  const scaleByWidth =
-    availableWidth / viewport.width;
-
-  const scaleByHeight =
-    visualHeightLimit / (viewport.height + barHeight);
-
   const scale = Math.min(
     1,
-    scaleByWidth,
-    scaleByHeight
+    availableWidth / viewport.width
   );
 
   browser.style.width = `${viewport.width}px`;
@@ -6086,30 +6070,13 @@ function sizeDesignPreview() {
   frame.style.width = `${viewport.width}px`;
   frame.style.height = `${viewport.height}px`;
 
-  const visualWidth =
-    Math.ceil(viewport.width * scale);
-
-  const visualHeight =
-    Math.ceil((viewport.height + barHeight) * scale);
-
   stage.style.height =
-    `${visualHeight + 36}px`;
+    `${Math.ceil((viewport.height + barHeight) * scale + 36)}px`;
 
   stage.style.minHeight = '0';
 
-  stage.style.setProperty(
-    '--design-preview-visual-width',
-    `${visualWidth}px`
-  );
-
-  stage.style.setProperty(
-    '--design-preview-visual-height',
-    `${visualHeight}px`
-  );
-
   if ($('design-preview-label')) {
-    $('design-preview-label').textContent =
-      `${viewport.label} · prévia inteira`;
+    $('design-preview-label').textContent = viewport.label;
   }
 }
 
@@ -6143,8 +6110,26 @@ function applyDesignPreview() {
       .section-title{font-size:clamp(${(2.6*scale).toFixed(3)}rem,${(10*scale).toFixed(3)}vw,${(4.4*scale).toFixed(3)}rem) !important}
     `;
 
+  /*
+    O site público já possui um layout responsivo de tela cheia.
+    Na posição padrão do controle (1200), NÃO substituímos .container.
+    Assim menu, Trabalhos recentes e demais seções usam exatamente
+    a largura definida pelo style.css público.
+
+    O max-width só entra quando o usuário move deliberadamente
+    o controle "Largura do conteúdo".
+  */
+  const containerRule =
+    contentWidth === 1200
+      ? ''
+      : `.container{
+          max-width:${contentWidth}px !important;
+          margin-left:auto !important;
+          margin-right:auto !important;
+        }`;
+
   style.textContent = `
-    .container{max-width:${contentWidth}px !important}
+    ${containerRule}
     .section{padding-top:${sectionSpace}px !important;padding-bottom:${sectionSpace}px !important}
     ${titleRules}
     .grid{gap:${galleryGap}px !important}
@@ -6153,7 +6138,12 @@ function applyDesignPreview() {
   `;
 
   if ($('design-type-scale-out')) $('design-type-scale-out').textContent = `${typeScale}%`;
-  if ($('design-content-width-out')) $('design-content-width-out').textContent = `${contentWidth} px`;
+  if ($('design-content-width-out')) {
+    $('design-content-width-out').textContent =
+      contentWidth === 1200
+        ? 'Padrão do site'
+        : `${contentWidth} px`;
+  }
   if ($('design-section-space-out')) $('design-section-space-out').textContent = `${sectionSpace} px`;
   if ($('design-gallery-gap-out')) $('design-gallery-gap-out').textContent = `${galleryGap} px`;
 
@@ -6171,8 +6161,21 @@ function setDesignDevice(device) {
   $('design-device-desktop')?.setAttribute('aria-pressed', String(!mobile));
   $('design-device-mobile')?.setAttribute('aria-pressed', String(mobile));
 
+  const frame = $('design-preview-frame');
+
+  try {
+    frame?.contentWindow?.scrollTo(0, 0);
+  } catch (_) {}
+
   sizeDesignPreview();
-  setTimeout(sizeDesignPreview, 60);
+
+  setTimeout(() => {
+    try {
+      frame?.contentWindow?.scrollTo(0, 0);
+    } catch (_) {}
+
+    sizeDesignPreview();
+  }, 60);
 }
 
 function resetDesignPreview() {
@@ -6205,6 +6208,10 @@ function initDesignStudio() {
   $('design-reset')?.addEventListener('click', resetDesignPreview);
   $('design-preview-frame')?.addEventListener('load', () => {
     setTimeout(() => {
+      try {
+        $('design-preview-frame')?.contentWindow?.scrollTo(0, 0);
+      } catch (_) {}
+
       applyDesignPreview();
       sizeDesignPreview();
     }, 100);
