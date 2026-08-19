@@ -3201,3 +3201,113 @@
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+
+/* =========================================================
+   ENSAIOS — JANELA DIVIDIDA / NOTEBOOK
+   Em larguras menores que desktop grande, o modal inteiro rola.
+   Assim Provas e Entregas ficam acessíveis sem maximizar a janela.
+   ========================================================= */
+
+@media (min-width: 761px) and (max-width: 1379px) {
+
+  #session-editor-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px !important;
+  }
+
+  #session-editor-modal[hidden] {
+    display: none !important;
+  }
+
+  #session-editor-modal .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  #session-editor-modal .modal-dialog {
+    position: relative !important;
+    width: min(1080px, calc(100vw - 28px)) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    display: block !important;
+    overflow: visible !important;
+    padding-bottom: 28px !important;
+  }
+
+  #session-editor-modal .modal-head {
+    position: sticky !important;
+    top: -14px !important;
+    z-index: 30 !important;
+    margin-bottom: 18px !important;
+    background: rgba(15, 15, 13, .96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  #session-editor-modal .session-access-panel,
+  #session-editor-modal .session-progress-panel,
+  #session-editor-modal .session-stage-card,
+  #session-editor-modal .session-footer-actions {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  #session-editor-modal .session-workflow {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+    gap: 16px !important;
+    align-content: start !important;
+  }
+
+  #session-editor-modal .session-progress-panel {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  #session-editor-modal .session-stage-body .session-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #session-editor-modal .session-footer-actions {
+    margin-top: 4px;
+  }
+}
+
+/* Janelas de computador muito baixas também usam rolagem do modal inteiro,
+   mesmo que a largura ainda seja grande. */
+@media (min-width: 761px) and (max-height: 760px) {
+
+  #session-editor-modal {
+    overflow-y: auto !important;
+    padding: 12px !important;
+  }
+
+  #session-editor-modal .modal-dialog {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+  }
+
+  #session-editor-modal .session-workflow {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
