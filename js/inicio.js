@@ -9,6 +9,17 @@ console.log('CMS: inicio.js carregado');
 // CARREGAR CONTEÚDO DA PÁGINA
 // ============================================
 
+
+function liberarPaginaInicio() {
+  document.documentElement.classList.remove(
+    'inicio-cms-loading'
+  );
+
+  document.documentElement.classList.add(
+    'inicio-cms-ready'
+  );
+}
+
 async function carregarPaginaInicio() {
 
   console.log('CMS: carregando página inicial...');
@@ -152,6 +163,10 @@ async function carregarPaginaInicio() {
       error
     );
 
+  } finally {
+
+    liberarPaginaInicio();
+
   }
 
 }
@@ -213,29 +228,116 @@ function carregarHero(hero) {
   if (title) {
 
     const texto =
-      hero.title || '';
+      String(hero.title || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .trim();
 
-    const palavras =
-      texto.trim().split(/\s+/);
+    const temQuebraManual =
+      texto.includes('\n');
 
 
-    if (palavras.length >= 2) {
+    if (temQuebraManual) {
 
-      const ultima =
-        palavras.pop();
+      const linhas =
+        texto.split('\n');
+
+      let ultimaLinhaComTexto =
+        linhas.length - 1;
+
+      for (
+        let i = linhas.length - 1;
+        i >= 0;
+        i -= 1
+      ) {
+
+        if (linhas[i].trim()) {
+          ultimaLinhaComTexto = i;
+          break;
+        }
+
+      }
 
 
       title.innerHTML =
-        `${escapeHTML(
-          palavras.join(' ')
-        )} <br><em>${escapeHTML(
-          ultima
-        )}</em>`;
+        linhas
+          .map(
+            (linha, index) => {
+
+              const limpa =
+                linha.trim();
+
+              if (
+                index !==
+                ultimaLinhaComTexto
+              ) {
+
+                return escapeHTML(
+                  limpa
+                );
+
+              }
+
+
+              const palavras =
+                limpa
+                  .split(/\s+/)
+                  .filter(Boolean);
+
+
+              if (!palavras.length) {
+                return '';
+              }
+
+
+              const ultima =
+                palavras.pop();
+
+              const prefixo =
+                palavras.length
+                  ? `${escapeHTML(
+                      palavras.join(' ')
+                    )} `
+                  : '';
+
+
+              return (
+                `${prefixo}<em>${escapeHTML(
+                  ultima
+                )}</em>`
+              );
+
+            }
+          )
+          .join('<br>');
 
     } else {
 
-      title.textContent =
-        texto;
+      const palavras =
+        texto
+          .split(/\s+/)
+          .filter(Boolean);
+
+
+      if (palavras.length >= 2) {
+
+        const ultima =
+          palavras.pop();
+
+
+        title.innerHTML =
+          `${escapeHTML(
+            palavras.join(' ')
+          )} <br><em>${escapeHTML(
+            ultima
+          )}</em>`;
+
+      } else {
+
+        title.textContent =
+          texto;
+
+      }
 
     }
 
@@ -259,215 +361,48 @@ function carregarHero(hero) {
   }
 
 
-  // Configurações avançadas do slideshow
-  const slideWidth = ['extended', 'standard'].includes(hero.slide_width)
-    ? hero.slide_width
-    : 'extended';
-
-  const slideFit = ['cover', 'contain'].includes(hero.slide_fit)
-    ? hero.slide_fit
-    : 'cover';
-
-  const slideRatio = ['fullscreen', '16-9', '2.4-1', '4-1'].includes(hero.slide_ratio)
-    ? hero.slide_ratio
-    : 'fullscreen';
-
-  const slideAnimation = [
-    'fade',
-    'slide-horizontal',
-    'slide-vertical',
-    'kenburns'
-  ].includes(hero.slide_animation)
-    ? hero.slide_animation
-    : 'fade';
-
-  const slideOrder = hero.slide_order === 'random'
-    ? 'random'
-    : 'sequential';
-
-  const slideBehindMenu = hero.slide_behind_menu !== false;
-
-  const heroRoot = document.querySelector('.hero');
-  const heroMedia = document.querySelector('.hero-media');
-
-  if (heroRoot) {
-    heroRoot.dataset.slideRatio = slideRatio;
-    heroRoot.classList.toggle('hero-not-behind-menu', !slideBehindMenu);
-  }
-
-  if (heroMedia) {
-    heroMedia.dataset.slideWidth = slideWidth;
-    heroMedia.dataset.slideFit = slideFit;
-  }
-
-
   // ============================================
-  // IMAGEM ESTÁTICA + SLIDESHOW
+  // IMAGEM DESKTOP
   // ============================================
 
   const desktopImage =
-    document.getElementById('hero-desktop-image');
+    document.getElementById(
+      'hero-desktop-image'
+    );
 
-  const mobileImage =
-    document.getElementById('hero-mobile-image');
+  if (desktopImage) {
 
-  const slideshow =
-    document.getElementById('hero-slideshow');
+    if (hero.desktop_image) {
 
-  const fallbackImage =
-    hero.desktop_image || '';
+      desktopImage.src =
+        hero.desktop_image;
 
-  const fallbackMobile =
-    hero.mobile_image || '';
+    }
 
-  const staticX =
-    Number(hero.static_focus_x ?? 50);
-
-  const staticY =
-    Number(hero.static_focus_y ?? 50);
-
-  if (desktopImage && fallbackImage) {
-    desktopImage.src = fallbackImage;
     desktopImage.alt =
       hero.image_alt ||
       'Rangel Santos, fotógrafo';
-    desktopImage.style.objectPosition =
-      `${staticX}% ${staticY}%`;
+
   }
 
-  if (mobileImage) {
-    mobileImage.srcset =
-      fallbackMobile || fallbackImage || '';
-  }
 
-  // A foto estática permanece por baixo do slideshow.
-  // Se o slide estiver vazio, falhar ou demorar, o hero não fica sem imagem.
-  let slides =
-    Array.isArray(hero.slides)
-      ? hero.slides
-          .filter(s => s && s.url && s.published !== false)
-          .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
-      : [];
+  // ============================================
+  // IMAGEM MOBILE
+  // ============================================
 
-  if (slideOrder === 'random' && slides.length > 1) {
-    slides = [...slides];
-
-    for (let i = slides.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [slides[i], slides[j]] = [slides[j], slides[i]];
-    }
-  }
-
-  const useSlideshow =
-    hero.mode === 'slideshow' &&
-    slides.length > 0 &&
-    slideshow;
-
-  if (slideshow) {
-    slideshow.innerHTML = '';
-    slideshow.classList.toggle(
-      'is-active',
-      Boolean(useSlideshow)
+  const mobileImage =
+    document.getElementById(
+      'hero-mobile-image'
     );
-  }
 
-  if (useSlideshow) {
-    const interval =
-      Math.max(2000, (Number(hero.slide_interval) || 5) * 1000);
+  if (
+    mobileImage &&
+    hero.mobile_image
+  ) {
 
-    const transition =
-      Math.max(300, (Number(hero.slide_transition) || 1.2) * 1000);
+    mobileImage.srcset =
+      hero.mobile_image;
 
-    slideshow.dataset.animation = slideAnimation;
-    slideshow.dataset.fit = slideFit;
-
-    slideshow.style.setProperty('--hero-slide-transition', `${transition}ms`);
-    slideshow.style.setProperty('--hero-slide-interval', `${interval}ms`);
-
-    const nodes = slides.map((slide, index) => {
-      const img = document.createElement('img');
-
-      img.className =
-        'hero-slide' + (index === 0 ? ' is-visible' : '');
-
-      img.src = slide.url;
-      img.alt = slide.alt || hero.image_alt || '';
-      img.decoding = 'async';
-      img.loading = index < 2 ? 'eager' : 'lazy';
-
-      img.style.objectPosition =
-        `${Number(slide.focus_x ?? 50)}% ${Number(slide.focus_y ?? 50)}%`;
-
-      slideshow.appendChild(img);
-      return img;
-    });
-
-    const first = nodes[0];
-
-    const markReady = () => {
-      slideshow.classList.add('is-ready');
-    };
-
-    if (first.complete && first.naturalWidth) {
-      markReady();
-    } else {
-      first.addEventListener('load', markReady, { once: true });
-
-      first.addEventListener('error', () => {
-        slideshow.classList.remove('is-ready');
-      }, { once: true });
-    }
-
-    window.clearInterval(window.__heroSlideTimer);
-
-    if (nodes.length > 1) {
-      let current = 0;
-
-      const activate = next => {
-        const currentNode = nodes[current];
-        const nextNode = nodes[next];
-
-        nodes.forEach(node => {
-          node.classList.remove(
-            'is-prev',
-            'is-entering',
-            'is-from-bottom',
-            'is-from-right'
-          );
-        });
-
-        if (slideAnimation === 'slide-horizontal') {
-          nextNode.classList.add('is-entering', 'is-from-right', 'is-visible');
-          currentNode.classList.add('is-prev');
-
-          requestAnimationFrame(() => {
-            nextNode.classList.remove('is-from-right');
-          });
-        } else if (slideAnimation === 'slide-vertical') {
-          nextNode.classList.add('is-entering', 'is-from-bottom', 'is-visible');
-          currentNode.classList.add('is-prev');
-
-          requestAnimationFrame(() => {
-            nextNode.classList.remove('is-from-bottom');
-          });
-        } else {
-          nextNode.classList.add('is-visible');
-          currentNode.classList.remove('is-visible');
-        }
-
-        window.setTimeout(() => {
-          currentNode.classList.remove('is-visible', 'is-prev');
-          nextNode.classList.remove('is-entering');
-        }, transition + 80);
-
-        current = next;
-      };
-
-      window.__heroSlideTimer = window.setInterval(() => {
-        const next = (current + 1) % nodes.length;
-        activate(next);
-      }, interval);
-    }
   }
 
 
@@ -683,7 +618,7 @@ async function carregarTrabalhosRecentes(
   // ============================================
 
   console.log(
-    'CMS: buscando capas das galerias publicadas...'
+    'CMS: buscando fotografias...'
   );
 
 
@@ -702,7 +637,7 @@ async function carregarTrabalhosRecentes(
   if (photosError) {
 
     console.error(
-      'CMS: erro ao buscar capas das galerias:',
+      'CMS: erro ao buscar gallery_photos:',
       photosError
     );
 
@@ -721,7 +656,7 @@ async function carregarTrabalhosRecentes(
   ) {
 
     console.warn(
-      'CMS: nenhuma galeria pública com capa encontrada.'
+      'CMS: nenhuma fotografia publicada encontrada.'
     );
 
     return;
@@ -730,7 +665,7 @@ async function carregarTrabalhosRecentes(
 
 
   console.log(
-    'CMS: capas de galerias encontradas:',
+    'CMS: fotografias encontradas:',
     photos
   );
 
@@ -892,195 +827,48 @@ async function supabaseBuscarFotos(
   if (!supabase) {
 
     return {
+
       data: null,
+
       error: new Error(
         'Cliente Supabase não encontrado.'
       )
+
     };
 
   }
 
 
-  /*
-    TRABALHOS RECENTES = CAPAS DAS GALERIAS
+  return await supabase
 
-    Regra:
-    - somente galerias PUBLICADAS;
-    - uma única imagem por galeria;
-    - usa cover_url da própria galeria;
-    - galerias mais novas aparecem primeiro;
-    - se uma galeria publicada não tiver cover_url,
-      tenta usar a primeira fotografia publicada dela.
+    .from(
+      'gallery_photos'
+    )
 
-    Dessa forma, adicionar/publicar uma nova galeria já faz
-    a capa dela entrar automaticamente em Trabalhos recentes
-    no próximo carregamento da página.
-  */
-
-  const {
-    data: galleries,
-    error: galleriesError
-  } = await supabase
-    .from('galleries')
     .select(`
       id,
-      title,
-      slug,
-      cover_url,
-      sort_order,
-      created_at,
-      published
-    `)
-    .eq('published', true)
-    .order('created_at', {
-      ascending: false
-    })
-    .order('sort_order', {
-      ascending: true
-    });
-
-
-  if (galleriesError) {
-    return {
-      data: null,
-      error: galleriesError
-    };
-  }
-
-
-  const publicGalleries =
-    galleries || [];
-
-
-  if (!publicGalleries.length) {
-    return {
-      data: [],
-      error: null
-    };
-  }
-
-
-  // Busca fotos apenas para servir de fallback em galerias
-  // publicadas que ainda não tenham cover_url definida.
-  const galleryIds =
-    publicGalleries
-      .map(g => g.id)
-      .filter(Boolean);
-
-
-  const {
-    data: fallbackPhotos,
-    error: fallbackError
-  } = await supabase
-    .from('gallery_photos')
-    .select(`
-      id,
-      gallery_id,
       image_url,
       alt_text,
       sort_order,
-      created_at,
-      published
+      published,
+      gallery_id
     `)
-    .in('gallery_id', galleryIds)
-    .eq('published', true)
-    .order('sort_order', {
-      ascending: true
-    })
-    .order('created_at', {
-      ascending: true
-    });
 
+    .eq(
+      'published',
+      true
+    )
 
-  if (fallbackError) {
-    console.warn(
-      'CMS: não foi possível carregar fotos de fallback das galerias:',
-      fallbackError
+    .order(
+      'sort_order',
+      {
+        ascending: true
+      }
+    )
+
+    .limit(
+      limit
     );
-  }
-
-
-  const primeiraFotoPorGaleria =
-    new Map();
-
-
-  (fallbackPhotos || []).forEach(photo => {
-
-    if (
-      photo.gallery_id &&
-      !primeiraFotoPorGaleria.has(
-        photo.gallery_id
-      )
-    ) {
-      primeiraFotoPorGaleria.set(
-        photo.gallery_id,
-        photo
-      );
-    }
-
-  });
-
-
-  const covers =
-    publicGalleries
-      .map(gallery => {
-
-        const fallback =
-          primeiraFotoPorGaleria.get(
-            gallery.id
-          );
-
-        const imageUrl =
-          gallery.cover_url ||
-          fallback?.image_url ||
-          '';
-
-
-        if (!imageUrl) {
-          return null;
-        }
-
-
-        return {
-          id:
-            gallery.id,
-
-          image_url:
-            imageUrl,
-
-          alt_text:
-            gallery.title ||
-            fallback?.alt_text ||
-            'Galeria de Rangel Santos Fotografia',
-
-          gallery_id:
-            gallery.id,
-
-          gallery_slug:
-            gallery.slug || '',
-
-          created_at:
-            gallery.created_at,
-
-          sort_order:
-            gallery.sort_order ?? 0
-        };
-
-      })
-      .filter(Boolean)
-      .slice(
-        0,
-        Math.max(
-          1,
-          Number(limit) || 6
-        )
-      );
-
-
-  return {
-    data: covers,
-    error: null
-  };
 
 }
 
@@ -1129,6 +917,8 @@ function iniciarCMS() {
     console.error(
       'CMS: Supabase ainda não foi inicializado.'
     );
+
+    liberarPaginaInicio();
 
     return;
 

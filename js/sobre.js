@@ -40,81 +40,63 @@ function chaveSpec(label) {
 function mergeSpecs(savedSpecs, settings) {
   const saved =
     Array.isArray(savedSpecs)
-      ? savedSpecs.filter(
-          spec =>
-            spec &&
-            typeof spec === 'object'
-        )
+      ? savedSpecs
+          .filter(
+            spec =>
+              spec &&
+              typeof spec === 'object'
+          )
+          .map(spec => ({
+            label:
+              normalizarTexto(spec.label),
+            value:
+              normalizarTexto(spec.value)
+          }))
+          .filter(
+            spec =>
+              spec.label &&
+              spec.value
+          )
       : [];
 
-  /*
-    Mantém as linhas padrão que já existiam na página caso um rascunho
-    antigo tenha salvo apenas parte dos specs. Valores salvos continuam
-    tendo prioridade. Specs personalizados extras também são preservados.
-  */
-  const byKey =
-    new Map(
-      saved.map(spec => [
-        chaveSpec(spec.label),
-        {
-          label:
-            normalizarTexto(spec.label),
-          value:
-            normalizarTexto(spec.value)
-        }
-      ])
-    );
+  if (saved.length) {
+    return saved;
+  }
 
-  const fallbacks = {
-    'baseado em':
-      normalizarTexto(settings?.location),
-    'especialidade':
-      normalizarTexto(settings?.specialty),
-    'atende':
-      normalizarTexto(settings?.availability)
-  };
+  return DEFAULTS.specs.map(spec => {
+    const key =
+      chaveSpec(spec.label);
 
-  const merged =
-    DEFAULTS.specs.map(defaultSpec => {
-      const key =
-        chaveSpec(defaultSpec.label);
-
-      const savedSpec =
-        byKey.get(key);
-
-      byKey.delete(key);
-
-      const savedValue =
-        normalizarTexto(
-          savedSpec?.value
-        );
-
-      return {
-        label:
-          savedSpec?.label ||
-          defaultSpec.label,
-
-        value:
-          savedValue ||
-          fallbacks[key] ||
-          defaultSpec.value
-      };
-    });
-
-  /*
-    Se você criar uma informação nova no Admin, ela não é perdida:
-    entra depois das linhas padrão.
-  */
-  byKey.forEach(spec => {
     if (
-      spec.label &&
-      spec.value
+      key === 'baseado em' &&
+      normalizarTexto(settings?.location)
     ) {
-      merged.push(spec);
+      return {
+        ...spec,
+        value:
+          normalizarTexto(
+            settings.location
+          )
+      };
     }
-  });
 
-  return merged;
+    if (
+      key === 'especialidade' &&
+      normalizarTexto(settings?.specialty)
+    ) {
+      return {
+        ...spec,
+        value:
+          normalizarTexto(
+            settings.specialty
+          )
+      };
+    }
+
+    return {
+      ...spec
+    };
+  });
 }
 
 function mostrarPaginaSobre() {
@@ -134,11 +116,14 @@ async function carregarSobre() {
       Depois buscamos somente o conteúdo específico da página.
       A tela principal continua oculta até este primeiro render terminar.
     */
-    const { settings } =
-      await initSite();
-
-    const sections =
-      await getPageContent('sobre');
+    const [
+      { settings },
+      sections
+    ] =
+      await Promise.all([
+        initSite(),
+        getPageContent('sobre')
+      ]);
 
     const c =
       sections.conteudo || {};
