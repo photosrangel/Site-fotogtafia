@@ -6722,6 +6722,12 @@ const DESIGN_DEFAULTS = Object.freeze({
   image_hover: 'site',
   motion_speed: 'normal',
   type_scale: 100,
+  whatsapp_enabled: true,
+  whatsapp_number: '',
+  whatsapp_message: 'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.',
+  whatsapp_position: 'right',
+  whatsapp_pages: ['inicio','galeria','sobre','contato'],
+  inline_styles: {},
   content_width: 1200,
   section_space: 120,
   hero_overlay: 40,
@@ -6807,6 +6813,12 @@ function normalizeDesignConfig(config = {}) {
     client_status_selected: safeText(c.client_status_selected, 160) || DESIGN_DEFAULTS.client_status_selected,
     client_status_editing: safeText(c.client_status_editing, 140) || DESIGN_DEFAULTS.client_status_editing,
     client_status_ready: safeText(c.client_status_ready, 140) || DESIGN_DEFAULTS.client_status_ready,
+    whatsapp_enabled: c.whatsapp_enabled !== false,
+    whatsapp_number: safeText(c.whatsapp_number, 20).replace(/\D/g,''),
+    whatsapp_message: safeText(c.whatsapp_message, 500) || 'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.',
+    whatsapp_position: c.whatsapp_position === 'left' ? 'left' : 'right',
+    whatsapp_pages: Array.isArray(c.whatsapp_pages) ? c.whatsapp_pages.filter(x => ['inicio','galeria','sobre','contato'].includes(x)) : ['inicio','galeria','sobre','contato'],
+    inline_styles: c.inline_styles && typeof c.inline_styles === 'object' ? JSON.parse(JSON.stringify(c.inline_styles)) : {},
     content: c.content && typeof c.content === 'object' ? JSON.parse(JSON.stringify(c.content)) : null
   };
 }
@@ -6873,6 +6885,12 @@ function collectDesignConfig() {
     client_status_selected: $('design-client-status-selected')?.value,
     client_status_editing: $('design-client-status-editing')?.value,
     client_status_ready: $('design-client-status-ready')?.value,
+    whatsapp_enabled: $('design-whatsapp-enabled')?.checked !== false,
+    whatsapp_number: ($('design-whatsapp-number')?.value || '').replace(/\D/g,''),
+    whatsapp_message: $('design-whatsapp-message')?.value,
+    whatsapp_position: $('design-whatsapp-position')?.value,
+    whatsapp_pages: ['inicio','galeria','sobre','contato'].filter(p => $('design-whatsapp-page-' + p)?.checked),
+    inline_styles: window.__designInlineStyles || {},
     content: collectDesignContentSnapshot()
   });
 }
@@ -6933,6 +6951,12 @@ function applyDesignConfigToControls(config) {
   Object.entries(map).forEach(([id, value]) => {
     if ($(id)) $(id).value = String(value);
   });
+  if ($('design-whatsapp-enabled')) $('design-whatsapp-enabled').checked = c.whatsapp_enabled !== false;
+  if ($('design-whatsapp-number')) $('design-whatsapp-number').value = c.whatsapp_number || '';
+  if ($('design-whatsapp-message')) $('design-whatsapp-message').value = c.whatsapp_message || '';
+  if ($('design-whatsapp-position')) $('design-whatsapp-position').value = c.whatsapp_position || 'right';
+  ['inicio','galeria','sobre','contato'].forEach(p => { const el=$('design-whatsapp-page-'+p); if(el) el.checked=(c.whatsapp_pages||[]).includes(p); });
+  window.__designInlineStyles = JSON.parse(JSON.stringify(c.inline_styles || {}));
   if (c.content) applyDesignContentSnapshotToControls(c.content);
   updateDesignClientImagePreview();
   applyDesignPreview();
@@ -8278,7 +8302,95 @@ function applyInicioDesignPreview(doc, snapshot) {
 
 function applySobreDesignPreview(doc,s){const d=s.sobre?.conteudo||{},text=doc.querySelector('.about-text');if(text){const eb=text.querySelector('.section-eyebrow');if(eb)eb.textContent=d.eyebrow||'';text.querySelectorAll(':scope > p:not(.section-eyebrow)').forEach(p=>p.remove());const specs=text.querySelector('.specs');(d.paragraphs||[]).forEach(x=>{const p=doc.createElement('p');p.textContent=x;text.insertBefore(p,specs||null)});if(specs)specs.innerHTML=(d.specs||[]).map(x=>`<div><dt>${esc(x.label||'')}</dt><dd>${esc(x.value||'')}</dd></div>`).join('');const cta=text.querySelector('.btn.btn-accent');if(cta){cta.textContent=d.cta_text||'';cta.href=d.cta_url||'/contato'}}const portrait=doc.querySelector('.about-portrait img');if(portrait&&d.portrait_url){portrait.src=d.portrait_url;portrait.alt=d.portrait_alt||''}}
 function applyContatoDesignPreview(doc,s){const d=s.contato?.conteudo||{},eb=doc.querySelector('.section-head .section-eyebrow'),title=doc.querySelector('.section-head .section-title');if(eb)eb.textContent=d.eyebrow||'';if(title)title.textContent=d.title||'';const form=doc.querySelector('.contact-grid form');if(form){const btn=form.querySelector('button[type="submit"]');if(btn)btn.textContent=d.submit_label||'Enviar mensagem';const sel=form.querySelector('select[name="tipo"],#tipo');if(sel)sel.innerHTML=(d.tipos||[]).map(x=>`<option>${esc(x)}</option>`).join('')}const info=doc.querySelector('.contact-info');if(info){const dt=[...info.querySelectorAll('dt')].find(n=>n.textContent.trim().toLowerCase()==='atendimento');if(dt?.nextElementSibling)dt.nextElementSibling.textContent=d.atendimento||''}}
-function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s)}
+
+const DESIGN_INLINE_FIELDS = {
+  'hero-eyebrow': {input:'hero-eyebrow', label:'Texto acima do título'},
+  'hero-title': {input:'hero-title', label:'Título principal'},
+  'hero-description': {input:'hero-description', label:'Descrição principal'},
+  'hero-primary-button': {input:'hero-primary-text', label:'Botão principal'},
+  'hero-secondary-button': {input:'hero-secondary-text', label:'Botão secundário'},
+  'recent-work-eyebrow': {input:'recent-eyebrow', label:'Texto de Trabalhos recentes'},
+  'recent-work-title': {input:'recent-title', label:'Título de Trabalhos recentes'},
+  'recent-work-button': {input:'recent-btn-text', label:'Botão da galeria'}
+};
+let designInlineActive=null;
+function applyInlineStyleToElement(el,key){
+  const st=(window.__designInlineStyles||{})[key]||{};
+  el.style.fontWeight=st.bold?'700':'';
+  el.style.fontStyle=st.italic?'italic':'';
+  el.style.textAlign=st.align||'';
+  el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';
+}
+function decorateDesignInlinePreview(doc){
+  if(!doc||activeView!=='design')return;
+  Object.entries(DESIGN_INLINE_FIELDS).forEach(([id,cfg])=>{
+    const el=doc.getElementById(id); if(!el)return;
+    el.dataset.designInlineEditable='1'; el.dataset.designInlineKey=id;
+    el.title='Clique para editar este texto';
+    applyInlineStyleToElement(el,id);
+    if(el.dataset.designInlineBound==='1')return;
+    el.dataset.designInlineBound='1';
+    el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,id);});
+  });
+}
+function openDesignInlineEditor(el,cfg,key){
+  if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
+  designInlineActive={el,cfg,key,originalText:el.textContent,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
+  el.contentEditable='true'; el.classList.add('design-inline-editing'); el.focus();
+  const box=$('design-inline-editor'); if(box)box.hidden=false;
+  if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=cfg.label;
+  const st=(window.__designInlineStyles||{})[key]||{};
+  if($('design-inline-size'))$('design-inline-size').value=st.size||'inherit';
+  document.querySelectorAll('[data-inline-command]').forEach(b=>b.classList.toggle('active',!!st[b.dataset.inlineCommand]));
+  document.querySelectorAll('[data-inline-align]').forEach(b=>b.classList.toggle('active',(st.align||'left')===b.dataset.inlineAlign));
+}
+function previewInlineStyle(patch){
+  if(!designInlineActive)return;
+  window.__designInlineStyles=window.__designInlineStyles||{};
+  const cur=window.__designInlineStyles[designInlineActive.key]||{};
+  window.__designInlineStyles[designInlineActive.key]={...cur,...patch};
+  applyInlineStyleToElement(designInlineActive.el,designInlineActive.key);
+  updateDesignPublicationState();
+}
+function finishDesignInline(save){
+  const a=designInlineActive;if(!a)return;
+  if(save){
+    const input=$(a.cfg.input); if(input){input.value=(a.el.textContent||'').trim(); input.dispatchEvent(new Event('input',{bubbles:true}));}
+  }else{
+    a.el.textContent=a.originalText;
+    window.__designInlineStyles=window.__designInlineStyles||{};
+    window.__designInlineStyles[a.key]=a.originalStyle;
+    applyInlineStyleToElement(a.el,a.key);
+  }
+  a.el.contentEditable='false';a.el.classList.remove('design-inline-editing');designInlineActive=null;
+  if($('design-inline-editor'))$('design-inline-editor').hidden=true;
+  applyDesignContentPreview();updateDesignPublicationState();
+}
+async function saveDesignInline(){
+  if(!designInlineActive)return;
+  const a=designInlineActive; const input=$(a.cfg.input); if(input)input.value=(a.el.textContent||'').trim();
+  a.el.contentEditable='false';a.el.classList.remove('design-inline-editing');designInlineActive=null;
+  if($('design-inline-editor'))$('design-inline-editor').hidden=true;
+  await saveDesignDraft(); applyDesignContentPreview(); flash('Texto salvo no rascunho. O site público não foi alterado.','sucesso');
+}
+function bindDesignInlineToolbar(){
+  if(document.body.dataset.inlineToolbarBound==='1')return;document.body.dataset.inlineToolbarBound='1';
+  $('design-inline-discard')?.addEventListener('click',()=>finishDesignInline(false));
+  $('design-inline-save')?.addEventListener('click',saveDesignInline);
+  $('design-inline-size')?.addEventListener('change',e=>previewInlineStyle({size:e.target.value}));
+  document.querySelectorAll('[data-inline-command]').forEach(b=>b.addEventListener('click',()=>{if(!designInlineActive)return;const k=b.dataset.inlineCommand,cur=(window.__designInlineStyles||{})[designInlineActive.key]||{};previewInlineStyle({[k]:!cur[k]});b.classList.toggle('active',!cur[k]);}));
+  document.querySelectorAll('[data-inline-align]').forEach(b=>b.addEventListener('click',()=>{previewInlineStyle({align:b.dataset.inlineAlign});document.querySelectorAll('[data-inline-align]').forEach(x=>x.classList.toggle('active',x===b));}));
+}
+function applyDesignWhatsappPreview(doc){
+  if(!doc)return; let btn=doc.getElementById('rs-whatsapp-float-preview');
+  const enabled=$('design-whatsapp-enabled')?.checked!==false, num=($('design-whatsapp-number')?.value||'').replace(/\D/g,''), msg=encodeURIComponent($('design-whatsapp-message')?.value||''), pos=$('design-whatsapp-position')?.value||'right';
+  let path='inicio';try{const p=doc.location.pathname;if(p.includes('galeria'))path='galeria';else if(p.includes('sobre'))path='sobre';else if(p.includes('contato'))path='contato';}catch(_){}
+  const allowed=$('design-whatsapp-page-'+path)?.checked!==false;
+  if(!enabled||!num||!allowed){btn?.remove();return;}
+  if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.className='rs-whatsapp-float';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Conversar pelo WhatsApp');btn.innerHTML='<span aria-hidden="true">◔</span><b>WhatsApp</b>';doc.body.appendChild(btn);}
+  btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.classList.toggle('is-left',pos==='left');
+}
+function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
 function openDesignContentSection(page, trigger) {
   if (page === 'client_area') {
     openDesignDrawer(
@@ -8895,6 +9007,7 @@ function updateDesignClientImagePreview() {
 async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await supabase.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl||''}
 
 function initDesignStudio() {
+  bindDesignInlineToolbar();
   initDesignAccordions();
   initDesignSidebarNavigation();
   initDesignContentMigration();

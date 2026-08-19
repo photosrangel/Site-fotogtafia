@@ -68,6 +68,7 @@ const PUBLIC_DESIGN_DEFAULTS = {
   content_width:1200,
   section_space:120,
   hero_overlay:40,
+  whatsapp_enabled:true, whatsapp_number:'', whatsapp_message:'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.', whatsapp_position:'right', whatsapp_pages:['inicio','galeria','sobre','contato'], inline_styles:{},
   gallery_gap:2,
   image_radius:0,
   client_layout:'editorial-split',
@@ -117,6 +118,12 @@ function normalizePublicDesign(config={}){
     content_width:publicDesignClamp(c.content_width,1040,1500,1200),
     section_space:publicDesignClamp(c.section_space,72,160,120),
     hero_overlay:publicDesignClamp(c.hero_overlay,0,70,40),
+    whatsapp_enabled:c.whatsapp_enabled!==false,
+    whatsapp_number:typeof c.whatsapp_number==='string'?c.whatsapp_number.replace(/\D/g,''):'',
+    whatsapp_message:typeof c.whatsapp_message==='string'?c.whatsapp_message:PUBLIC_DESIGN_DEFAULTS.whatsapp_message,
+    whatsapp_position:c.whatsapp_position==='left'?'left':'right',
+    whatsapp_pages:Array.isArray(c.whatsapp_pages)?c.whatsapp_pages.filter(x=>['inicio','galeria','sobre','contato'].includes(x)):PUBLIC_DESIGN_DEFAULTS.whatsapp_pages,
+    inline_styles:c.inline_styles&&typeof c.inline_styles==='object'?c.inline_styles:{},
     gallery_gap:publicDesignClamp(c.gallery_gap,0,16,2),
     image_radius:publicDesignClamp(c.image_radius,0,18,0),
     client_layout:['editorial-split','centered','fullscreen'].includes(c.client_layout)?c.client_layout:'editorial-split',
@@ -184,6 +191,18 @@ function applyPublishedClientTexts(c){
   };
 }
 
+
+function applyPublishedInlineStyles(c){
+  const styles=c.inline_styles||{};
+  Object.entries(styles).forEach(([id,st])=>{const el=document.getElementById(id);if(!el)return;el.style.fontWeight=st.bold?'700':'';el.style.fontStyle=st.italic?'italic':'';el.style.textAlign=st.align||'';el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';});
+}
+function applyPublishedWhatsapp(c){
+  document.getElementById('rs-whatsapp-float')?.remove();
+  if(!c.whatsapp_enabled||!c.whatsapp_number)return;
+  let page='inicio';const p=location.pathname;if(p.includes('galeria'))page='galeria';else if(p.includes('sobre'))page='sobre';else if(p.includes('contato'))page='contato';else if(p.includes('area-cliente'))page='area-cliente';
+  if(!(c.whatsapp_pages||[]).includes(page))return;
+  const a=document.createElement('a');a.id='rs-whatsapp-float';a.className='rs-whatsapp-float'+(c.whatsapp_position==='left'?' is-left':'');a.href='https://wa.me/'+c.whatsapp_number+(c.whatsapp_message?'?text='+encodeURIComponent(c.whatsapp_message):'');a.target='_blank';a.rel='noopener';a.setAttribute('aria-label','Conversar pelo WhatsApp');a.innerHTML='<span aria-hidden="true">◔</span><b>WhatsApp</b>';document.body.appendChild(a);
+}
 function applyPublishedDesign(config={}){
   const c=normalizePublicDesign(config);
   let style=document.getElementById('published-design-style');
@@ -323,6 +342,8 @@ function applyPublishedDesign(config={}){
   `;
 
   applyPublishedClientTexts(c);
+  applyPublishedInlineStyles(c);
+  applyPublishedWhatsapp(c);
 }
 
 async function loadPublishedDesign(){
