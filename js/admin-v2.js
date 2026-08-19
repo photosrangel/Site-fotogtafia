@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v59 — quebra manual persistente no editor visual');
+console.log('[admin-v2] Build v60 — salvamento forçado do hero-title');
 
 const $ = id => document.getElementById(id);
 
@@ -7171,7 +7171,7 @@ async function upsertDesignRow(sectionKey, config) {
   return normalized;
 }
 
-async function saveDesignDraft() {
+async function saveDesignDraft(configOverride = null) {
   if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
 
   const button = $('design-save-draft');
@@ -7184,9 +7184,16 @@ async function saveDesignDraft() {
   }
 
   try {
+    const configToSave =
+      configOverride
+        ? normalizeDesignConfig(
+            configOverride
+          )
+        : collectDesignConfig();
+
     designDraftSaved = await upsertDesignRow(
       'draft',
-      collectDesignConfig()
+      configToSave
     );
 
     designDraftUpdatedAt =
@@ -9307,12 +9314,6 @@ async function saveDesignInline() {
       true;
   }
 
-  /*
-    Atualiza primeiro a prévia local. Dessa forma o usuário
-    vê o resultado mesmo enquanto o rascunho está sendo salvo.
-  */
-  applyDesignContentPreview();
-
   console.log(
     '[admin-v2] editor visual: salvando',
     {
@@ -9329,7 +9330,73 @@ async function saveDesignInline() {
   );
 
   try {
-    await saveDesignDraft();
+    let forcedConfig =
+      null;
+
+    if (
+      editedKey === 'hero-title'
+    ) {
+      forcedConfig =
+        collectDesignConfig();
+
+      forcedConfig.content =
+        forcedConfig.content &&
+        typeof forcedConfig.content === 'object'
+          ? JSON.parse(
+              JSON.stringify(
+                forcedConfig.content
+              )
+            )
+          : {
+              inicio: {
+                hero: {}
+              }
+            };
+
+      forcedConfig.content.inicio =
+        forcedConfig.content.inicio ||
+        {};
+
+      forcedConfig.content.inicio.hero =
+        forcedConfig.content.inicio.hero ||
+        {};
+
+      /*
+        Fonte de verdade absoluta:
+        o texto exato criado pelo editor visual.
+        Não importa se o textarea foi alterado por algum listener antigo.
+      */
+      forcedConfig.content.inicio.hero.title =
+        newText;
+
+      input.value =
+        newText;
+
+      console.log(
+        '[admin-v2] editor visual: config forçado antes do save',
+        {
+          title:
+            forcedConfig
+              .content
+              .inicio
+              .hero
+              .title,
+          lines:
+            forcedConfig
+              .content
+              .inicio
+              .hero
+              .title
+              .split('\n'),
+          textarea:
+            input.value
+        }
+      );
+    }
+
+    await saveDesignDraft(
+      forcedConfig
+    );
 
     if (
       editedKey === 'hero-title'
@@ -9352,6 +9419,17 @@ async function saveDesignInline() {
             ).split('\n')
         }
       );
+
+      /*
+        O draft recém-salvo volta para os controles.
+        Isso elimina qualquer valor antigo que algum listener tenha
+        deixado no textarea antes do save.
+      */
+      if (designDraftSaved) {
+        applyDesignConfigToControls(
+          designDraftSaved
+        );
+      }
     }
 
     /*
@@ -9399,6 +9477,14 @@ async function saveDesignInline() {
             sourceField:
               editedKey === 'hero-title'
                 ? $('hero-title')?.value
+                : undefined,
+            draftTitle:
+              editedKey === 'hero-title'
+                ? designDraftSaved
+                    ?.content
+                    ?.inicio
+                    ?.hero
+                    ?.title
                 : undefined
           }
         );
