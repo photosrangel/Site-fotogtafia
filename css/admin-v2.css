@@ -5601,3 +5601,23 @@
     padding-bottom: 10px !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V27 — DESIGN PREVIEW FIEL AO LAYOUT PÚBLICO
+   ========================================================= */
+
+/*
+  A prévia volta a usar o tamanho visual maior da V25:
+  o viewport real é reduzido pela largura, não forçado a caber
+  inteiro na altura do monitor.
+*/
+.design-preview-stage {
+  overflow: hidden !important;
+}
+
+.design-preview-stage .design-browser-frame {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  transform-origin: top center !important;
+}
