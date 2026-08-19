@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v48 — editor visual: salvar e prévia corrigidos');
+console.log('[admin-v2] Build v49 — editor visual: quebras de linha preservadas');
 
 const $ = id => document.getElementById(id);
 
@@ -8012,7 +8012,67 @@ function portalHeroContentModals() {
 
 function initDesignContentMigration(){const host=$('design-content-host');if(!host)return;['content-panel-inicio','content-panel-sobre','content-panel-contato'].forEach(id=>{const panel=$(id);if(!panel)return;panel.hidden=true;if(panel.parentElement!==host)host.appendChild(panel)})}
 function routeDesignPreview(path){const frame=$('design-preview-frame');if(!frame)return;let current='';try{current=new URL(frame.src,location.origin).pathname}catch(_){}if(current!==path&&current!==`${path}.html`)frame.src=path;else setTimeout(applyDesignContentPreview,40)}
-function formatPreviewTitle(el,text){if(!el)return;const words=String(text||'').trim().split(/\s+/).filter(Boolean);if(words.length<2){el.textContent=words.join(' ');return}const last=words.pop();el.innerHTML=`${esc(words.join(' '))} <br><em>${esc(last)}</em>`}
+function formatPreviewTitle(el,text){
+  if(!el)return;
+
+  const value=String(text||'')
+    .replace(/\r\n/g,'\n')
+    .replace(/\r/g,'\n')
+    .trim();
+
+  if(!value){
+    el.textContent='';
+    return;
+  }
+
+  const hasManualBreak=value.includes('\n');
+
+  if(!hasManualBreak){
+    const words=value.split(/\s+/).filter(Boolean);
+
+    if(words.length<2){
+      el.textContent=words.join(' ');
+      return;
+    }
+
+    const last=words.pop();
+
+    el.innerHTML=
+      `${esc(words.join(' '))} <br><em>${esc(last)}</em>`;
+
+    return;
+  }
+
+  const lines=value.split('\n');
+
+  const lastContentLine=(()=>{
+    for(let i=lines.length-1;i>=0;i--){
+      if(lines[i].trim())return i;
+    }
+    return lines.length-1;
+  })();
+
+  el.innerHTML=lines
+    .map((line,index)=>{
+      const clean=line.trim();
+
+      if(index!==lastContentLine){
+        return esc(clean);
+      }
+
+      const words=clean.split(/\s+/).filter(Boolean);
+
+      if(!words.length)return '';
+
+      const last=words.pop();
+      const prefix=words.length
+        ? `${esc(words.join(' '))} `
+        : '';
+
+      return `${prefix}<em>${esc(last)}</em>`;
+    })
+    .join('<br>');
+}
 function stopDesignHeroPreviewTimer(doc) {
   try {
     const win = doc?.defaultView;
@@ -8407,8 +8467,8 @@ function decorateDesignInlinePreview(doc){
 }
 function openDesignInlineEditor(el,cfg,key){
   if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
-  designInlineActive={el,cfg,key,originalText:el.textContent,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
-  el.contentEditable='true'; el.classList.add('design-inline-editing'); el.focus();
+  designInlineActive={el,cfg,key,originalText:(el.innerText||el.textContent||''),originalHTML:el.innerHTML,originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))};
+  el.contentEditable='true'; el.style.whiteSpace='pre-line'; el.classList.add('design-inline-editing'); el.focus();
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=cfg.label;
   const st=(window.__designInlineStyles||{})[key]||{};
@@ -8429,12 +8489,12 @@ function finishDesignInline(save){
   if(save){
     const input=$(a.cfg.input); if(input){input.value=(a.el.textContent||'').trim(); input.dispatchEvent(new Event('input',{bubbles:true}));}
   }else{
-    a.el.textContent=a.originalText;
+    a.el.innerHTML=a.originalHTML;
     window.__designInlineStyles=window.__designInlineStyles||{};
     window.__designInlineStyles[a.key]=a.originalStyle;
     applyInlineStyleToElement(a.el,a.key);
   }
-  a.el.contentEditable='false';a.el.classList.remove('design-inline-editing');designInlineActive=null;
+  a.el.contentEditable='false';a.el.style.removeProperty('white-space');a.el.classList.remove('design-inline-editing');designInlineActive=null;
   if($('design-inline-editor'))$('design-inline-editor').hidden=true;
   applyDesignContentPreview();updateDesignPublicationState();
 }
@@ -8445,9 +8505,16 @@ async function saveDesignInline() {
     designInlineActive;
 
   const newText =
-    (active.el.textContent || '')
+    (
+      active.el.innerText ||
+      active.el.textContent ||
+      ''
+    )
       .replace(/\u00a0/g, ' ')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
       .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
 
   const input =
@@ -8495,6 +8562,10 @@ async function saveDesignInline() {
   active.el.contentEditable =
     'false';
 
+  active.el.style.removeProperty(
+    'white-space'
+  );
+
   active.el.classList.remove(
     'design-inline-editing'
   );
@@ -8518,7 +8589,8 @@ async function saveDesignInline() {
     {
       key: editedKey,
       input: active.cfg.input,
-      text: newText
+      text: newText,
+      lines: newText.split('\n')
     }
   );
 
