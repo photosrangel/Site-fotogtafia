@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v58 — primeiro clique + rascunho antigo corrigidos');
+console.log('[admin-v2] Build v59 — quebra manual persistente no editor visual');
 
 const $ = id => document.getElementById(id);
 
@@ -8911,6 +8911,9 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
     originalHTML:el.innerHTML,
     originalInputValue:sourceValue,
     textBuffer:sourceValue,
+    explicitText:null,
+    hasExplicitBreak:false,
+    suppressInputSync:false,
     originalStyle:JSON.parse(JSON.stringify((window.__designInlineStyles||{})[key]||{}))
   };
 
@@ -9023,6 +9026,21 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
       designInlineActive.textBuffer =
         next;
 
+      /*
+        Guardamos separadamente o texto produzido pelo Enter.
+        Algumas versões do Chromium podem emitir um input tardio
+        depois da reconstrução visual do título. Esse evento não
+        pode substituir a quebra que o usuário acabou de criar.
+      */
+      designInlineActive.explicitText =
+        next;
+
+      designInlineActive.hasExplicitBreak =
+        true;
+
+      designInlineActive.suppressInputSync =
+        true;
+
       renderHeroTitleForEditing(
         el,
         next
@@ -9034,10 +9052,30 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
             el,
             safeOffset + 1
           );
+
+          if (
+            designInlineActive
+          ) {
+            designInlineActive.suppressInputSync =
+              false;
+          }
         }
       );
 
       updateDesignPublicationState();
+
+      console.log(
+        '[admin-v2] editor visual: quebra manual criada',
+        {
+          offset:
+            safeOffset,
+          text:
+            next,
+          lines:
+            next.split('\n')
+        }
+      );
+
       return;
     }
 
@@ -9057,6 +9095,13 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
 
   el.oninput=()=>{
     if (isHeroTitle) {
+      if (
+        designInlineActive
+          ?.suppressInputSync
+      ) {
+        return;
+      }
+
       const liveText =
         serializeDesignEditableText(
           el
@@ -9071,6 +9116,19 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
       ) {
         designInlineActive.textBuffer =
           liveText;
+
+        /*
+          Depois que o usuário continua digitando após um Enter,
+          atualizamos também o texto explícito para manter a edição
+          inteira coerente.
+        */
+        if (
+          designInlineActive
+            .hasExplicitBreak
+        ) {
+          designInlineActive.explicitText =
+            liveText;
+        }
       }
 
       if (input) {
@@ -9140,14 +9198,25 @@ async function saveDesignInline() {
     return walk(root);
   };
 
+  const heroSource =
+    active.key === 'hero-title'
+      ? (
+          active.hasExplicitBreak &&
+          typeof active.explicitText ===
+            'string'
+            ? active.explicitText
+            : (
+                active.textBuffer ||
+                $(active.cfg.input)?.value ||
+                ''
+              )
+        )
+      : '';
+
   const newText =
     (
       active.key === 'hero-title'
-        ? (
-            active.textBuffer ||
-            $(active.cfg.input)?.value ||
-            ''
-          )
+        ? heroSource
         : serializeInlineText(active.el)
     )
       .replace(/\u00a0/g, ' ')
@@ -9182,19 +9251,29 @@ async function saveDesignInline() {
   input.value =
     newText;
 
-  input.dispatchEvent(
-    new Event(
-      'input',
-      { bubbles: true }
-    )
-  );
+  /*
+    Para o hero-title não disparámos os listeners genéricos aqui.
+    O valor já está no textarea, e saveDesignDraft() coleta esse
+    textarea diretamente. Isso evita qualquer rotina antiga de input
+    reprocessar o título antes do rascunho ser persistido.
+  */
+  if (
+    active.key !== 'hero-title'
+  ) {
+    input.dispatchEvent(
+      new Event(
+        'input',
+        { bubbles: true }
+      )
+    );
 
-  input.dispatchEvent(
-    new Event(
-      'change',
-      { bubbles: true }
-    )
-  );
+    input.dispatchEvent(
+      new Event(
+        'change',
+        { bubbles: true }
+      )
+    );
+  }
 
   const editedKey =
     active.key;
@@ -9241,12 +9320,39 @@ async function saveDesignInline() {
       input: active.cfg.input,
       text: newText,
       lines: newText.split('\n'),
-      sourceField: input.value
+      sourceField: input.value,
+      usedExplicitBreak:
+        active.key === 'hero-title'
+          ? !!active.hasExplicitBreak
+          : false
     }
   );
 
   try {
     await saveDesignDraft();
+
+    if (
+      editedKey === 'hero-title'
+    ) {
+      const persistedDraftTitle =
+        designDraftSaved
+          ?.content
+          ?.inicio
+          ?.hero
+          ?.title;
+
+      console.log(
+        '[admin-v2] editor visual: título gravado no draft',
+        {
+          title:
+            persistedDraftTitle || '',
+          lines:
+            String(
+              persistedDraftTitle || ''
+            ).split('\n')
+        }
+      );
+    }
 
     /*
       A página /inicio possui o próprio carregador CMS.
