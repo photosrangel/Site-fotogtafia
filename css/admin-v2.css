@@ -6841,3 +6841,280 @@ body.modal-open {
   width: 100%;
   margin-top: 7px;
 }
+
+
+/* =========================================================
+   BUILD V43 — CONTEÚDO FULLSCREEN REAL + PREVIEW SLIDESHOW
+   ========================================================= */
+
+/*
+  Override final, propositalmente no fim do CSS.
+  Evita qualquer regra anterior do flyout compacto limitar
+  Conteúdo > Início / Sobre / Contato.
+*/
+body .design-controls-drawer.is-content-editor {
+  position: fixed !important;
+
+  inset: 6px !important;
+  top: 6px !important;
+  right: 6px !important;
+  bottom: 6px !important;
+  left: 6px !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: auto !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 16px !important;
+
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+
+  border-radius: 14px !important;
+
+  transform: none !important;
+  opacity: 1 !important;
+
+  z-index: 9000 !important;
+}
+
+body .design-controls-drawer.is-content-editor
+.design-controls-drawer-head {
+  position: sticky !important;
+  top: -16px !important;
+  z-index: 30 !important;
+
+  margin:
+    -16px
+    -16px
+    18px !important;
+
+  padding:
+    14px
+    18px !important;
+}
+
+body .design-controls-drawer.is-content-editor
+.design-content-host {
+  display: block;
+  width: min(100%, 1840px) !important;
+  max-width: 1840px !important;
+  margin: 0 auto !important;
+}
+
+body .design-controls-drawer.is-content-editor
+.design-content-host .content-panel {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Início ganha espaço real para imagens e controles. */
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio {
+  min-width: 0 !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio .panel {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio .form-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr)) !important;
+  gap: 18px !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio .field-full {
+  grid-column: 1 / -1 !important;
+}
+
+/*
+  Preview estático:
+  foto horizontal | controles | preview celular
+*/
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio .hero-static-preview-row {
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(460px, 1.6fr)
+    minmax(300px, .82fr)
+    minmax(180px, .48fr) !important;
+
+  align-items: center !important;
+  gap: clamp(18px, 2.5vw, 38px) !important;
+
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-static-desktop-column {
+  min-width: 0 !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-static-desktop-column
+.focal-preview {
+  width: 100% !important;
+  min-height: 380px !important;
+  max-height: 650px !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-static-focal-column {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-static-mobile-column {
+  justify-self: end !important;
+  width: 100% !important;
+  max-width: 210px !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-static-mobile-preview {
+  width: 100% !important;
+  max-width: 210px !important;
+}
+
+/* O card do slideshow também usa a largura disponível. */
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-slideshow-config-card {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+body .design-controls-drawer.is-content-editor
+#content-panel-inicio
+.hero-slideshow-admin-preview {
+  width: 100% !important;
+  min-height: 360px !important;
+  max-height: 720px !important;
+  aspect-ratio: 16 / 9 !important;
+}
+
+/* Sticky apenas no rodapé do editor grande. */
+body .design-controls-drawer.is-content-editor
+.design-content-host .form-actions {
+  position: sticky !important;
+  bottom: -16px !important;
+  z-index: 25 !important;
+
+  margin:
+    24px
+    -16px
+    -16px !important;
+
+  padding: 14px 16px !important;
+
+  background:
+    rgba(14,14,12,.98) !important;
+}
+
+/* Tablet */
+@media (max-width: 1180px) {
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-static-preview-row {
+    grid-template-columns:
+      minmax(0, 1.35fr)
+      minmax(250px, .75fr) !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-static-mobile-column {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    justify-self: center !important;
+  }
+}
+
+/* Celular */
+@media (max-width: 760px) {
+  body .design-controls-drawer.is-content-editor {
+    inset: 2px !important;
+    top: 2px !important;
+    right: 2px !important;
+    bottom: 2px !important;
+    left: 2px !important;
+
+    padding: 10px !important;
+    border-radius: 9px !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  .design-controls-drawer-head {
+    top: -10px !important;
+
+    margin:
+      -10px
+      -10px
+      12px !important;
+
+    padding: 12px !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio .form-grid,
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-static-preview-row {
+    grid-template-columns:
+      minmax(0, 1fr) !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-static-mobile-column {
+    grid-column: auto !important;
+    grid-row: auto !important;
+
+    justify-self: center !important;
+
+    width: min(55vw, 190px) !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-static-desktop-column
+  .focal-preview {
+    min-height: 240px !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  #content-panel-inicio
+  .hero-slideshow-admin-preview {
+    min-height: 230px !important;
+    aspect-ratio: 4 / 3 !important;
+  }
+
+  body .design-controls-drawer.is-content-editor
+  .design-content-host .form-actions {
+    bottom: -10px !important;
+
+    margin:
+      18px
+      -10px
+      -10px !important;
+
+    padding: 10px !important;
+  }
+}
