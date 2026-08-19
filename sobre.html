@@ -5,6 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sobre — Rangel Santos — Fotografia</title>
 <link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add('sobre-cms-loading');
+</script>
+<style>
+  /*
+    Evita o “conteúdo antigo → pisca → conteúdo do CMS”.
+    A área principal só aparece depois que o CMS terminar o primeiro render.
+  */
+  .sobre-cms-loading .about-grid {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .sobre-cms-ready .about-grid {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .16s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sobre-cms-ready .about-grid {
+      transition: none;
+    }
+  }
+</style>
 </head>
 <body>
 
@@ -30,18 +55,9 @@
       </div>
       <div class="about-text">
         <p class="section-eyebrow" id="sobre-eyebrow">Sobre mim</p>
-        <div id="sobre-paragraphs">
-          <p>Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. Meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.</p>
-          <p>Ajudar mulheres a reconstruir a autoestima é o que me motiva a cada sessão. Muitas chegam inseguras diante da câmera, e minha função é criar o ambiente certo para que isso se dissolva — com luz, tempo, e escuta.</p>
-          <p>Cada projeto é entregue com cuidado: você recebe um link privado para escolher suas fotos favoritas, e eu trato as imagens escolhidas uma a uma antes da entrega final.</p>
-        </div>
+        <div id="sobre-paragraphs"></div>
 
-        <dl class="specs" id="sobre-specs">
-          <div><dt>Baseado em</dt><dd>Vale de Cambra, Portugal</dd></div>
-          <div><dt>Especialidade</dt><dd>Retrato Feminino &amp; Autoestima</dd></div>
-          <div><dt>Prazo de entrega</dt><dd>05–10 dias úteis</dd></div>
-          <div><dt>Atende</dt><dd>Vale de Cambra e arredores</dd></div>
-        </dl>
+        <dl class="specs" id="sobre-specs"></dl>
 
         <div style="margin-top:36px;">
           <a href="/contato" class="btn btn-accent" id="sobre-cta">Vamos conversar</a>

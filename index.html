@@ -15,6 +15,39 @@
   >
 
   <link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add('inicio-cms-loading');
+</script>
+<style>
+  .inicio-cms-loading #hero-eyebrow,
+  .inicio-cms-loading #hero-title,
+  .inicio-cms-loading #hero-description,
+  .inicio-cms-loading #hero-meta,
+  .inicio-cms-loading .hero .btn {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .inicio-cms-ready #hero-eyebrow,
+  .inicio-cms-ready #hero-title,
+  .inicio-cms-ready #hero-description,
+  .inicio-cms-ready #hero-meta,
+  .inicio-cms-ready .hero .btn {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .16s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inicio-cms-ready #hero-eyebrow,
+    .inicio-cms-ready #hero-title,
+    .inicio-cms-ready #hero-description,
+    .inicio-cms-ready #hero-meta,
+    .inicio-cms-ready .hero .btn {
+      transition: none;
+    }
+  }
+</style>
 </head>
 
 <body>
@@ -27,7 +60,9 @@
 
     <div class="container">
 
-      <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+      <a href="/inicio" class="nav-logo" data-setting="site_name">
+        Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span>
+      </a>
 
       <button
         class="nav-toggle"
@@ -84,19 +119,17 @@
         <source
           id="hero-mobile-image"
           media="(max-width: 899px)"
-          srcset=""
+          srcset="images/hero-bg-mobile.jpg"
         >
 
         <img
           id="hero-desktop-image"
-          src=""
-          alt=""
+          src="images/hero-bg.jpg"
+          alt="Rangel Santos, fotógrafo"
           class="hero-photo"
         >
 
       </picture>
-
-      <div id="hero-slideshow" class="hero-slideshow" aria-hidden="true"></div>
 
       <div class="hero-overlay"></div>
 
@@ -115,11 +148,7 @@
         id="hero-title"
         class="hero-title"
       ></h1>
-
-      <h1 id="hero-fallback" class="hero-title">Você, como <br><em>sempre</em> foi.</h1>
-
-
-      <p
+<p
         id="hero-description"
         class="hero-sub"
       ></p>
