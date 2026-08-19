@@ -5621,3 +5621,55 @@
   margin-right: auto !important;
   transform-origin: top center !important;
 }
+
+
+/* =========================================================
+   BUILD V28 — DESIGN AVANÇADO SEGURO
+   ========================================================= */
+
+.design-controls {
+  align-self: start;
+}
+
+.design-control-group {
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--admin-line-soft);
+}
+
+.design-control-group:last-of-type {
+  border-bottom: 0;
+}
+
+.design-control-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 7px 10px;
+  align-items: center;
+}
+
+.design-control-row select,
+.design-control-row input[type="range"] {
+  grid-column: 1 / -1;
+}
+
+.design-control-row output {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: .52rem;
+}
+
+.design-replay-btn {
+  width: 100%;
+  margin-top: 6px;
+}
+
+@media (max-width: 1180px) {
+  .design-studio-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .design-controls {
+    position: static !important;
+  }
+}
