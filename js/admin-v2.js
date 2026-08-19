@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v34 — carrossel público + cards compactos');
+console.log('[admin-v2] Build v38 — Área do Cliente premium no Designer');
 
 const $ = id => document.getElementById(id);
 
@@ -6027,6 +6027,13 @@ document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventL
    apenas escalado visualmente para caber no painel do CMS.
    ========================================================= */
 let designStudioReady = false;
+let designDraftSaved = null;
+let designPublishedSaved = null;
+let designDraftUpdatedAt = null;
+let designPublishedUpdatedAt = null;
+let designPersistenceLoaded = false;
+let designPersistenceLoading = null;
+
 let designPreviewDevice = 'desktop';
 let designPreviewResizeObserver = null;
 
@@ -6034,6 +6041,360 @@ const DESIGN_VIEWPORTS = {
   desktop: { width: 1920, height: 1080, label: 'Computador · 1920 × 1080' },
   mobile: { width: 390, height: 844, label: 'Celular · 390 × 844' }
 };
+
+
+const DESIGN_DEFAULTS = Object.freeze({
+  nav_style: 'auto',
+  nav_position: 'fixed',
+  nav_density: 'normal',
+  logo_scale: 100,
+  nav_cta: 'outline',
+  nav_blur: 0,
+  page_animation: 'none',
+  section_animation: 'none',
+  image_hover: 'site',
+  motion_speed: 'normal',
+  type_scale: 100,
+  content_width: 1200,
+  section_space: 120,
+  hero_overlay: 40,
+  gallery_gap: 2,
+  image_radius: 0,
+  client_layout: 'editorial-split',
+  client_gallery_style: 'editorial',
+  client_photo_size: 'large',
+  client_typography: 'classic',
+  client_border: 'fine',
+  client_access_image: ''
+});
+
+function normalizeDesignConfig(config = {}) {
+  const c = { ...DESIGN_DEFAULTS, ...(config || {}) };
+  return {
+    nav_style: ['auto','transparent','solid'].includes(c.nav_style) ? c.nav_style : 'auto',
+    nav_position: ['fixed','static'].includes(c.nav_position) ? c.nav_position : 'fixed',
+    nav_density: ['compact','normal','airy'].includes(c.nav_density) ? c.nav_density : 'normal',
+    logo_scale: clampNumber(c.logo_scale, 85, 120, 100),
+    nav_cta: ['outline','filled','hidden'].includes(c.nav_cta) ? c.nav_cta : 'outline',
+    nav_blur: clampNumber(c.nav_blur, 0, 18, 0),
+    page_animation: ['none','fade','fade-up','soft'].includes(c.page_animation) ? c.page_animation : 'none',
+    section_animation: ['none','fade','fade-up'].includes(c.section_animation) ? c.section_animation : 'none',
+    image_hover: ['site','none','zoom','lift'].includes(c.image_hover) ? c.image_hover : 'site',
+    motion_speed: ['fast','normal','slow'].includes(c.motion_speed) ? c.motion_speed : 'normal',
+    type_scale: clampNumber(c.type_scale, 90, 115, 100),
+    content_width: clampNumber(c.content_width, 1040, 1500, 1200),
+    section_space: clampNumber(c.section_space, 72, 160, 120),
+    hero_overlay: clampNumber(c.hero_overlay, 0, 70, 40),
+    gallery_gap: clampNumber(c.gallery_gap, 0, 16, 2),
+    image_radius: clampNumber(c.image_radius, 0, 18, 0),
+    client_layout: ['editorial-split','centered','fullscreen'].includes(c.client_layout) ? c.client_layout : 'editorial-split',
+    client_gallery_style: ['editorial','clean','masonry'].includes(c.client_gallery_style) ? c.client_gallery_style : 'editorial',
+    client_photo_size: ['compact','medium','large'].includes(c.client_photo_size) ? c.client_photo_size : 'large',
+    client_typography: ['classic','editorial','minimal'].includes(c.client_typography) ? c.client_typography : 'classic',
+    client_border: ['fine','none','soft'].includes(c.client_border) ? c.client_border : 'fine',
+    client_access_image: safeHttpUrl(c.client_access_image || '', { allowRelative: true })
+  };
+}
+
+function collectDesignConfig() {
+  return normalizeDesignConfig({
+    nav_style: $('design-nav-style')?.value,
+    nav_position: $('design-nav-position')?.value,
+    nav_density: $('design-nav-density')?.value,
+    logo_scale: $('design-logo-scale')?.value,
+    nav_cta: $('design-nav-cta')?.value,
+    nav_blur: $('design-nav-blur')?.value,
+    page_animation: $('design-page-animation')?.value,
+    section_animation: $('design-section-animation')?.value,
+    image_hover: $('design-image-hover')?.value,
+    motion_speed: $('design-motion-speed')?.value,
+    type_scale: $('design-type-scale')?.value,
+    content_width: $('design-content-width')?.value,
+    section_space: $('design-section-space')?.value,
+    hero_overlay: $('design-hero-overlay')?.value,
+    gallery_gap: $('design-gallery-gap')?.value,
+    image_radius: $('design-image-radius')?.value,
+    client_layout: $('design-client-layout')?.value,
+    client_gallery_style: $('design-client-gallery-style')?.value,
+    client_photo_size: $('design-client-photo-size')?.value,
+    client_typography: $('design-client-typography')?.value,
+    client_border: $('design-client-border')?.value,
+    client_access_image: $('design-client-access-image')?.value
+  });
+}
+
+function designFingerprint(config) {
+  return JSON.stringify(normalizeDesignConfig(config));
+}
+
+function applyDesignConfigToControls(config) {
+  const c = normalizeDesignConfig(config);
+  const map = {
+    'design-nav-style': c.nav_style,
+    'design-nav-position': c.nav_position,
+    'design-nav-density': c.nav_density,
+    'design-logo-scale': c.logo_scale,
+    'design-nav-cta': c.nav_cta,
+    'design-nav-blur': c.nav_blur,
+    'design-page-animation': c.page_animation,
+    'design-section-animation': c.section_animation,
+    'design-image-hover': c.image_hover,
+    'design-motion-speed': c.motion_speed,
+    'design-type-scale': c.type_scale,
+    'design-content-width': c.content_width,
+    'design-section-space': c.section_space,
+    'design-hero-overlay': c.hero_overlay,
+    'design-gallery-gap': c.gallery_gap,
+    'design-image-radius': c.image_radius,
+    'design-client-layout': c.client_layout,
+    'design-client-gallery-style': c.client_gallery_style,
+    'design-client-photo-size': c.client_photo_size,
+    'design-client-typography': c.client_typography,
+    'design-client-border': c.client_border,
+    'design-client-access-image': c.client_access_image
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    if ($(id)) $(id).value = String(value);
+  });
+  applyDesignPreview();
+  updateDesignPublicationState();
+}
+
+function formatDesignTimestamp(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('pt-PT', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(date);
+}
+
+function updateDesignPublicationState() {
+  const current = collectDesignConfig();
+  const currentFp = designFingerprint(current);
+  const publishedFp = designFingerprint(designPublishedSaved || DESIGN_DEFAULTS);
+  const draftFp = designDraftSaved ? designFingerprint(designDraftSaved) : '';
+
+  let state = 'published';
+  let label = 'PUBLICADO';
+  let copy = 'A prévia corresponde à versão que está atualmente no site.';
+
+  if (currentFp !== publishedFp) {
+    if (draftFp && currentFp === draftFp) {
+      state = 'draft';
+      label = 'RASCUNHO SALVO';
+      copy = 'Este rascunho está salvo, mas ainda não foi publicado no site.';
+    } else {
+      state = 'dirty';
+      label = 'ALTERAÇÕES NÃO PUBLICADAS';
+      copy = 'Existem alterações na prévia que ainda não foram salvas nem publicadas.';
+    }
+  }
+
+  const status = $('design-publication-status');
+  if (status) status.dataset.state = state;
+  if ($('design-publication-status-text')) $('design-publication-status-text').textContent = label;
+  if ($('design-publication-copy')) $('design-publication-copy').textContent = copy;
+  if ($('design-draft-time')) $('design-draft-time').textContent = formatDesignTimestamp(designDraftUpdatedAt);
+  if ($('design-published-time')) $('design-published-time').textContent = formatDesignTimestamp(designPublishedUpdatedAt);
+
+  const publishBtn = $('design-publish');
+  if (publishBtn) {
+    publishBtn.disabled =
+      !designPersistenceLoaded ||
+      currentFp === publishedFp ||
+      publishBtn.dataset.busy === '1';
+  }
+
+  const restoreBtn = $('design-restore-published');
+  if (restoreBtn) {
+    restoreBtn.disabled =
+      !designPersistenceLoaded ||
+      currentFp === publishedFp;
+  }
+}
+
+async function fetchDesignPersistence() {
+  const { data, error } = await supabase
+    .from('site_content')
+    .select('id,section_key,content,updated_at')
+    .eq('slug', 'design')
+    .in('section_key', ['draft', 'published']);
+
+  if (error) throw error;
+
+  let draft = null;
+  let published = null;
+
+  (data || []).forEach(row => {
+    let content = row.content || {};
+    if (typeof content === 'string') {
+      try { content = JSON.parse(content); } catch (_) { content = {}; }
+    }
+
+    if (row.section_key === 'draft') {
+      draft = normalizeDesignConfig(content);
+      designDraftUpdatedAt = row.updated_at || null;
+    }
+    if (row.section_key === 'published') {
+      published = normalizeDesignConfig(content);
+      designPublishedUpdatedAt = row.updated_at || null;
+    }
+  });
+
+  designDraftSaved = draft;
+  designPublishedSaved = published || normalizeDesignConfig(DESIGN_DEFAULTS);
+  designPersistenceLoaded = true;
+
+  const initial =
+    draft && designFingerprint(draft) !== designFingerprint(designPublishedSaved)
+      ? draft
+      : designPublishedSaved;
+
+  applyDesignConfigToControls(initial);
+  updateDesignPublicationState();
+}
+
+async function ensureDesignPersistenceLoaded() {
+  if (designPersistenceLoaded) return;
+  if (!designPersistenceLoading) {
+    designPersistenceLoading = fetchDesignPersistence()
+      .catch(error => {
+        console.error('[admin-v2] Falha ao carregar Design:', error);
+        flash(`Erro ao carregar configurações de Design: ${error.message}`, 'erro');
+        throw error;
+      })
+      .finally(() => {
+        designPersistenceLoading = null;
+      });
+  }
+  return designPersistenceLoading;
+}
+
+async function upsertDesignRow(sectionKey, config) {
+  const normalized = normalizeDesignConfig(config);
+
+  const { data: existing, error: selectError } = await supabase
+    .from('site_content')
+    .select('id')
+    .eq('slug', 'design')
+    .eq('section_key', sectionKey)
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) throw selectError;
+
+  const row = {
+    slug: 'design',
+    section_key: sectionKey,
+    content: normalized,
+    updated_at: new Date().toISOString()
+  };
+
+  const result = existing?.id
+    ? await supabase.from('site_content').update(row).eq('id', existing.id)
+    : await supabase.from('site_content').insert(row);
+
+  if (result.error) throw result.error;
+  return normalized;
+}
+
+async function saveDesignDraft() {
+  if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
+
+  const button = $('design-save-draft');
+  if (button?.dataset.busy === '1') return;
+
+  if (button) {
+    button.dataset.busy = '1';
+    button.disabled = true;
+    button.textContent = 'Salvando…';
+  }
+
+  try {
+    designDraftSaved = await upsertDesignRow('draft', collectDesignConfig());
+    designDraftUpdatedAt = new Date().toISOString();
+    flash('Rascunho de Design salvo.', 'sucesso');
+  } catch (error) {
+    console.error('[admin-v2] saveDesignDraft:', error);
+    flash(`Erro ao salvar rascunho: ${error.message}`, 'erro');
+  } finally {
+    if (button) {
+      button.dataset.busy = '0';
+      button.disabled = false;
+      button.textContent = 'Salvar rascunho';
+    }
+    updateDesignPublicationState();
+  }
+}
+
+function restorePublishedDesign() {
+  if (!designPersistenceLoaded || !designPublishedSaved) return;
+
+  const currentFp = designFingerprint(collectDesignConfig());
+  const publishedFp = designFingerprint(designPublishedSaved);
+
+  if (
+    currentFp !== publishedFp &&
+    !confirm('Restaurar a versão publicada? As alterações atuais da prévia serão descartadas.')
+  ) return;
+
+  applyDesignConfigToControls(designPublishedSaved);
+  flash('Prévia restaurada para a versão publicada.', 'sucesso');
+}
+
+async function publishDesign() {
+  if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
+
+  const current = collectDesignConfig();
+  const currentFp = designFingerprint(current);
+  const publishedFp = designFingerprint(designPublishedSaved || DESIGN_DEFAULTS);
+
+  if (currentFp === publishedFp) {
+    updateDesignPublicationState();
+    flash('O Design já está publicado. Nenhuma alteração necessária.', '');
+    return;
+  }
+
+  if (!confirm('Publicar estas alterações de Design no site agora?')) return;
+
+  const button = $('design-publish');
+  if (button?.dataset.busy === '1') return;
+
+  if (button) {
+    button.dataset.busy = '1';
+    button.disabled = true;
+    button.textContent = 'Publicando…';
+  }
+
+  try {
+    designDraftSaved = await upsertDesignRow('draft', current);
+    designDraftUpdatedAt = new Date().toISOString();
+
+    designPublishedSaved = await upsertDesignRow('published', current);
+    designPublishedUpdatedAt = new Date().toISOString();
+
+    flash('Design publicado no site com sucesso.', 'sucesso');
+    updateDesignPublicationState();
+
+    const frame = $('design-preview-frame');
+    if (frame) {
+      const url = new URL(frame.src || '/inicio', location.origin);
+      url.searchParams.set('_design', Date.now());
+      frame.src = url.href;
+    }
+  } catch (error) {
+    console.error('[admin-v2] publishDesign:', error);
+    flash(`Erro ao publicar Design: ${error.message}`, 'erro');
+  } finally {
+    if (button) {
+      button.dataset.busy = '0';
+      button.textContent = 'Publicar no site';
+    }
+    updateDesignPublicationState();
+  }
+}
 
 function getDesignPreviewDocument() {
   const frame = $('design-preview-frame');
@@ -6117,6 +6478,15 @@ function applyDesignPreview() {
 
   const heroOverlay = clampNumber($('design-hero-overlay')?.value, 0, 70, 40);
   const imageRadius = clampNumber($('design-image-radius')?.value, 0, 18, 0);
+  const clientLayout = $('design-client-layout')?.value || 'editorial-split';
+  const clientGalleryStyle = $('design-client-gallery-style')?.value || 'editorial';
+  const clientPhotoSize = $('design-client-photo-size')?.value || 'large';
+  const clientTypography = $('design-client-typography')?.value || 'classic';
+  const clientBorder = $('design-client-border')?.value || 'fine';
+  const clientAccessImage = safeHttpUrl(
+    $('design-client-access-image')?.value || '',
+    { allowRelative: true }
+  );
 
   const navPadding = density === 'compact' ? 14 : density === 'airy' ? 30 : 22;
   const navSolidPadding = density === 'compact' ? 10 : density === 'airy' ? 22 : 16;
@@ -6263,6 +6633,39 @@ function applyDesignPreview() {
         `
         : '';
 
+  const clientBorderRule =
+    clientBorder === 'none'
+      ? 'border-color:transparent !important;'
+      : clientBorder === 'soft'
+        ? 'border-color:rgba(255,255,255,.16) !important;border-radius:14px !important;'
+        : 'border-color:rgba(255,255,255,.10) !important;';
+
+  const clientColumns =
+    clientPhotoSize === 'compact'
+      ? 'repeat(auto-fill,minmax(180px,1fr))'
+      : clientPhotoSize === 'medium'
+        ? 'repeat(auto-fill,minmax(230px,1fr))'
+        : 'repeat(auto-fill,minmax(290px,1fr))';
+
+  const clientTypographyRule =
+    clientTypography === 'editorial'
+      ? '.client-area-premium .section-title,.client-area-premium .client-access-title{font-style:italic !important;letter-spacing:-.035em !important;}'
+      : clientTypography === 'minimal'
+        ? '.client-area-premium .section-title,.client-area-premium .client-access-title{font-family:Arial,Helvetica,sans-serif !important;font-style:normal !important;font-weight:400 !important;letter-spacing:-.025em !important;}'
+        : '';
+
+  const clientLayoutRule =
+    clientLayout === 'centered'
+      ? '.client-access-shell{grid-template-columns:1fr !important;max-width:650px !important}.client-access-visual{display:none !important}.client-access-panel{min-height:70vh !important;}'
+      : clientLayout === 'fullscreen'
+        ? `.client-access-shell{grid-template-columns:1fr !important;max-width:none !important}.client-access-visual{display:block !important;position:absolute !important;inset:0 !important;opacity:.36 !important}.client-access-panel{position:relative !important;z-index:2 !important;max-width:620px !important;margin:auto !important;background:rgba(11,11,10,.78) !important;backdrop-filter:blur(14px) !important;}`
+        : '';
+
+  const clientGalleryRule =
+    clientGalleryStyle === 'masonry'
+      ? '.client-gallery-grid{display:block !important;columns:3 260px !important;column-gap:10px !important}.client-gallery-grid .frame{break-inside:avoid !important;margin:0 0 10px !important;}'
+      : `.client-gallery-grid{display:grid !important;grid-template-columns:${clientColumns} !important;gap:${clientGalleryStyle === 'clean' ? 16 : 8}px !important;}`;
+
   style.textContent = `
     ${containerRule}
     ${titleRules}
@@ -6309,6 +6712,23 @@ function applyDesignPreview() {
 
     .hero-overlay{
       opacity:${(heroOverlay / 100).toFixed(2)} !important;
+    }
+
+
+    .client-area-premium .client-access-shell,
+    .client-area-premium .client-access-panel,
+    .client-area-premium .client-access-visual,
+    .client-area-premium .client-stage-card,
+    .client-area-premium .frame{
+      ${clientBorderRule}
+    }
+
+    ${clientTypographyRule}
+    ${clientLayoutRule}
+    ${clientGalleryRule}
+
+    .client-access-visual{
+      ${clientAccessImage ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${clientAccessImage}") !important;` : ''}
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -6550,30 +6970,10 @@ function setDesignDevice(device) {
 }
 
 function resetDesignPreview() {
-  if ($('design-nav-style')) $('design-nav-style').value = 'auto';
-  if ($('design-nav-position')) $('design-nav-position').value = 'fixed';
-  if ($('design-nav-density')) $('design-nav-density').value = 'normal';
-  if ($('design-logo-scale')) $('design-logo-scale').value = '100';
-  if ($('design-nav-cta')) $('design-nav-cta').value = 'outline';
-  if ($('design-nav-blur')) $('design-nav-blur').value = '0';
-
-  if ($('design-page-animation')) $('design-page-animation').value = 'none';
-  if ($('design-section-animation')) $('design-section-animation').value = 'none';
-  if ($('design-image-hover')) $('design-image-hover').value = 'site';
-  if ($('design-motion-speed')) $('design-motion-speed').value = 'normal';
-
-  if ($('design-type-scale')) $('design-type-scale').value = '100';
-  if ($('design-content-width')) $('design-content-width').value = '1200';
-  if ($('design-section-space')) $('design-section-space').value = '120';
-  if ($('design-hero-overlay')) $('design-hero-overlay').value = '40';
-
-  if ($('design-gallery-gap')) $('design-gallery-gap').value = '2';
-  if ($('design-image-radius')) $('design-image-radius').value = '0';
-
-  applyDesignPreview();
+  applyDesignConfigToControls(DESIGN_DEFAULTS);
 
   flash(
-    'Prévia restaurada. Nenhuma alteração foi publicada.',
+    'Prévia restaurada para os valores padrão. Use “Restaurar publicado” para voltar ao Design que está no site.',
     'sucesso'
   );
 }
@@ -6844,6 +7244,20 @@ function openDesignDrawer(sectionName, trigger = null) {
 
   setView?.('design');
 
+  if (sectionName === 'client_area') {
+    const frame = $('design-preview-frame');
+    if (frame) {
+      const currentPath = (() => {
+        try { return new URL(frame.src, location.origin).pathname; }
+        catch (_) { return ''; }
+      })();
+
+      if (currentPath !== '/area-cliente' && currentPath !== '/area-cliente.html') {
+        frame.src = '/area-cliente';
+      }
+    }
+  }
+
   drawer.hidden = false;
 
   document
@@ -6957,9 +7371,12 @@ function initDesignStudio() {
   initContentSidebarNavigation();
 
   if (designStudioReady) {
+    ensureDesignPersistenceLoaded().catch(() => {});
+
     setTimeout(() => {
       applyDesignPreview();
       sizeDesignPreview();
+      updateDesignPublicationState();
     }, 50);
     return;
   }
@@ -6985,10 +7402,21 @@ function initDesignStudio() {
     'design-section-space',
     'design-hero-overlay',
     'design-gallery-gap',
-    'design-image-radius'
+    'design-image-radius',
+    'design-client-layout',
+    'design-client-gallery-style',
+    'design-client-photo-size',
+    'design-client-typography',
+    'design-client-border',
+    'design-client-access-image'
   ].forEach(id => {
-    $(id)?.addEventListener('input', applyDesignPreview);
-    $(id)?.addEventListener('change', applyDesignPreview);
+    const handler = () => {
+      applyDesignPreview();
+      updateDesignPublicationState();
+    };
+
+    $(id)?.addEventListener('input', handler);
+    $(id)?.addEventListener('change', handler);
   });
 
   $('design-replay-animation')?.addEventListener(
@@ -6997,6 +7425,13 @@ function initDesignStudio() {
   );
 
   $('design-reset')?.addEventListener('click', resetDesignPreview);
+
+  $('design-save-draft')?.addEventListener('click', saveDesignDraft);
+  $('design-restore-published')?.addEventListener('click', restorePublishedDesign);
+  $('design-publish')?.addEventListener('click', publishDesign);
+
+  ensureDesignPersistenceLoaded().catch(() => {});
+
   $('design-preview-frame')?.addEventListener('load', () => {
     setTimeout(() => {
       try {
