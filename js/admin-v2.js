@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v17 — prévia real das animações + arrastar slides');
+console.log('[admin-v2] Build v19 — ultrawide + botões cliente + arrastar slides');
 
 const $ = id => document.getElementById(id);
 
@@ -4183,7 +4183,6 @@ function renderHeroSlidesAdmin() {
     <article
       class="hero-slide-card"
       data-slide-index="${i}"
-      draggable="true"
     >
       <button
         class="hero-slide-drag-handle"
@@ -4330,216 +4329,165 @@ function renderHeroSlidesAdmin() {
 
 /* =========================================================
    SLIDESHOW — ORDENAÇÃO MANUAL POR ARRASTAR
-   Mesmo princípio usado nas galerias.
+   Pointer Events: mouse, toque e caneta.
 ========================================================= */
 
 function configurarOrdenacaoHeroSlides() {
-  const container =
-    $('hero-slides-list');
-
+  const container = $('hero-slides-list');
   if (!container) return;
 
-  let draggedCard = null;
-
-  const cards = [
-    ...container.querySelectorAll(
-      '.hero-slide-card'
-    )
+  const handles = [
+    ...container.querySelectorAll('.hero-slide-drag-handle')
   ];
 
-  cards.forEach(card => {
+  handles.forEach(handle => {
+    handle.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
 
-    card.addEventListener(
-      'dragstart',
-      event => {
+      const card = handle.closest('.hero-slide-card');
+      if (!card) return;
 
-        if (
-          !event.target.closest(
-            '.hero-slide-drag-handle'
-          )
-        ) {
-          event.preventDefault();
-          return;
-        }
+      event.preventDefault();
+      event.stopPropagation();
 
-        draggedCard = card;
+      const original = [...heroSlidesDraft];
+      const rect = card.getBoundingClientRect();
 
-        card.classList.add(
-          'is-dragging'
-        );
+      const placeholder = document.createElement('div');
+      placeholder.className = 'hero-slide-drop-placeholder';
+      placeholder.style.width = `${rect.width}px`;
+      placeholder.style.height = `${rect.height}px`;
 
-        event.dataTransfer.effectAllowed =
-          'move';
+      container.insertBefore(placeholder, card.nextSibling);
 
-        event.dataTransfer.setData(
-          'text/plain',
-          card.dataset.slideIndex
-        );
-      }
-    );
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
 
-    card.addEventListener(
-      'dragover',
-      event => {
-        event.preventDefault();
+      card.classList.add('is-pointer-dragging');
+      card.style.width = `${rect.width}px`;
+      card.style.height = `${rect.height}px`;
+      card.style.position = 'fixed';
+      card.style.left = `${rect.left}px`;
+      card.style.top = `${rect.top}px`;
+      card.style.zIndex = '5000';
+      card.style.pointerEvents = 'none';
+      card.style.margin = '0';
 
-        if (
-          !draggedCard ||
-          draggedCard === card
-        ) {
-          return;
-        }
+      document.body.appendChild(card);
 
-        event.dataTransfer.dropEffect =
-          'move';
+      try {
+        handle.setPointerCapture?.(event.pointerId);
+      } catch (_) {}
 
-        const rect =
-          card.getBoundingClientRect();
+      let moved = false;
 
-        // A janela usa cards em grade:
-        // decide esquerda/direita quando estão na mesma linha;
-        // acima/abaixo quando o cursor cruza linhas.
+      const clearHighlights = () => {
+        container
+          .querySelectorAll('.hero-slide-card')
+          .forEach(item => item.classList.remove('drag-over'));
+      };
+
+      const moveCard = e => {
+        e.preventDefault();
+        moved = true;
+
+        card.style.left = `${e.clientX - offsetX}px`;
+        card.style.top = `${e.clientY - offsetY}px`;
+
+        const underPointer = document.elementFromPoint(e.clientX, e.clientY);
+        const target = underPointer?.closest('.hero-slide-card');
+
+        clearHighlights();
+
+        if (!target || target === card) return;
+
+        target.classList.add('drag-over');
+
+        const targetRect = target.getBoundingClientRect();
+        const placeholderRect = placeholder.getBoundingClientRect();
+
         const sameRow =
-          Math.abs(
-            draggedCard.getBoundingClientRect().top -
-            rect.top
-          ) <
-          Math.min(
-            rect.height,
-            draggedCard.getBoundingClientRect().height
-          ) * .55;
+          Math.abs(targetRect.top - placeholderRect.top) <
+          Math.min(targetRect.height, rect.height) * 0.55;
 
         if (sameRow) {
-          const middleX =
-            rect.left +
-            rect.width / 2;
+          const before = e.clientX < targetRect.left + targetRect.width / 2;
 
-          if (event.clientX < middleX) {
-            container.insertBefore(
-              draggedCard,
-              card
-            );
-          } else {
-            container.insertBefore(
-              draggedCard,
-              card.nextSibling
-            );
-          }
+          container.insertBefore(
+            placeholder,
+            before ? target : target.nextSibling
+          );
         } else {
-          const middleY =
-            rect.top +
-            rect.height / 2;
+          const before = e.clientY < targetRect.top + targetRect.height / 2;
 
-          if (event.clientY < middleY) {
-            container.insertBefore(
-              draggedCard,
-              card
-            );
-          } else {
-            container.insertBefore(
-              draggedCard,
-              card.nextSibling
-            );
-          }
-        }
-
-        container
-          .querySelectorAll(
-            '.hero-slide-card'
-          )
-          .forEach(item => {
-            item.classList.remove(
-              'drag-over'
-            );
-          });
-
-        card.classList.add(
-          'drag-over'
-        );
-      }
-    );
-
-    card.addEventListener(
-      'drop',
-      event => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        card.classList.remove(
-          'drag-over'
-        );
-      }
-    );
-
-    card.addEventListener(
-      'dragend',
-      () => {
-        if (!draggedCard) return;
-
-        draggedCard.classList.remove(
-          'is-dragging'
-        );
-
-        container
-          .querySelectorAll(
-            '.hero-slide-card'
-          )
-          .forEach(item => {
-            item.classList.remove(
-              'drag-over'
-            );
-          });
-
-        const original =
-          [...heroSlidesDraft];
-
-        const novaOrdem = [
-          ...container.querySelectorAll(
-            '.hero-slide-card'
-          )
-        ].map(item => {
-          const oldIndex =
-            Number(
-              item.dataset.slideIndex
-            );
-
-          return original[oldIndex];
-        }).filter(Boolean);
-
-        if (
-          novaOrdem.length ===
-          heroSlidesDraft.length
-        ) {
-          heroSlidesDraft =
-            novaOrdem;
-        }
-
-        draggedCard = null;
-
-        renderHeroSlidesAdmin();
-
-        msg(
-          $('hero-msg'),
-          'Ordem alterada. Clique em “Salvar herói” para publicar.',
-          'sucesso'
-        );
-      }
-    );
-
-    card.addEventListener(
-      'dragleave',
-      event => {
-        if (
-          !card.contains(
-            event.relatedTarget
-          )
-        ) {
-          card.classList.remove(
-            'drag-over'
+          container.insertBefore(
+            placeholder,
+            before ? target : target.nextSibling
           );
         }
-      }
-    );
+      };
+
+      const restoreCard = () => {
+        container.insertBefore(card, placeholder);
+        placeholder.remove();
+
+        card.classList.remove('is-pointer-dragging');
+        card.removeAttribute('style');
+
+        clearHighlights();
+      };
+
+      const finishDrag = e => {
+        document.removeEventListener('pointermove', moveCard);
+        document.removeEventListener('pointerup', finishDrag);
+        document.removeEventListener('pointercancel', cancelDrag);
+
+        try {
+          handle.releasePointerCapture?.(event.pointerId);
+        } catch (_) {}
+
+        restoreCard();
+
+        const novaOrdem = [
+          ...container.querySelectorAll('.hero-slide-card')
+        ]
+          .map(item => {
+            const oldIndex = Number(item.dataset.slideIndex);
+            return original[oldIndex];
+          })
+          .filter(Boolean);
+
+        if (
+          moved &&
+          novaOrdem.length === heroSlidesDraft.length
+        ) {
+          heroSlidesDraft = novaOrdem;
+
+          renderHeroSlidesAdmin();
+
+          msg(
+            $('hero-msg'),
+            'Ordem alterada. Clique em “Salvar herói” para publicar.',
+            'sucesso'
+          );
+        } else {
+          renderHeroSlidesAdmin();
+        }
+      };
+
+      const cancelDrag = () => {
+        document.removeEventListener('pointermove', moveCard);
+        document.removeEventListener('pointerup', finishDrag);
+        document.removeEventListener('pointercancel', cancelDrag);
+
+        restoreCard();
+        renderHeroSlidesAdmin();
+      };
+
+      document.addEventListener('pointermove', moveCard, { passive: false });
+      document.addEventListener('pointerup', finishDrag, { once: true });
+      document.addEventListener('pointercancel', cancelDrag, { once: true });
+    });
   });
 }
 
