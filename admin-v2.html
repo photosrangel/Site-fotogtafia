@@ -22,11 +22,73 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="content">Conteúdo</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="messages">Mensagens</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><button class="sidebar-link" data-view="content">Conteúdo</button><button class="sidebar-link" data-view="design">Design</button><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="messages">Mensagens</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor">Ver site</a><button id="logout-btn" class="sidebar-link">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div><span id="build-version-bar" style="font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;margin-left:12px;">v8</span></header><div id="flash" class="flash" hidden></div>
 <section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
 <div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2>Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button">Nova galeria</button></div><p class="panel-copy">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2>Ambiente seguro</h2></div><span class="status-pill online">PROTEGIDO</span></div><p class="panel-copy">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
+
+<section id="view-design" class="admin-view" hidden>
+  <div class="design-studio-head">
+    <div>
+      <p class="section-eyebrow">Laboratório visual</p>
+      <h2>Prévia responsiva</h2>
+      <p class="panel-copy">Compare o site em computador e celular sem alterar a versão pública. Os controles abaixo são uma prévia segura.</p>
+    </div>
+    <div class="design-device-switch" role="group" aria-label="Dispositivo da prévia">
+      <button class="small-btn active" id="design-device-desktop" type="button" aria-pressed="true">▣ Computador</button>
+      <button class="small-btn" id="design-device-mobile" type="button" aria-pressed="false">▯ Celular</button>
+    </div>
+  </div>
+
+  <div class="design-studio-grid">
+    <aside class="panel design-controls">
+      <div class="design-control-group">
+        <p class="section-eyebrow">Menu</p>
+        <label class="design-control-row">Densidade do menu
+          <select id="design-nav-density"><option value="compact">Compacto</option><option value="normal" selected>Normal</option><option value="airy">Espaçado</option></select>
+        </label>
+      </div>
+      <div class="design-control-group">
+        <p class="section-eyebrow">Estilo geral</p>
+        <label class="design-control-row">Escala dos títulos <output id="design-type-scale-out">100%</output>
+          <input id="design-type-scale" type="range" min="90" max="115" value="100">
+        </label>
+        <label class="design-control-row">Largura do conteúdo <output id="design-content-width-out">1200 px</output>
+          <input id="design-content-width" type="range" min="1040" max="1500" step="20" value="1200">
+        </label>
+        <label class="design-control-row">Espaço entre seções <output id="design-section-space-out">120 px</output>
+          <input id="design-section-space" type="range" min="72" max="160" step="4" value="120">
+        </label>
+      </div>
+      <div class="design-control-group">
+        <p class="section-eyebrow">Galerias</p>
+        <label class="design-control-row">Espaço entre fotos <output id="design-gallery-gap-out">2 px</output>
+          <input id="design-gallery-gap" type="range" min="0" max="16" value="2">
+        </label>
+      </div>
+      <div class="design-safety-note">
+        <strong>Modo seguro</strong>
+        <p>Estas opções alteram somente a prévia. Nada é publicado no site nesta etapa.</p>
+      </div>
+      <button class="btn" id="design-reset" type="button">Restaurar prévia</button>
+    </aside>
+
+    <div class="panel design-preview-panel">
+      <div class="design-preview-toolbar">
+        <span id="design-preview-label">Computador · responsivo</span>
+        <a class="small-btn" href="/inicio" target="_blank" rel="noopener">Abrir site ↗</a>
+      </div>
+      <div id="design-preview-stage" class="design-preview-stage is-desktop">
+        <div class="design-browser-frame">
+          <div class="design-browser-bar"><i></i><i></i><i></i><span>photosrangel.pt/inicio</span></div>
+          <iframe id="design-preview-frame" src="/inicio" title="Prévia do site" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" type="button" class="btn btn-accent">Nova galeria</button></div>
 <div id="gallery-form-wrap" class="panel" hidden><div class="panel-head"><div><p class="section-eyebrow">Galeria</p><h2 id="gallery-form-title">Nova galeria</h2></div><button class="icon-btn" id="close-gallery-form" type="button">×</button></div>
 <form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required maxlength="120" placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required maxlength="120" placeholder="retratos-ana"></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" max="9999" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4" maxlength="2000"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" type="url" maxlength="2048" placeholder="Será preenchida ao escolher uma foto"></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
