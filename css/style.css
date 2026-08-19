@@ -1289,7 +1289,7 @@ html, body {
 
 
 /* =========================================================
-   BUILD V35 — LIGHTBOX COM PRÉVIAS LATERAIS MAIORES
+   BUILD V36 — LIGHTBOX COM PRÉVIAS LATERAIS UM POUCO MAIORES
    ========================================================= */
 
 #lightbox {
@@ -1312,9 +1312,9 @@ html, body {
   min-height: 0;
   display: grid;
   grid-template-columns:
-    minmax(160px, .82fr)
-    minmax(300px, 1.2fr)
-    minmax(160px, .82fr);
+    minmax(180px, .92fr)
+    minmax(300px, 1.16fr)
+    minmax(180px, .92fr);
   align-items: center;
   gap: clamp(12px, 2vw, 32px);
 }
@@ -1433,7 +1433,7 @@ html, body {
   }
 
   #lightbox .lightbox-carousel {
-    grid-template-columns: 20vw minmax(0, 60vw) 20vw;
+    grid-template-columns: 23vw minmax(0, 54vw) 23vw;
     gap: 8px;
   }
 
@@ -1442,11 +1442,11 @@ html, body {
   }
 
   #lightbox .lightbox-slide-prev {
-    transform: translateX(-24%);
+    transform: translateX(-18%);
   }
 
   #lightbox .lightbox-slide-next {
-    transform: translateX(24%);
+    transform: translateX(18%);
   }
 
   #lightbox .lightbox-slide-prev,
