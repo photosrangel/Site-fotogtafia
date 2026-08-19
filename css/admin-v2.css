@@ -5229,3 +5229,74 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V20 — HERO ESTÁTICO EQUILIBRADO EM ULTRAWIDE
+   Mantém prévia principal, focais e prévia celular na mesma linha
+   sem espalhar os elementos pelas extremidades da tela.
+   ========================================================= */
+
+@media (min-width: 1380px) {
+  #hero-static-editor .hero-static-preview-row {
+    grid-template-columns:
+      minmax(560px, 1.35fr)
+      minmax(320px, 430px)
+      165px !important;
+    gap: 24px !important;
+    align-items: center !important;
+    max-width: 1540px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  #hero-static-editor .hero-static-desktop-column {
+    align-self: center;
+  }
+
+  #hero-static-editor .hero-static-focal-column {
+    align-self: center !important;
+    min-height: 0 !important;
+    padding-top: 20px !important;
+  }
+
+  #hero-static-editor .hero-static-mobile-column {
+    align-self: center !important;
+    justify-self: center !important;
+    width: 165px;
+  }
+
+  #hero-static-editor .hero-static-mobile-preview {
+    width: 150px !important;
+    max-width: 150px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  #hero-static-editor .hero-mobile-preview-help {
+    max-width: 155px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+  }
+}
+
+/* Em ultrawide muito largo, impede a área de se esticar indefinidamente. */
+@media (min-width: 1900px) {
+  #hero-static-editor .hero-static-preview-row {
+    grid-template-columns:
+      minmax(620px, 930px)
+      minmax(340px, 430px)
+      170px !important;
+    max-width: 1580px;
+  }
+
+  #hero-static-editor .hero-static-mobile-column {
+    width: 170px;
+  }
+
+  #hero-static-editor .hero-static-mobile-preview {
+    width: 155px !important;
+    max-width: 155px !important;
+  }
+}
