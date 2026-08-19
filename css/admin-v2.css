@@ -7483,3 +7483,100 @@ body .design-controls-drawer.is-client-area-editor {
     padding: 12px;
   }
 }
+
+
+/* =========================================================
+   BUILD V46 — CONTEÚDO REORDENÁVEL + ÁREA DO CLIENTE EM CONTEÚDO
+   ========================================================= */
+
+.design-content-order-item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+
+.design-content-order-item.is-dragging {
+  opacity: .48;
+}
+
+.design-content-drag-handle,
+.admin-content-order-handle {
+  width: 26px;
+  min-width: 26px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .65rem;
+  line-height: 1;
+
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.design-content-drag-handle:hover,
+.admin-content-order-handle:hover {
+  border-color: var(--admin-line-soft);
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+}
+
+.design-content-order-item.is-dragging
+.design-content-drag-handle,
+.admin-content-order-row.is-dragging
+.admin-content-order-handle {
+  cursor: grabbing;
+}
+
+.admin-content-order-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-content-order-row {
+  min-height: 44px;
+
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 10px;
+
+  border: 1px solid var(--admin-line-soft);
+  border-radius: 8px;
+
+  background: rgba(255,255,255,.012);
+}
+
+.admin-content-order-row.is-dragging {
+  opacity: .5;
+}
+
+.admin-content-order-row span {
+  color: var(--text);
+  font-size: .86rem;
+}
+
+@media (max-width: 620px) {
+  .design-content-order-item {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .design-content-drag-handle {
+    width: 30px;
+    min-width: 30px;
+    height: 34px;
+  }
+}
