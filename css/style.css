@@ -60,8 +60,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   top: 0; left: 0; right: 0;
   z-index: 100;
   padding: 22px 0;
-  transition: background 0.3s ease, border-color 0.3s ease, padding 0.3s ease,
-    transform 0.25s ease, opacity 0.25s ease;
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    padding 0.35s ease,
+    transform 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.42s ease;
+  will-change: transform, opacity;
   border-bottom: 1px solid transparent;
 }
 .nav.is-solid {
@@ -111,8 +116,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .nav-toggle span { width: 22px; height: 1px; background: var(--text); }
 .nav.is-hidden {
-  transform: translateY(-100%);
+  transform: translate3d(0, calc(-100% - 8px), 0);
   opacity: 0;
+  pointer-events: none;
 }
 
 /* ---------- HERO ---------- */
