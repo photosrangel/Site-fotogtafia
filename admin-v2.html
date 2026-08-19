@@ -22,7 +22,7 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><div class="admin-nav-group design-nav-group">
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard" data-admin-ui-text="nav_dashboard">Dashboard</button><div class="admin-nav-group design-nav-group">
   <button
     class="sidebar-link admin-nav-item admin-nav-item-parent"
     id="design-nav-toggle"
@@ -71,11 +71,11 @@
       <span>⌄</span>
     </button>
   </div>
-</div><button class="sidebar-link" data-view="galleries">Galerias</button><button class="sidebar-link" data-view="categories">Categorias</button><button class="sidebar-link" data-view="sessions">Ensaios</button><button class="sidebar-link" data-view="messages">Mensagens</button><button class="sidebar-link" data-view="settings">Configurações</button></nav>
-<div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor">Ver site</a><button id="logout-btn" class="sidebar-link">Sair</button></div></aside>
+</div><button class="sidebar-link" data-view="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
+<div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor" data-admin-ui-text="nav_view_site">Ver site</a><button id="logout-btn" class="sidebar-link" data-admin-ui-text="nav_logout">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
 <section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
-<div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2>Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button">Nova galeria</button></div><p class="panel-copy">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2>Ambiente seguro</h2></div><span class="status-pill online">PROTEGIDO</span></div><p class="panel-copy">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
+<div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2 id="admin-ui-gallery-card-title-render">Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button"><span id="admin-ui-gallery-card-button-render">Nova galeria</span></button></div><p class="panel-copy" id="admin-ui-gallery-card-copy-render">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2 id="admin-ui-safe-title-render">Ambiente seguro</h2></div><span class="status-pill online" id="admin-ui-safe-status-render">PROTEGIDO</span></div><p class="panel-copy" id="admin-ui-safe-copy-render">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
 
 <section id="view-design" class="admin-view" hidden>
   <div class="design-studio-head">
@@ -508,7 +508,192 @@ Um espaço reservado só para você.</textarea>
 <div id="gallery-form-wrap" class="panel" hidden><div class="panel-head"><div><p class="section-eyebrow">Galeria</p><h2 id="gallery-form-title">Nova galeria</h2></div><button class="icon-btn" id="close-gallery-form" type="button">×</button></div>
 <form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required maxlength="120" placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required maxlength="120" placeholder="retratos-ana"></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" max="9999" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4" maxlength="2000"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" type="url" maxlength="2048" placeholder="Será preenchida ao escolher uma foto"></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
 <section id="view-categories" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Organização</p><h2>Categorias</h2></div></div><form id="category-form" class="inline-form"><input type="hidden" id="category-id"><input id="category-name" maxlength="80" placeholder="Nome da categoria" required><input id="category-slug" maxlength="120" placeholder="slug" required><input id="category-order" type="number" min="0" max="9999" value="0"><button class="btn btn-accent" type="submit">Salvar</button><button class="btn" id="cancel-category" type="button" hidden>Cancelar</button></form><p id="category-msg" class="msg"></p><div id="categories-list" class="category-list"></div></div></section>
-<section id="view-settings" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Site</p><h2>Configurações gerais</h2></div></div><form id="settings-form"><div class="form-grid"><div class="field"><label for="settings-site-name">Nome do site</label><input id="settings-site-name" maxlength="120"></div><div class="field"><label for="settings-email">E-mail</label><input id="settings-email" type="email" maxlength="254"></div><div class="field"><label for="settings-whatsapp">WhatsApp</label><input id="settings-whatsapp" inputmode="tel" maxlength="20"></div><div class="field"><label for="settings-instagram">Instagram</label><input id="settings-instagram" maxlength="2048"></div><div class="field"><label for="settings-location">Localização</label><input id="settings-location" maxlength="160"></div><div class="field"><label for="settings-specialty">Especialidade</label><input id="settings-specialty" maxlength="160"></div><div class="field"><label for="settings-availability">Disponibilidade</label><input id="settings-availability" maxlength="160"></div><div class="field field-full"><label for="settings-footer">Texto do rodapé</label><textarea id="settings-footer" rows="3" maxlength="1000"></textarea></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar configurações</button><span id="settings-msg" class="msg"></span></div></form></div></section>
+<section id="view-settings" class="admin-view" hidden>
+  <div class="settings-hub-head">
+    <div>
+      <p class="section-eyebrow">Central</p>
+      <h2>Configurações</h2>
+      <p class="panel-copy">
+        Ajuste dados do site e a interface interna do painel em um único lugar.
+        As opções de “Interface do painel” afetam apenas o Admin V2 e nunca aparecem no site público.
+      </p>
+    </div>
+  </div>
+
+  <div class="settings-hub-grid">
+    <details class="panel settings-section" open>
+      <summary class="settings-section-summary">
+        <div>
+          <p class="section-eyebrow">Site público</p>
+          <h3>Configurações gerais</h3>
+        </div>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+
+      <div class="settings-section-body">
+        <form id="settings-form">
+          <div class="form-grid">
+            <div class="field">
+              <label for="settings-site-name">Nome do site</label>
+              <input id="settings-site-name" maxlength="120">
+            </div>
+
+            <div class="field">
+              <label for="settings-email">E-mail</label>
+              <input id="settings-email" type="email" maxlength="254">
+            </div>
+
+            <div class="field">
+              <label for="settings-whatsapp">WhatsApp</label>
+              <input id="settings-whatsapp" inputmode="tel" maxlength="20">
+            </div>
+
+            <div class="field">
+              <label for="settings-instagram">Instagram</label>
+              <input id="settings-instagram" maxlength="2048">
+            </div>
+
+            <div class="field">
+              <label for="settings-location">Localização</label>
+              <input id="settings-location" maxlength="160">
+            </div>
+
+            <div class="field">
+              <label for="settings-specialty">Especialidade</label>
+              <input id="settings-specialty" maxlength="160">
+            </div>
+
+            <div class="field">
+              <label for="settings-availability">Disponibilidade</label>
+              <input id="settings-availability" maxlength="160">
+            </div>
+
+            <div class="field field-full">
+              <label for="settings-footer">Texto do rodapé</label>
+              <textarea id="settings-footer" rows="3" maxlength="1000"></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-accent" type="submit">Salvar configurações</button>
+            <span id="settings-msg" class="msg"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+
+    <details class="panel settings-section admin-interface-settings">
+      <summary class="settings-section-summary">
+        <div>
+          <p class="section-eyebrow">Somente Admin</p>
+          <h3>Interface do painel</h3>
+        </div>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+
+      <div class="settings-section-body">
+        <p class="panel-copy admin-interface-intro">
+          Personalize nomes, títulos e textos internos do CMS. Essas alterações são privadas
+          e servem apenas para organizar a sua experiência dentro do painel.
+        </p>
+
+        <form id="admin-interface-form">
+          <div class="admin-interface-groups">
+            <fieldset class="admin-settings-group">
+              <legend>Identidade do painel</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-brand">Nome no canto esquerdo</label>
+                  <input id="admin-ui-brand" maxlength="80" value="Rangel Santos">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-version">Subtítulo</label>
+                  <input id="admin-ui-version" maxlength="40" value="CMS V2">
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Navegação lateral</legend>
+
+              <div class="form-grid admin-ui-nav-grid">
+                <div class="field"><label for="admin-ui-nav-dashboard">Dashboard</label><input id="admin-ui-nav-dashboard" maxlength="40" value="Dashboard"></div>
+                <div class="field"><label for="admin-ui-nav-design">Design</label><input id="admin-ui-nav-design" maxlength="40" value="Design"></div>
+                <div class="field"><label for="admin-ui-nav-galleries">Galerias</label><input id="admin-ui-nav-galleries" maxlength="40" value="Galerias"></div>
+                <div class="field"><label for="admin-ui-nav-categories">Categorias</label><input id="admin-ui-nav-categories" maxlength="40" value="Categorias"></div>
+                <div class="field"><label for="admin-ui-nav-sessions">Ensaios</label><input id="admin-ui-nav-sessions" maxlength="40" value="Ensaios"></div>
+                <div class="field"><label for="admin-ui-nav-messages">Mensagens</label><input id="admin-ui-nav-messages" maxlength="40" value="Mensagens"></div>
+                <div class="field"><label for="admin-ui-nav-settings">Configurações</label><input id="admin-ui-nav-settings" maxlength="40" value="Configurações"></div>
+                <div class="field"><label for="admin-ui-nav-view-site">Ver site</label><input id="admin-ui-nav-view-site" maxlength="40" value="Ver site"></div>
+                <div class="field"><label for="admin-ui-nav-logout">Sair</label><input id="admin-ui-nav-logout" maxlength="40" value="Sair"></div>
+              </div>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Dashboard</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-dashboard-eyebrow">Identificação superior</label>
+                  <input id="admin-ui-dashboard-eyebrow" maxlength="60" value="Painel">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-dashboard-title">Título</label>
+                  <input id="admin-ui-dashboard-title" maxlength="80" value="Dashboard">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-gallery-card-title">Título do atalho</label>
+                  <input id="admin-ui-gallery-card-title" maxlength="80" value="Galeria">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-gallery-card-button">Botão do atalho</label>
+                  <input id="admin-ui-gallery-card-button" maxlength="60" value="Nova galeria">
+                </div>
+
+                <div class="field field-full">
+                  <label for="admin-ui-gallery-card-copy">Texto do atalho</label>
+                  <textarea id="admin-ui-gallery-card-copy" rows="3" maxlength="300">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Estado do painel</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-safe-title">Título</label>
+                  <input id="admin-ui-safe-title" maxlength="80" value="Ambiente seguro">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-safe-status">Selo</label>
+                  <input id="admin-ui-safe-status" maxlength="40" value="PROTEGIDO">
+                </div>
+
+                <div class="field field-full">
+                  <label for="admin-ui-safe-copy">Descrição</label>
+                  <textarea id="admin-ui-safe-copy" rows="3" maxlength="300">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</textarea>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-accent" type="submit">Salvar interface do painel</button>
+            <button class="btn" id="admin-ui-reset" type="button">Restaurar textos padrão</button>
+            <span id="admin-interface-msg" class="msg"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+  </div>
+</section>
 <section id="view-sessions" class="admin-view" hidden>
 <div class="toolbar"><p class="panel-copy">Gerencie as sessões de clientes. As provas aparecem na Área do Cliente para a cliente escolher; as fotos finais só aparecem após a entrega.</p><button id="new-session-btn" type="button" class="btn btn-accent">Novo ensaio</button></div>
 <div id="session-form-wrap" class="panel" hidden>
