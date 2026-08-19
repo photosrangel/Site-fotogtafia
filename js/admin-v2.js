@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v61 — hero-title com fonte única da verdade (sem releitura do DOM)');
+console.log('[admin-v2] Build v62 — base corrigida + WhatsApp dedicado');
 
 const $ = id => document.getElementById(id);
 
