@@ -4937,3 +4937,214 @@
     grid-column: 1 / -1;
   }
 }
+
+
+/* =========================================================
+   BUILD V17 — PRÉVIA DAS ANIMAÇÕES + ARRASTAR SLIDES
+   ========================================================= */
+
+/* ---------- PRÉVIA DO CARD: animação real ---------- */
+
+.hero-slideshow-admin-preview {
+  --admin-hero-transition: 1200ms;
+  --admin-hero-interval: 5000ms;
+}
+
+.hero-slideshow-admin-frame {
+  opacity: 0;
+  transform: translate3d(0,0,0) scale(1);
+  z-index: 1;
+  transition:
+    opacity var(--admin-hero-transition) ease-in-out,
+    transform var(--admin-hero-transition) cubic-bezier(.22,.61,.36,1);
+  will-change: opacity, transform;
+}
+
+.hero-slideshow-admin-frame.is-visible {
+  opacity: 1;
+  z-index: 2;
+}
+
+.hero-slideshow-admin-preview[data-fit="contain"]
+.hero-slideshow-admin-frame {
+  background-size: contain !important;
+  background-color: #0b0b0a;
+}
+
+.hero-slideshow-admin-preview[data-fit="cover"]
+.hero-slideshow-admin-frame {
+  background-size: cover !important;
+}
+
+/* Fade */
+.hero-slideshow-admin-preview[data-animation="fade"]
+.hero-slideshow-admin-frame {
+  transform: none;
+}
+
+/* Deslizar horizontal */
+.hero-slideshow-admin-preview[data-animation="slide-horizontal"]
+.hero-slideshow-admin-frame {
+  opacity: 1;
+  transform: translate3d(100%,0,0);
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-horizontal"]
+.hero-slideshow-admin-frame.is-visible {
+  transform: translate3d(0,0,0);
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-horizontal"]
+.hero-slideshow-admin-frame.is-prev {
+  transform: translate3d(-100%,0,0);
+  z-index: 1;
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-horizontal"]
+.hero-slideshow-admin-frame.is-from-right {
+  transform: translate3d(100%,0,0);
+}
+
+/* Deslizar do topo */
+.hero-slideshow-admin-preview[data-animation="slide-vertical"]
+.hero-slideshow-admin-frame {
+  opacity: 1;
+  transform: translate3d(0,-100%,0);
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-vertical"]
+.hero-slideshow-admin-frame.is-visible {
+  transform: translate3d(0,0,0);
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-vertical"]
+.hero-slideshow-admin-frame.is-prev {
+  transform: translate3d(0,100%,0);
+  z-index: 1;
+}
+
+.hero-slideshow-admin-preview[data-animation="slide-vertical"]
+.hero-slideshow-admin-frame.is-from-top {
+  transform: translate3d(0,-100%,0);
+}
+
+/* Movimento suave */
+.hero-slideshow-admin-preview[data-animation="kenburns"]
+.hero-slideshow-admin-frame {
+  transform: scale(1.065);
+  transition:
+    opacity var(--admin-hero-transition) ease-in-out,
+    transform var(--admin-hero-interval) ease-out;
+}
+
+.hero-slideshow-admin-preview[data-animation="kenburns"]
+.hero-slideshow-admin-frame.is-visible {
+  transform: scale(1);
+}
+
+
+/* ---------- GERENCIAR IMAGENS: HANDLE DE MOVER ---------- */
+
+.hero-slide-card {
+  position: relative;
+}
+
+.hero-slide-drag-handle {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 12;
+
+  width: 29px;
+  height: 29px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(255,255,255,.30);
+  border-radius: 6px;
+
+  background: rgba(8,8,7,.78);
+  color: #f0ede6;
+
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  line-height: 1;
+
+  cursor: grab;
+  user-select: none;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero-slide-drag-handle:hover {
+  border-color: rgba(255,255,255,.55);
+  background: rgba(18,18,16,.92);
+}
+
+.hero-slide-drag-handle:active {
+  cursor: grabbing;
+}
+
+.hero-slide-card.is-dragging {
+  opacity: .45;
+  transform: scale(.985);
+}
+
+.hero-slide-card.drag-over {
+  border-color: rgba(255,255,255,.65) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.20),
+    0 0 0 1px rgba(255,255,255,.08);
+}
+
+.hero-slide-card.is-dragging *,
+.hero-slide-card.is-dragging {
+  cursor: grabbing !important;
+}
+
+/* Agora existem só Publicar/Ocultar e Remover. */
+.hero-slides-admin-manager .hero-slide-actions {
+  grid-template-columns:
+    minmax(72px, 1fr)
+    minmax(72px, 1fr) !important;
+}
+
+/* O número muda um pouco para não disputar espaço com o handle. */
+.hero-slides-admin-manager .hero-slide-number {
+  left: 41px !important;
+}
+
+/* Permite o handle sem bloquear a alteração do ponto focal. */
+.hero-slides-admin-manager .hero-slide-preview {
+  position: relative;
+}
+
+@media (max-width: 680px) {
+  .hero-slide-drag-handle {
+    width: 34px;
+    height: 34px;
+    top: 6px;
+    left: 6px;
+  }
+
+  .hero-slides-admin-manager .hero-slide-number {
+    left: 44px !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-actions {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slideshow-admin-frame {
+    transition: none !important;
+    transform: none !important;
+  }
+}
