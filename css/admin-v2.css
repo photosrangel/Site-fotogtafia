@@ -4172,3 +4172,337 @@
     font-size: .48rem !important;
   }
 }
+
+
+/* =========================================================
+   BUILD V14 — ENSAIOS RECOLHÍVEIS + HERO COMPACTO
+   ========================================================= */
+
+/* ---------- ENSAIOS: accordions ---------- */
+
+.session-workflow-accordion {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+.session-stage-accordion {
+  overflow: hidden;
+}
+
+.session-stage-toggle {
+  width: 100%;
+  min-height: 74px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-stage-toggle:hover {
+  background: rgba(255,255,255,.018);
+}
+
+.session-stage-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.session-stage-chevron {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  transition: transform .24s ease, color .24s ease;
+}
+
+.session-stage-accordion.is-open .session-stage-chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+.session-stage-accordion .session-stage-body {
+  padding-top: 14px;
+  animation: sessionAccordionIn .22s ease both;
+}
+
+.session-stage-accordion .session-stage-body[hidden] {
+  display: none !important;
+}
+
+@keyframes sessionAccordionIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- HERO: foto estática desktop + celular ---------- */
+
+.hero-static-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.hero-mobile-fallback-preview-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px;
+  gap: 16px;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+.hero-static-mobile-preview {
+  width: 118px;
+  aspect-ratio: 9 / 16;
+  justify-self: end;
+  overflow: hidden;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background-color: #0b0b0a;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-static-mobile-preview.empty {
+  background-image: none !important;
+}
+
+.hero-static-mobile-preview.empty::after {
+  content: 'Sem foto';
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .5rem;
+}
+
+.hero-static-mobile-preview.uses-desktop-fallback::after {
+  content: 'Usando foto principal';
+  display: block;
+  margin: 7px;
+  padding: 4px 5px;
+  background: rgba(0,0,0,.62);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: .43rem;
+}
+
+/* ---------- HERO: slideshow como um único card ---------- */
+
+.hero-slideshow-overview {
+  overflow: hidden;
+  border: 1px solid var(--admin-line-strong);
+  border-radius: 9px;
+  background: rgba(255,255,255,.012);
+}
+
+.hero-slideshow-admin-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  min-height: 180px;
+  overflow: hidden;
+  background: #0b0b0a;
+}
+
+.hero-slideshow-admin-frame {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transition: opacity .8s ease;
+}
+
+.hero-slideshow-admin-frame.is-visible {
+  opacity: 1;
+}
+
+.hero-slideshow-admin-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  text-align: center;
+}
+
+.hero-slideshow-overview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 13px;
+  border-top: 1px solid var(--admin-line-soft);
+}
+
+.hero-slideshow-overview-bar > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.hero-slideshow-overview-bar strong {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: .95rem;
+  font-weight: 400;
+}
+
+.hero-slideshow-overview-bar span {
+  color: var(--text-muted);
+  font-size: .65rem;
+}
+
+.hero-slides-manager-modal {
+  z-index: 3350;
+}
+
+.hero-slides-manager-dialog {
+  width: min(1040px, calc(100vw - 30px));
+  max-height: min(92vh, 920px);
+  overflow-y: auto;
+}
+
+.hero-slides-manager-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -2px 0 14px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--admin-line-soft);
+  background: var(--admin-surface, #11110f);
+}
+
+.hero-slides-admin-manager {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.hero-slides-admin-manager .hero-slide-card {
+  grid-template-columns: 118px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.hero-slides-admin-manager .hero-slide-preview {
+  width: 118px;
+  min-width: 118px;
+  min-height: 100px;
+}
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 680px) {
+  .session-stage-toggle {
+    min-height: 66px !important;
+    padding-left: 12px !important;
+    padding-right: 10px !important;
+  }
+
+  .session-stage-head-meta {
+    gap: 5px;
+  }
+
+  .session-stage-count {
+    white-space: nowrap;
+    font-size: .48rem !important;
+  }
+
+  .session-stage-chevron {
+    width: 28px;
+    height: 28px;
+  }
+
+  .hero-static-upload-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .hero-static-upload-actions .hero-upload-label {
+    width: 100%;
+    min-height: 40px !important;
+  }
+
+  .hero-mobile-fallback-preview-wrap {
+    grid-template-columns: minmax(0, 1fr) 88px;
+    gap: 10px;
+  }
+
+  .hero-static-mobile-preview {
+    width: 88px;
+  }
+
+  .hero-slideshow-admin-preview {
+    aspect-ratio: 4 / 3;
+    min-height: 150px;
+  }
+
+  .hero-slideshow-overview-bar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  #btn-manage-hero-slides {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .hero-slides-manager-dialog {
+    width: calc(100vw - 14px);
+    max-height: calc(100dvh - 14px);
+    padding: 13px !important;
+  }
+
+  .hero-slides-manager-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-slides-manager-toolbar .hero-upload-label {
+    width: 100%;
+    min-height: 44px !important;
+  }
+
+  .hero-slides-admin-manager {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-slides-admin-manager .hero-slide-card {
+    grid-template-columns: 105px minmax(0, 1fr) !important;
+  }
+
+  .hero-slides-admin-manager .hero-slide-preview {
+    width: 105px !important;
+    min-width: 105px !important;
+    height: 96px !important;
+    min-height: 96px !important;
+  }
+}
