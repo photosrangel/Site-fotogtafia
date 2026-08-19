@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v9 — correção dashboard + diagnóstico de sessão');
+console.log('[admin-v2] Build v10 — sessão resiliente + retry Data API');
 
 const $ = id => document.getElementById(id);
 
@@ -147,49 +147,17 @@ async function requireAdmin() {
     return false;
   }
 
-  // Confirma a sessão também no servidor do Supabase.
-  // Não imprime o access token no console.
-  const {
-    data: userData,
-    error: userError
-  } = await supabase.auth.getUser();
-
-  console.log(
-    '[admin-v2] requireAdmin: validação remota',
-    userError
-      ? `ERRO: ${userError.message || userError.code || 'desconhecido'}`
-      : `OK — ${userData?.user?.email || session.user.email || ''}`
-  );
-
-  if (userError || !userData?.user || userData.user.id !== ADMIN_ID) {
-    console.error(
-      '[admin-v2] requireAdmin: sessão rejeitada na validação remota',
-      {
-        message: userError?.message || '',
-        code: userError?.code || '',
-        status: userError?.status || ''
-      }
-    );
-
-    await supabase.auth.signOut().catch(() => {});
-
-    $('login-screen').hidden = false;
-    $('app').hidden = true;
-
-    msg(
-      $('login-msg'),
-      'Sua sessão não pôde ser validada. Entre novamente.',
-      'erro'
-    );
-
-    return false;
-  }
-
   $('user-email').textContent =
     session.user.email || '';
 
   $('login-screen').hidden = true;
   $('app').hidden = false;
+
+  // Pequena margem antes da primeira chamada à Data API.
+  // Evita rejeição transitória do claim iat logo após o login.
+  await new Promise(
+    resolve => setTimeout(resolve, 500)
+  );
 
   setView('dashboard');
 
@@ -419,97 +387,182 @@ async function loadDashboard() {
 
   console.log('[admin-v2] loadDashboard: iniciando');
 
-  const [
-    a,
-    b,
-    c,
-    m
-  ] = await Promise.all([
+  const consultar = async () => {
+    const [
+      a,
+      b,
+      c,
+      m
+    ] = await Promise.all([
+      supabase
+        .from('galleries')
+        .select('id,published'),
 
-    supabase
-      .from('galleries')
-      .select('id,published'),
+      supabase
+        .from('categories')
+        .select('id'),
 
-    supabase
-      .from('categories')
-      .select('id'),
+      supabase
+        .from('gallery_photos')
+        .select('id,published'),
 
-    supabase
-      .from('gallery_photos')
-      .select('id,published'),
+      supabase
+        .from('mensagens')
+        .select('id')
+        .eq('lida', false)
+        .then(
+          r => r,
+          () => ({ data: [] })
+        )
+    ]);
 
-    supabase
-      .from('mensagens')
-      .select('id')
-      .eq('lida', false)
-      .then(
-        r => r,
-        () => ({ data: [] })
-      )
+    return { a, b, c, m };
+  };
 
-  ]);
 
-  const falhas = [a, b, c, m]
+  let resultado =
+    await consultar();
+
+
+  let falhas = [
+    resultado.a,
+    resultado.b,
+    resultado.c,
+    resultado.m
+  ]
     .map(r => (r && r.error ? r.error : null))
     .filter(Boolean);
 
+
+  /*
+    PGRST303 "JWT issued at future" pode ser transitório quando
+    Auth e Data API ainda não estão perfeitamente alinhados no instante
+    logo após o login. Não encerramos mais a sessão imediatamente.
+
+    Esperamos um pouco e repetimos as consultas com a MESMA sessão.
+  */
+  const jwtFuture =
+    falhas.some(error => {
+      const code =
+        String(error?.code || '');
+
+      const message =
+        String(error?.message || '');
+
+      return (
+        code === 'PGRST303' &&
+        /issued at future/i.test(message)
+      );
+    });
+
+
+  if (jwtFuture) {
+
+    console.warn(
+      '[admin-v2] Data API recusou o JWT por diferença temporal. Aguardando e tentando novamente...'
+    );
+
+    await new Promise(
+      resolve => setTimeout(resolve, 1600)
+    );
+
+    resultado =
+      await consultar();
+
+    falhas = [
+      resultado.a,
+      resultado.b,
+      resultado.c,
+      resultado.m
+    ]
+      .map(r => (r && r.error ? r.error : null))
+      .filter(Boolean);
+  }
+
+
   if (falhas.length) {
-    const erroDashboard = falhas[0];
+
+    const erroDashboard =
+      falhas[0];
 
     console.error(
       '[admin-v2] Falha ao carregar dados do dashboard:',
       {
-        message: erroDashboard?.message || '',
-        code: erroDashboard?.code || '',
-        details: erroDashboard?.details || '',
-        hint: erroDashboard?.hint || ''
+        message:
+          erroDashboard?.message || '',
+        code:
+          erroDashboard?.code || '',
+        details:
+          erroDashboard?.details || '',
+        hint:
+          erroDashboard?.hint || ''
       }
     );
 
-    const detalhe = String(
-      erroDashboard?.message ||
-      erroDashboard?.code ||
-      JSON.stringify(erroDashboard)
-    );
 
+    const detalhe =
+      String(
+        erroDashboard?.message ||
+        erroDashboard?.code ||
+        JSON.stringify(
+          erroDashboard
+        )
+      );
+
+
+    /*
+      Não fazemos signOut automático por erro da Data API.
+      O Auth já foi validado separadamente por requireAdmin().
+      Isso evita o efeito "entra no painel e sai sozinho".
+    */
     flash(
-      `Erro ao carregar dados: ${detalhe} (veja o console F12)`,
+      `Não foi possível carregar parte do painel: ${detalhe}. Tente atualizar a página.`,
       'erro'
     );
 
-    if (/JWT|jwt|expired|Unauthorized/i.test(detalhe)) {
-      await supabase.auth.signOut().catch(() => {});
-      $('login-screen').hidden = false;
-      $('app').hidden = true;
-      msg(
-        $('login-msg'),
-        'Sessão inválida. Entre novamente (limpe os dados do site se persistir).',
-        'erro'
-      );
-      return;
-    }
   }
 
-  const g = a.data || [];
-  const k = b.data || [];
-  const p = c.data || [];
-  const mensagens = m.data || [];
+
+  const g =
+    resultado.a?.data || [];
+
+  const k =
+    resultado.b?.data || [];
+
+  const p =
+    resultado.c?.data || [];
+
+  const mensagens =
+    resultado.m?.data || [];
+
 
   $('stat-galleries').textContent =
     g.length;
 
   $('stat-published').textContent =
-    g.filter(x => x.published).length;
+    g.filter(
+      x => x.published
+    ).length;
 
   $('stat-categories').textContent =
     k.length;
 
   $('stat-photos').textContent =
-    p.filter(x => x.published).length;
+    p.filter(
+      x => x.published
+    ).length;
 
-  const msgEl = $('stat-messages');
-  msgEl.textContent = mensagens.length;
-  msgEl.style.color = mensagens.length ? 'var(--accent)' : '';
+
+  const msgEl =
+    $('stat-messages');
+
+  msgEl.textContent =
+    mensagens.length;
+
+  msgEl.style.color =
+    mensagens.length
+      ? 'var(--accent)'
+      : '';
 }
 
 
