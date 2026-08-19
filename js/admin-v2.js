@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v15 — hero alinhado + slides compactos');
+console.log('[admin-v2] Build v16 — slideshow configurável completo');
 
 const $ = id => document.getElementById(id);
 
@@ -28,6 +28,15 @@ let heroAdminPreviewTimer = null;
 const sessionStageOpen = {
   provas: false,
   finais: false
+};
+
+const HERO_SLIDESHOW_DEFAULTS = {
+  width: 'extended',
+  fit: 'cover',
+  ratio: 'fullscreen',
+  animation: 'fade',
+  order: 'sequential',
+  behind_menu: true
 };
 
 
@@ -3655,6 +3664,12 @@ async function loadContent() {
   $('hero-static-focus-y').value = Number(h.static_focus_y ?? 50);
   $('hero-slide-interval').value = Number(h.slide_interval ?? 5);
   $('hero-slide-transition').value = Number(h.slide_transition ?? 1.2);
+  $('hero-slide-width').value = h.slide_width || HERO_SLIDESHOW_DEFAULTS.width;
+  $('hero-slide-fit').value = h.slide_fit || HERO_SLIDESHOW_DEFAULTS.fit;
+  $('hero-slide-ratio').value = h.slide_ratio || HERO_SLIDESHOW_DEFAULTS.ratio;
+  $('hero-slide-animation').value = h.slide_animation || HERO_SLIDESHOW_DEFAULTS.animation;
+  $('hero-slide-order').value = h.slide_order || HERO_SLIDESHOW_DEFAULTS.order;
+  $('hero-slide-behind-menu').value = h.slide_behind_menu === false ? 'no' : 'yes';
   heroSlidesDraft = Array.isArray(h.slides)
     ? h.slides.map((s, i) => ({
         id: s.id || `slide-${Date.now()}-${i}`,
@@ -3796,6 +3811,89 @@ function updateStaticMobilePreview() {
   preview.classList.toggle('uses-desktop-fallback', !mobileUrl && Boolean(desktopUrl));
 }
 
+
+function heroSettingLabel(map, value, fallback = '') {
+  return map[value] || fallback || value;
+}
+
+function heroSlideshowSettingsSummary() {
+  const animation = heroSettingLabel({
+    fade: 'Esmaecer',
+    'slide-horizontal': 'Deslizar horizontal',
+    'slide-vertical': 'Deslizar do topo',
+    kenburns: 'Movimentação suave'
+  }, $('hero-slide-animation')?.value, 'Esmaecer');
+
+  const ratio = heroSettingLabel({
+    fullscreen: 'Tela cheia',
+    '16-9': '16:9',
+    '2.4-1': '2,4:1',
+    '4-1': '4:1'
+  }, $('hero-slide-ratio')?.value, 'Tela cheia');
+
+  const order = $('hero-slide-order')?.value === 'random'
+    ? 'Randômica'
+    : 'Sequencial';
+
+  const interval = clampNumber(
+    $('hero-slide-interval')?.value,
+    2,
+    30,
+    5
+  );
+
+  return `${animation} · ${ratio} · ${order} · ${interval}s`;
+}
+
+function updateHeroSlideshowConfigSummary() {
+  const el = $('hero-slideshow-config-summary');
+  if (el) el.textContent = heroSlideshowSettingsSummary();
+}
+
+function openHeroSlideshowSettings() {
+  const modal = $('hero-slideshow-settings-modal');
+  if (!modal) return;
+
+  msg($('hero-settings-msg'), '');
+  modal.hidden = false;
+}
+
+function closeHeroSlideshowSettings() {
+  const modal = $('hero-slideshow-settings-modal');
+  if (!modal) return;
+
+  modal.hidden = true;
+  updateHeroSlideshowConfigSummary();
+  renderHeroSlideshowOverview();
+}
+
+function applyHeroSlideshowSettings() {
+  $('hero-slide-interval').value = clampNumber(
+    $('hero-slide-interval').value,
+    2,
+    30,
+    5
+  );
+
+  $('hero-slide-transition').value = clampNumber(
+    $('hero-slide-transition').value,
+    .3,
+    5,
+    1.2
+  );
+
+  updateHeroSlideshowConfigSummary();
+  renderHeroSlideshowOverview();
+
+  msg(
+    $('hero-settings-msg'),
+    'Configurações aplicadas. Clique em “Salvar herói” para publicar.',
+    'sucesso'
+  );
+
+  setTimeout(closeHeroSlideshowSettings, 650);
+}
+
 function stopHeroAdminPreview() {
   if (heroAdminPreviewTimer) {
     clearInterval(heroAdminPreviewTimer);
@@ -3819,6 +3917,8 @@ function renderHeroSlideshowOverview() {
 
   summary.textContent =
     `${total} ${total === 1 ? 'imagem' : 'imagens'} · ${published} ${published === 1 ? 'publicada' : 'publicadas'}`;
+
+  updateHeroSlideshowConfigSummary();
 
   if (!slides.length) {
     preview.innerHTML =
@@ -3994,15 +4094,43 @@ document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
   })
 );
 
-$('btn-manage-hero-slides')?.addEventListener('click', openHeroSlidesManager);
+$('btn-manage-hero-slides')?.addEventListener('click', event => {
+  event.stopPropagation();
+  openHeroSlidesManager();
+});
+
+$('hero-slideshow-config-card')?.addEventListener('click', openHeroSlideshowSettings);
+
+$('btn-save-hero-settings')?.addEventListener('click', applyHeroSlideshowSettings);
+
+document.querySelectorAll('[data-close-hero-settings]').forEach(element =>
+  element.addEventListener('click', closeHeroSlideshowSettings)
+);
 
 document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
   element.addEventListener('click', closeHeroSlidesManager)
 );
 
-['hero-slide-interval', 'hero-slide-transition'].forEach(id =>
-  $(id)?.addEventListener('input', renderHeroSlideshowOverview)
-);
+[
+  'hero-slide-interval',
+  'hero-slide-transition',
+  'hero-slide-width',
+  'hero-slide-fit',
+  'hero-slide-ratio',
+  'hero-slide-animation',
+  'hero-slide-order',
+  'hero-slide-behind-menu'
+].forEach(id => {
+  $(id)?.addEventListener('input', () => {
+    updateHeroSlideshowConfigSummary();
+    renderHeroSlideshowOverview();
+  });
+
+  $(id)?.addEventListener('change', () => {
+    updateHeroSlideshowConfigSummary();
+    renderHeroSlideshowOverview();
+  });
+});
 
 ['hero-static-focus-x', 'hero-static-focus-y'].forEach(id =>
   $(id).addEventListener('input', updateStaticFocalPreview)
@@ -4165,6 +4293,12 @@ $('form-hero').addEventListener('submit', async e => {
       static_focus_y: clampNumber($('hero-static-focus-y').value, 0, 100, 50),
       slide_interval: clampNumber($('hero-slide-interval').value, 2, 30, 5),
       slide_transition: clampNumber($('hero-slide-transition').value, .3, 5, 1.2),
+      slide_width: $('hero-slide-width').value || HERO_SLIDESHOW_DEFAULTS.width,
+      slide_fit: $('hero-slide-fit').value || HERO_SLIDESHOW_DEFAULTS.fit,
+      slide_ratio: $('hero-slide-ratio').value || HERO_SLIDESHOW_DEFAULTS.ratio,
+      slide_animation: $('hero-slide-animation').value || HERO_SLIDESHOW_DEFAULTS.animation,
+      slide_order: $('hero-slide-order').value || HERO_SLIDESHOW_DEFAULTS.order,
+      slide_behind_menu: $('hero-slide-behind-menu').value !== 'no',
       slides: heroSlidesDraft.slice(0, 30).map((s, index) => ({
         id: safeText(s.id, 120), url: safeHttpUrl(s.url, { allowRelative: false }),
         alt: safeText(s.alt, 240), focus_x: clampNumber(s.focus_x,0,100,50),

@@ -259,6 +259,48 @@ function carregarHero(hero) {
   }
 
 
+  // Configurações avançadas do slideshow
+  const slideWidth = ['extended', 'standard'].includes(hero.slide_width)
+    ? hero.slide_width
+    : 'extended';
+
+  const slideFit = ['cover', 'contain'].includes(hero.slide_fit)
+    ? hero.slide_fit
+    : 'cover';
+
+  const slideRatio = ['fullscreen', '16-9', '2.4-1', '4-1'].includes(hero.slide_ratio)
+    ? hero.slide_ratio
+    : 'fullscreen';
+
+  const slideAnimation = [
+    'fade',
+    'slide-horizontal',
+    'slide-vertical',
+    'kenburns'
+  ].includes(hero.slide_animation)
+    ? hero.slide_animation
+    : 'fade';
+
+  const slideOrder = hero.slide_order === 'random'
+    ? 'random'
+    : 'sequential';
+
+  const slideBehindMenu = hero.slide_behind_menu !== false;
+
+  const heroRoot = document.querySelector('.hero');
+  const heroMedia = document.querySelector('.hero-media');
+
+  if (heroRoot) {
+    heroRoot.dataset.slideRatio = slideRatio;
+    heroRoot.classList.toggle('hero-not-behind-menu', !slideBehindMenu);
+  }
+
+  if (heroMedia) {
+    heroMedia.dataset.slideWidth = slideWidth;
+    heroMedia.dataset.slideFit = slideFit;
+  }
+
+
   // ============================================
   // IMAGEM ESTÁTICA + SLIDESHOW
   // ============================================
@@ -300,12 +342,21 @@ function carregarHero(hero) {
 
   // A foto estática permanece por baixo do slideshow.
   // Se o slide estiver vazio, falhar ou demorar, o hero não fica sem imagem.
-  const slides =
+  let slides =
     Array.isArray(hero.slides)
       ? hero.slides
           .filter(s => s && s.url && s.published !== false)
           .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
       : [];
+
+  if (slideOrder === 'random' && slides.length > 1) {
+    slides = [...slides];
+
+    for (let i = slides.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slides[i], slides[j]] = [slides[j], slides[i]];
+    }
+  }
 
   const useSlideshow =
     hero.mode === 'slideshow' &&
@@ -327,26 +378,32 @@ function carregarHero(hero) {
     const transition =
       Math.max(300, (Number(hero.slide_transition) || 1.2) * 1000);
 
-    slideshow.style.setProperty(
-      '--hero-slide-transition',
-      `${transition}ms`
-    );
+    slideshow.dataset.animation = slideAnimation;
+    slideshow.dataset.fit = slideFit;
+
+    slideshow.style.setProperty('--hero-slide-transition', `${transition}ms`);
+    slideshow.style.setProperty('--hero-slide-interval', `${interval}ms`);
 
     const nodes = slides.map((slide, index) => {
       const img = document.createElement('img');
+
       img.className =
         'hero-slide' + (index === 0 ? ' is-visible' : '');
+
       img.src = slide.url;
       img.alt = slide.alt || hero.image_alt || '';
       img.decoding = 'async';
       img.loading = index < 2 ? 'eager' : 'lazy';
+
       img.style.objectPosition =
         `${Number(slide.focus_x ?? 50)}% ${Number(slide.focus_y ?? 50)}%`;
+
       slideshow.appendChild(img);
       return img;
     });
 
     const first = nodes[0];
+
     const markReady = () => {
       slideshow.classList.add('is-ready');
     };
@@ -355,19 +412,60 @@ function carregarHero(hero) {
       markReady();
     } else {
       first.addEventListener('load', markReady, { once: true });
+
       first.addEventListener('error', () => {
         slideshow.classList.remove('is-ready');
       }, { once: true });
     }
 
+    window.clearInterval(window.__heroSlideTimer);
+
     if (nodes.length > 1) {
       let current = 0;
-      window.clearInterval(window.__heroSlideTimer);
+
+      const activate = next => {
+        const currentNode = nodes[current];
+        const nextNode = nodes[next];
+
+        nodes.forEach(node => {
+          node.classList.remove(
+            'is-prev',
+            'is-entering',
+            'is-from-bottom',
+            'is-from-right'
+          );
+        });
+
+        if (slideAnimation === 'slide-horizontal') {
+          nextNode.classList.add('is-entering', 'is-from-right', 'is-visible');
+          currentNode.classList.add('is-prev');
+
+          requestAnimationFrame(() => {
+            nextNode.classList.remove('is-from-right');
+          });
+        } else if (slideAnimation === 'slide-vertical') {
+          nextNode.classList.add('is-entering', 'is-from-bottom', 'is-visible');
+          currentNode.classList.add('is-prev');
+
+          requestAnimationFrame(() => {
+            nextNode.classList.remove('is-from-bottom');
+          });
+        } else {
+          nextNode.classList.add('is-visible');
+          currentNode.classList.remove('is-visible');
+        }
+
+        window.setTimeout(() => {
+          currentNode.classList.remove('is-visible', 'is-prev');
+          nextNode.classList.remove('is-entering');
+        }, transition + 80);
+
+        current = next;
+      };
+
       window.__heroSlideTimer = window.setInterval(() => {
         const next = (current + 1) % nodes.length;
-        nodes[next].classList.add('is-visible');
-        nodes[current].classList.remove('is-visible');
-        current = next;
+        activate(next);
       }, interval);
     }
   }
