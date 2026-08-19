@@ -83,8 +83,8 @@
       <span>⌄</span>
     </button>
 
-    <button class="admin-nav-subitem" type="button" data-design-jump="safety">
-      Segurança
+    <button class="admin-nav-subitem" type="button" data-design-jump="client_area">
+      Área do Cliente
       <span>⌄</span>
     </button>
   </div>
@@ -99,7 +99,7 @@
     <div>
       <p class="section-eyebrow">Laboratório visual</p>
       <h2>Prévia responsiva</h2>
-      <p class="panel-copy">Compare o site em viewports reais de 1920×1080 e 390×844. A prévia é apenas reduzida visualmente para caber no painel; nada é publicado nesta etapa.</p>
+      <p class="panel-copy">Compare o site em viewports reais de 1920×1080 e 390×844. Teste as alterações na prévia, salve como rascunho e publique somente quando estiver satisfeito.</p>
     </div>
     <div class="design-device-switch" role="group" aria-label="Dispositivo da prévia">
       <button class="small-btn active" id="design-device-desktop" type="button" aria-pressed="true">▣ Computador</button>
@@ -122,6 +122,36 @@
         </div>
       </div>
     </div>
+
+    <section class="panel design-publication-panel" aria-labelledby="design-publication-title">
+      <div class="design-publication-head">
+        <div>
+          <p class="section-eyebrow">Estado</p>
+          <h3 id="design-publication-title">Publicação do Design</h3>
+          <p class="panel-copy" id="design-publication-copy">Carregando o estado atual…</p>
+        </div>
+
+        <div class="design-publication-status" id="design-publication-status" data-state="loading">
+          <span class="design-publication-dot" aria-hidden="true"></span>
+          <strong id="design-publication-status-text">CARREGANDO</strong>
+        </div>
+      </div>
+
+      <div class="design-publication-meta">
+        <span>Último rascunho: <strong id="design-draft-time">—</strong></span>
+        <span>Última publicação: <strong id="design-published-time">—</strong></span>
+      </div>
+
+      <div class="design-publication-actions">
+        <button class="btn" id="design-restore-published" type="button">Restaurar publicado</button>
+        <button class="btn" id="design-save-draft" type="button">Salvar rascunho</button>
+        <button class="btn btn-accent" id="design-publish" type="button" disabled>Publicar no site</button>
+      </div>
+
+      <p class="design-publication-hint">
+        “Publicar no site” só é liberado quando houver diferença real em relação à versão publicada.
+      </p>
+    </section>
   </div>
 </section>
 
@@ -264,18 +294,73 @@
         </div>
       </section>
 
-      <section class="design-accordion" data-design-section="safety">
+      <section class="design-accordion" data-design-section="client_area">
         <button class="design-accordion-toggle" type="button" aria-expanded="false">
-          <span>Segurança</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+          <span>Área do Cliente</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
         </button>
+
         <div class="design-accordion-body" hidden>
-          <div class="design-safety-note">
-            <strong>Modo seguro</strong>
-            <p>Estas opções continuam alterando somente a prévia. Nenhuma configuração avançada é publicada no site nesta versão.</p>
-          </div>
-          <button class="btn" id="design-reset" type="button">Restaurar prévia</button>
+          <label class="design-control-row">
+            Layout de acesso
+            <select id="design-client-layout">
+              <option value="editorial-split" selected>Editorial dividido</option>
+              <option value="centered">Minimalista central</option>
+              <option value="fullscreen">Imagem em tela cheia</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Estilo da galeria
+            <select id="design-client-gallery-style">
+              <option value="editorial" selected>Grade editorial</option>
+              <option value="clean">Grade limpa</option>
+              <option value="masonry">Masonry</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Tamanho das fotografias
+            <select id="design-client-photo-size">
+              <option value="compact">Compacto</option>
+              <option value="medium">Médio</option>
+              <option value="large" selected>Grande</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Tipografia
+            <select id="design-client-typography">
+              <option value="classic" selected>Clássica</option>
+              <option value="editorial">Editorial</option>
+              <option value="minimal">Minimalista</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Bordas
+            <select id="design-client-border">
+              <option value="fine" selected>Fina</option>
+              <option value="none">Sem borda</option>
+              <option value="soft">Suave</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Imagem da tela de acesso
+            <input
+              id="design-client-access-image"
+              type="url"
+              inputmode="url"
+              placeholder="https://... ou deixe vazio"
+            >
+          </label>
+
+          <p class="design-control-help">
+            A imagem é opcional. Sem imagem, o layout editorial usa um fundo sofisticado e discreto.
+          </p>
         </div>
       </section>
+
     </aside>
 </div>
 <section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" type="button" class="btn btn-accent">Nova galeria</button></div>
