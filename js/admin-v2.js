@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v56 — editor visual auditado: quebra em tempo real preservando itálico');
+console.log('[admin-v2] Build v57 — editor visual: cursor e salvamento corrigidos');
 
 const $ = id => document.getElementById(id);
 
@@ -8463,9 +8463,126 @@ function decorateDesignInlinePreview(doc){
     applyInlineStyleToElement(el,id);
     if(el.dataset.designInlineBound==='1')return;
     el.dataset.designInlineBound='1';
-    el.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,id);});
+
+    el.addEventListener(
+      'click',
+      ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        const initialOffset =
+          getDesignEditableOffsetFromPoint(
+            el,
+            ev.clientX,
+            ev.clientY
+          );
+
+        openDesignInlineEditor(
+          el,
+          cfg,
+          id,
+          initialOffset
+        );
+      }
+    );
   });
 }
+
+function getDesignEditableOffsetFromPoint(
+  root,
+  clientX,
+  clientY
+) {
+  if (!root) return 0;
+
+  const doc =
+    root.ownerDocument;
+
+  let node = null;
+  let offset = 0;
+
+  try {
+    if (
+      typeof doc.caretPositionFromPoint ===
+      'function'
+    ) {
+      const position =
+        doc.caretPositionFromPoint(
+          clientX,
+          clientY
+        );
+
+      node =
+        position?.offsetNode ||
+        null;
+
+      offset =
+        Number(
+          position?.offset || 0
+        );
+    } else if (
+      typeof doc.caretRangeFromPoint ===
+      'function'
+    ) {
+      const range =
+        doc.caretRangeFromPoint(
+          clientX,
+          clientY
+        );
+
+      node =
+        range?.startContainer ||
+        null;
+
+      offset =
+        Number(
+          range?.startOffset || 0
+        );
+    }
+  } catch (_) {}
+
+  if (
+    !node ||
+    (
+      node !== root &&
+      !root.contains(node)
+    )
+  ) {
+    return 0;
+  }
+
+  const range =
+    doc.createRange();
+
+  try {
+    range.setStart(
+      root,
+      0
+    );
+
+    range.setEnd(
+      node,
+      offset
+    );
+  } catch (_) {
+    return 0;
+  }
+
+  const fragment =
+    range.cloneContents();
+
+  const holder =
+    doc.createElement('div');
+
+  holder.appendChild(
+    fragment
+  );
+
+  return serializeDesignEditableText(
+    holder
+  ).length;
+}
+
 function serializeDesignEditableText(root) {
   if (!root) return '';
 
@@ -8677,11 +8794,51 @@ function syncHeroTitleSourceFromEditable(active = designInlineActive) {
   return text;
 }
 
-function openDesignInlineEditor(el,cfg,key){
+function openDesignInlineEditor(el,cfg,key,initialOffset=null){
   if(designInlineActive&&designInlineActive.el!==el) finishDesignInline(false);
 
   const input = $(cfg.input);
-  const sourceValue = input ? String(input.value || '') : String(el.innerText || el.textContent || '');
+
+  let sourceValue =
+    input
+      ? String(
+          input.value || ''
+        )
+      : String(
+          el.innerText ||
+          el.textContent ||
+          ''
+        );
+
+  /*
+    Builds anteriores podiam unir exatamente “como” + “sempre”
+    ao tentar inserir a quebra. Corrigimos somente esse caso conhecido
+    para não obrigar o usuário a reparar manualmente o rascunho.
+  */
+  if (
+    key === 'hero-title' &&
+    /\bcomosempre\b/i.test(
+      sourceValue
+    )
+  ) {
+    sourceValue =
+      sourceValue.replace(
+        /\bcomosempre\b/gi,
+        match => {
+          const lower =
+            match.toLowerCase();
+
+          return lower === 'comosempre'
+            ? 'como sempre'
+            : 'como sempre';
+        }
+      );
+
+    if (input) {
+      input.value =
+        sourceValue;
+    }
+  }
 
   designInlineActive={
     el,
@@ -8707,7 +8864,34 @@ function openDesignInlineEditor(el,cfg,key){
       real do textarea hero-title. O último termo continua em itálico.
       Só as quebras manuais geram <br> durante a edição.
     */
-    renderHeroTitleForEditing(el, sourceValue);
+    renderHeroTitleForEditing(
+      el,
+      sourceValue
+    );
+
+    /*
+      Reposiciona o cursor exatamente no ponto clicado.
+      Antes o innerHTML era reconstruído e o navegador perdia a seleção,
+      mandando o cursor para o início do título.
+    */
+    if (
+      Number.isFinite(
+        Number(
+          initialOffset
+        )
+      )
+    ) {
+      requestAnimationFrame(
+        () => {
+          setDesignEditableCaretOffset(
+            el,
+            Number(
+              initialOffset
+            )
+          );
+        }
+      );
+    }
   }
 
   el.onkeydown=event=>{
@@ -8716,15 +8900,57 @@ function openDesignInlineEditor(el,cfg,key){
     event.preventDefault();
 
     if (isHeroTitle) {
-      const current = serializeDesignEditableText(el);
-      const offset = getDesignEditableCaretOffset(el);
-      const next = `${current.slice(0, offset)}\n${current.slice(offset)}`;
+      const current =
+        String(
+          designInlineActive?.textBuffer ??
+          input?.value ??
+          ''
+        );
 
-      if (input) input.value = next;
-      designInlineActive.textBuffer = next;
+      const offset =
+        getDesignEditableCaretOffset(
+          el
+        );
 
-      renderHeroTitleForEditing(el, next);
-      setDesignEditableCaretOffset(el, offset + 1);
+      const safeOffset =
+        Math.max(
+          0,
+          Math.min(
+            offset,
+            current.length
+          )
+        );
+
+      const next =
+        `${current.slice(
+          0,
+          safeOffset
+        )}\n${current.slice(
+          safeOffset
+        )}`;
+
+      if (input) {
+        input.value =
+          next;
+      }
+
+      designInlineActive.textBuffer =
+        next;
+
+      renderHeroTitleForEditing(
+        el,
+        next
+      );
+
+      requestAnimationFrame(
+        () => {
+          setDesignEditableCaretOffset(
+            el,
+            safeOffset + 1
+          );
+        }
+      );
+
       updateDesignPublicationState();
       return;
     }
@@ -8745,12 +8971,34 @@ function openDesignInlineEditor(el,cfg,key){
 
   el.oninput=()=>{
     if (isHeroTitle) {
-      syncHeroTitleSourceFromEditable();
+      const liveText =
+        serializeDesignEditableText(
+          el
+        )
+          .replace(
+            /\n{3,}/g,
+            '\n\n'
+          );
+
+      if (
+        designInlineActive
+      ) {
+        designInlineActive.textBuffer =
+          liveText;
+      }
+
+      if (input) {
+        input.value =
+          liveText;
+      }
     }
+
     updateDesignPublicationState();
   };
 
-  el.focus();
+  el.focus({
+    preventScroll:true
+  });
 
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
@@ -8957,7 +9205,13 @@ async function saveDesignInline() {
           {
             key: editedKey,
             renderedText:
-              target?.textContent?.trim() || ''
+              target?.innerText?.trim() ||
+              target?.textContent?.trim() ||
+              '',
+            sourceField:
+              editedKey === 'hero-title'
+                ? $('hero-title')?.value
+                : undefined
           }
         );
       },
