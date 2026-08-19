@@ -130,25 +130,19 @@
 </div>
 
 <div id="hero-slideshow-editor" class="field field-full hero-media-editor">
-  <div class="panel-head compact">
+  <div class="panel-head compact hero-slideshow-simple-head">
     <div>
       <p class="section-eyebrow">Slideshow</p>
-      <h3>Apresentação da página inicial</h3>
+      <h3>Slideshow</h3>
     </div>
   </div>
 
-  <div class="form-grid hero-timing-grid">
-    <div class="field">
-      <label for="hero-slide-interval">Tempo de cada foto (segundos)</label>
-      <input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5">
-    </div>
-    <div class="field">
-      <label for="hero-slide-transition">Duração do fade (segundos)</label>
-      <input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2">
-    </div>
-  </div>
-
-  <div class="hero-slideshow-overview">
+  <button
+    id="hero-slideshow-config-card"
+    class="hero-slideshow-config-card"
+    type="button"
+    aria-label="Abrir configurações do slideshow"
+  >
     <div id="hero-slideshow-admin-preview" class="hero-slideshow-admin-preview">
       <div class="hero-slideshow-admin-empty">Nenhuma imagem no slideshow.</div>
     </div>
@@ -156,13 +150,123 @@
     <div class="hero-slideshow-overview-bar">
       <div>
         <strong id="hero-slideshow-summary">0 imagens</strong>
-        <span>Prévia automática do slideshow configurado.</span>
+        <span id="hero-slideshow-config-summary">Clique na prévia para configurar o slideshow.</span>
       </div>
-      <button class="btn small-btn" id="btn-manage-hero-slides" type="button">Gerenciar imagens</button>
+      <span class="hero-slideshow-config-indicator">Configurar ↗</span>
+    </div>
+  </button>
+
+  <div class="hero-slideshow-card-actions">
+    <button class="btn small-btn" id="btn-manage-hero-slides" type="button">Gerenciar imagens</button>
+  </div>
+</div>
+
+<div id="hero-slideshow-settings-modal" class="modal hero-slideshow-settings-modal" hidden>
+  <div class="modal-backdrop" data-close-hero-settings></div>
+  <div class="modal-dialog hero-slideshow-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="hero-slideshow-settings-title">
+    <div class="modal-head">
+      <div>
+        <p class="section-eyebrow">Slideshow</p>
+        <h2 id="hero-slideshow-settings-title">Configurações do slideshow</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-hero-settings aria-label="Fechar">×</button>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Exibição</p>
+        <p class="panel-copy">Controle o formato e o enquadramento do banner.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-width">Largura</label>
+          <select id="hero-slide-width">
+            <option value="extended">Estendida</option>
+            <option value="standard">Padrão</option>
+          </select>
+          <p class="field-help">Estendida ocupa toda a largura; Padrão acompanha a largura do conteúdo.</p>
+        </div>
+        <div class="field">
+          <label for="hero-slide-fit">Encaixe</label>
+          <select id="hero-slide-fit">
+            <option value="cover">Preencher</option>
+            <option value="contain">Não cortar</option>
+          </select>
+          <p class="field-help">Preencher pode recortar; Não cortar preserva toda a fotografia.</p>
+        </div>
+        <div class="field">
+          <label for="hero-slide-ratio">Proporção</label>
+          <select id="hero-slide-ratio">
+            <option value="fullscreen">Tela cheia</option>
+            <option value="16-9">16:9 (widescreen)</option>
+            <option value="2.4-1">2,4:1 (cinema)</option>
+            <option value="4-1">4:1 (faixa)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hero-slide-behind-menu">Atrás do menu</label>
+          <select id="hero-slide-behind-menu">
+            <option value="yes">Sim</option>
+            <option value="no">Não</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Movimento</p>
+        <p class="panel-copy">Defina como uma fotografia passa para a próxima.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-animation">Animação</label>
+          <select id="hero-slide-animation">
+            <option value="fade">Esmaecer</option>
+            <option value="slide-horizontal">Deslizar horizontal</option>
+            <option value="slide-vertical">Deslizar do topo</option>
+            <option value="kenburns">Movimentação suave</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hero-slide-interval">Tempo de cada foto</label>
+          <div class="hero-setting-number">
+            <input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5">
+            <span>segundos</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="hero-slide-transition">Duração da transição</label>
+          <div class="hero-setting-number">
+            <input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2">
+            <span>segundos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Comportamento</p>
+        <p class="panel-copy">Controle a ordem em que as fotografias aparecem.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-order">Ordem</label>
+          <select id="hero-slide-order">
+            <option value="sequential">Sequencial</option>
+            <option value="random">Randômica</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions hero-settings-actions">
+      <button class="btn btn-accent" id="btn-save-hero-settings" type="button">Aplicar configurações</button>
+      <button class="btn" type="button" data-close-hero-settings>Cancelar</button>
+      <span class="msg" id="hero-settings-msg"></span>
     </div>
   </div>
-
-  <p class="field-help">As imagens e controles ficam dentro de “Gerenciar imagens”, mantendo esta página mais limpa e compacta.</p>
 </div>
 
 <div id="hero-slides-manager-modal" class="modal hero-slides-manager-modal" hidden>
