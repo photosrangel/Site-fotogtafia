@@ -277,7 +277,7 @@
   }
 
   .client-access-copy {
-    margin-bottom: 34px;
+    margin-bottom: 22px;
   }
 
   .client-access-title {
@@ -540,13 +540,42 @@
       grid-template-columns: 1fr;
     }
   }
+
+  .client-access-visual-copy{justify-content:flex-end;}
+  .client-access-visual-copy p{max-width:34ch;}
+
+
+  /* BUILD V40 — ajuste final da Área do Cliente */
+  .nav-logo-sub {
+    margin-left: .28em;
+    font-family: var(--font-display);
+    font-size: .68em;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: .015em;
+    opacity: .88;
+  }
+
+  .client-access-copy .section-eyebrow {
+    margin-bottom: 0;
+  }
+
+  .client-access-title {
+    margin-top: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .nav-logo-sub {
+      font-size: .62em;
+    }
+  }
 </style>
 </head>
 <body class="client-area-premium">
 
 <nav class="nav">
   <div class="container">
-    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a>
+    <a href="/inicio" class="nav-logo">Rangel <em>Santos</em> <span class="nav-logo-sub">Fotografia</span></a>
     <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
     <div class="nav-links">
       <a href="/inicio">Início</a>
@@ -563,20 +592,16 @@
   <div class="client-access-shell">
     <div class="client-access-visual" aria-hidden="true">
       <div class="client-access-visual-copy">
-        <span class="client-access-index">PRIVATE / 01</span>
         <p>Retratos guardados com cuidado.<br>Um espaço reservado só para você.</p>
       </div>
     </div>
 
     <section class="acesso-box client-access-panel">
-      <div class="client-access-brand">
-        <span class="client-access-brand-name">Rangel <em>Santos</em></span>
-        <span class="client-access-brand-sub">Fotografia</span>
-      </div>
-
-      <div class="client-access-copy">
+<div class="client-access-copy">
         <p class="section-eyebrow">Área privada</p>
-        <h1 class="client-access-title">Sua sessão,<br><em>em um espaço só seu.</em></h1>
+        <h1 class="client-access-title">
+          Sua sessão,<br><em>em um espaço só seu.</em>
+        </h1>
         <p class="client-access-description">
           Acesse sua galeria para selecionar fotografias, acompanhar a edição
           e receber seus arquivos finais.

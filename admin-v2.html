@@ -22,35 +22,7 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><div class="admin-nav-group content-nav-group">
-  <button
-    class="sidebar-link admin-nav-item admin-nav-item-parent"
-    id="content-nav-toggle"
-    type="button"
-    aria-expanded="false"
-    aria-controls="content-nav-submenu"
-  >
-    <span>Conteúdo</span>
-    <span class="admin-nav-chevron" aria-hidden="true">⌄</span>
-  </button>
-
-  <div class="admin-nav-submenu" id="content-nav-submenu" hidden>
-    <button class="admin-nav-subitem" type="button" data-content-jump="home">
-      Início
-      <span>⌄</span>
-    </button>
-
-    <button class="admin-nav-subitem" type="button" data-content-jump="about">
-      Sobre
-      <span>⌄</span>
-    </button>
-
-    <button class="admin-nav-subitem" type="button" data-content-jump="contact">
-      Contato
-      <span>⌄</span>
-    </button>
-  </div>
-</div><div class="admin-nav-group design-nav-group">
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard">Dashboard</button><div class="admin-nav-group design-nav-group">
   <button
     class="sidebar-link admin-nav-item admin-nav-item-parent"
     id="design-nav-toggle"
@@ -63,8 +35,19 @@
   </button>
 
   <div class="admin-nav-submenu" id="design-nav-submenu" hidden>
+    <div class="admin-nav-subgroup design-content-nav-group">
+      <button class="admin-nav-subitem admin-nav-subgroup-toggle" id="design-content-toggle" type="button" aria-expanded="false" aria-controls="design-content-submenu">
+        Conteúdo <span class="admin-nav-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="admin-nav-nested" id="design-content-submenu" hidden>
+        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="inicio">Início <span>⌄</span></button>
+        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="sobre">Sobre <span>⌄</span></button>
+        <button class="admin-nav-subitem admin-nav-nested-item" type="button" data-design-content="contato">Contato <span>⌄</span></button>
+      </div>
+    </div>
+
     <button class="admin-nav-subitem" type="button" data-design-jump="menu">
-      Menu
+      Cabeçalho
       <span>⌄</span>
     </button>
 
@@ -170,6 +153,8 @@
       aria-label="Fechar configurações"
     >×</button>
   </div>
+
+  <div class="design-content-host" id="design-content-host" hidden></div>
 
   <aside class="panel design-controls">
       <section class="design-accordion is-open" data-design-section="menu">
@@ -345,19 +330,16 @@
             </select>
           </label>
 
-          <label class="design-control-row">
-            Imagem da tela de acesso
-            <input
-              id="design-client-access-image"
-              type="url"
-              inputmode="url"
-              placeholder="https://... ou deixe vazio"
-            >
-          </label>
-
-          <p class="design-control-help">
-            A imagem é opcional. Sem imagem, o layout editorial usa um fundo sofisticado e discreto.
-          </p>
+          <div class="design-client-image-control">
+  <div class="design-control-row"><span>Imagem da tela de acesso</span></div>
+  <input id="design-client-access-image" type="hidden" value="">
+  <div class="design-client-image-preview empty" id="design-client-access-image-preview"><span>Nenhuma imagem adicionada</span></div>
+  <div class="design-client-image-actions">
+    <label class="small-btn design-client-upload-label">Adicionar foto<input id="design-client-access-image-file" type="file" accept="image/jpeg,image/png,image/webp" hidden></label>
+    <button class="small-btn" id="design-client-access-image-remove" type="button">Remover</button>
+  </div>
+  <p class="design-control-help" id="design-client-access-image-msg">JPG, PNG ou WebP. A fotografia será enviada para o storage do site.</p>
+</div>
         </div>
       </section>
 
