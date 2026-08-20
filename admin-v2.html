@@ -22,7 +22,7 @@
 </div></div>
 <div id="app" class="admin-v2-app" hidden>
 <aside class="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
-<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard" data-admin-ui-text="nav_dashboard">Dashboard</button><div class="admin-nav-group design-nav-group">
+<nav class="sidebar-nav"><button class="sidebar-link active" data-view="dashboard" data-admin-ui-text="nav_dashboard">Hoje</button><div class="admin-nav-group design-nav-group">
   <button
     class="sidebar-link admin-nav-item admin-nav-item-parent"
     id="design-nav-toggle"
@@ -139,8 +139,28 @@
 </div><button class="sidebar-link" data-view="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor" data-admin-ui-text="nav_view_site">Ver site</a><button id="logout-btn" class="sidebar-link" data-admin-ui-text="nav_logout">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
-<section id="view-dashboard" class="admin-view"><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
-<div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Atalho</p><h2 id="admin-ui-gallery-card-title-render">Galeria</h2></div><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button"><span id="admin-ui-gallery-card-button-render">Nova galeria</span></button></div><p class="panel-copy" id="admin-ui-gallery-card-copy-render">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2 id="admin-ui-safe-title-render">Ambiente seguro</h2></div><span class="status-pill online" id="admin-ui-safe-status-render">PROTEGIDO</span></div><p class="panel-copy" id="admin-ui-safe-copy-render">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div></section>
+<section id="view-dashboard" class="admin-view today-dashboard">
+  <div class="today-welcome">
+    <div><p class="section-eyebrow">Central do dia</p><h2>O que precisa da sua atenção</h2><p class="panel-copy">Continue cada trabalho exatamente de onde parou.</p></div>
+    <div class="today-quick-actions" aria-label="Ações rápidas">
+      <button class="btn btn-accent" id="quick-new-session" type="button">Novo ensaio</button>
+      <button class="btn" id="dashboard-new-gallery" type="button"><span id="admin-ui-gallery-card-button-render">Nova galeria</span></button>
+      <button class="btn" data-view="messages" type="button">Ver mensagens</button>
+      <a class="btn" href="/inicio" target="_blank" rel="noopener">Abrir site ↗</a>
+    </div>
+  </div>
+  <form id="admin-global-search" class="admin-global-search" role="search">
+    <label class="sr-only" for="admin-global-search-input">Buscar em todo o painel</label>
+    <input id="admin-global-search-input" type="search" maxlength="120" placeholder="Buscar cliente, ensaio, galeria ou mensagem…" autocomplete="off">
+    <button class="btn btn-accent" type="submit">Buscar</button>
+  </form>
+  <div id="admin-global-search-results" class="admin-global-search-results" hidden></div>
+  <div class="today-workflow-grid" id="today-workflow-grid" aria-live="polite">
+    <article class="today-task-card"><span class="today-task-icon">●</span><div><strong>Carregando prioridades…</strong><small>Aguarde um instante</small></div></article>
+  </div>
+  <div class="stats-grid today-stats"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div>
+  <div class="panel-grid"><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Próximo passo</p><h2 id="admin-ui-gallery-card-title-render">Fluxo organizado</h2></div></div><p class="panel-copy" id="admin-ui-gallery-card-copy-render">Use as prioridades acima para avançar ensaios, responder clientes e concluir entregas.</p></article><article class="panel"><div class="panel-head"><div><p class="section-eyebrow">Estado</p><h2 id="admin-ui-safe-title-render">Ambiente seguro</h2></div><span class="status-pill online" id="admin-ui-safe-status-render">PROTEGIDO</span></div><p class="panel-copy" id="admin-ui-safe-copy-render">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</p></article></div>
+</section>
 
 <section id="view-design" class="admin-view" hidden>
   <div class="design-studio-head">
@@ -369,14 +389,6 @@
             <select id="design-whatsapp-position">
               <option value="right" selected>Direita</option>
               <option value="left">Esquerda</option>
-            </select>
-          </label>
-          <label class="design-control-row">
-            Estilo do botão
-            <select id="design-whatsapp-style">
-              <option value="editorial" selected>Editorial — recomendado</option>
-              <option value="minimal">Minimalista</option>
-              <option value="classic">WhatsApp clássico</option>
             </select>
           </label>
           <div class="design-control-row">
