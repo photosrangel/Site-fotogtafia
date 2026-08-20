@@ -5,7 +5,7 @@
    Se você quiser mudar a cor de destaque do site inteiro,
    troca só o valor de --accent aqui embaixo. */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@300;400;500;600&display=swap');
 
 :root {
   --bg: #0b0b0a;
@@ -17,7 +17,8 @@
   --frame-num-bg: rgba(0,0,0,0.55);
 
   --font-display: 'Fraunces', serif;
-  --font-body: 'Inter', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-editorial: 'Cormorant Garamond', serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 
@@ -1544,4 +1545,320 @@ html, body {
 }
 @media(prefers-reduced-motion:reduce){
   .rs-whatsapp-float{animation:none;transition:none}
+}
+
+/* =========================================================
+   BUILD V66 — REFINO PREMIUM GLOBAL
+   Tipografia editorial + botões pill + Contato/Área do Cliente
+   ========================================================= */
+
+/* ---------- TIPOGRAFIA ---------- */
+
+/*
+  Mantemos Fraunces na marca/logotipo.
+  Os grandes títulos ganham uma serif editorial mais sofisticada,
+  enquanto o corpo usa Manrope com peso mais leve.
+*/
+.hero-title,
+.section-title,
+.about-text h1,
+.about-text h2,
+.contact-grid h1,
+.contact-grid h2,
+.locked h1,
+.locked h2,
+.cliente-wrap h1,
+.cliente-wrap h2,
+.cliente-wrap h3 {
+  font-family: var(--font-editorial);
+  font-weight: 400;
+  letter-spacing: -.025em;
+}
+
+.hero-title {
+  line-height: .94;
+}
+
+.section-title {
+  line-height: .94;
+}
+
+/*
+  Texto de apoio da Home:
+  menor e mais discreto para não competir com fotografia/título.
+*/
+.hero-sub {
+  max-width: 52ch;
+  margin-top: 22px;
+  font-size: clamp(.90rem, .82vw, .98rem);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: -.012em;
+  color: color-mix(in srgb, var(--text-muted) 92%, transparent);
+}
+
+/* Textos corridos um pouco mais refinados sem perder legibilidade. */
+.about-text p,
+.contact-info dd,
+.cliente-wrap p {
+  font-weight: 400;
+  letter-spacing: -.008em;
+}
+
+/* ---------- BOTÕES / FILTROS ---------- */
+
+/*
+  Linguagem pill premium.
+  Cores permanecem vinculadas às variáveis atuais do site.
+*/
+.btn,
+.filter-btn,
+#contato-submit {
+  border-radius: 999px !important;
+}
+
+.btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 23px;
+  border-width: 1px;
+  letter-spacing: .085em;
+  transition:
+    background-color .22s ease,
+    color .22s ease,
+    border-color .22s ease,
+    transform .22s ease,
+    box-shadow .22s ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* CTA de destaque mantém exatamente a paleta atual. */
+.btn-accent {
+  box-shadow: 0 9px 28px rgba(0,0,0,.16);
+}
+
+/* Filtros da Galeria — comportamento semelhante à referência enviada. */
+.filters {
+  gap: 10px;
+}
+
+.filter-btn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 19px;
+  border-color: var(--hairline);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.filter-btn:hover,
+.filter-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--hairline));
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.filter-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+
+/* ---------- CONTATO ---------- */
+
+/*
+  O conteúdo permanece intacto.
+  O formulário passa a funcionar visualmente como um card editorial,
+  com mais respiro e superfície quase preta.
+*/
+.contact-grid {
+  align-items: start;
+}
+
+.contact-grid > form {
+  position: relative;
+  padding: clamp(26px, 3.2vw, 48px);
+  border: 1px solid color-mix(in srgb, var(--hairline) 88%, var(--text) 12%);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.018), transparent 48%),
+    color-mix(in srgb, var(--surface) 72%, var(--bg));
+  box-shadow: 0 24px 64px rgba(0,0,0,.16);
+}
+
+.contact-grid > form .field {
+  margin-bottom: 20px;
+}
+
+.contact-grid > form .field label {
+  margin-bottom: 9px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-muted));
+  letter-spacing: .09em;
+}
+
+.contact-grid > form .field input,
+.contact-grid > form .field textarea,
+.contact-grid > form .field select {
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-bottom-color: color-mix(in srgb, var(--hairline) 86%, var(--text) 14%);
+  border-radius: 7px 7px 3px 3px;
+  background: rgba(0,0,0,.16);
+  color: var(--text);
+  font-size: .94rem;
+}
+
+.contact-grid > form .field textarea {
+  min-height: 142px;
+  resize: vertical;
+}
+
+.contact-grid > form .field input:hover,
+.contact-grid > form .field textarea:hover,
+.contact-grid > form .field select:hover {
+  background: rgba(255,255,255,.018);
+}
+
+.contact-grid > form .field input:focus,
+.contact-grid > form .field textarea:focus,
+.contact-grid > form .field select:focus {
+  border-color: color-mix(in srgb, var(--accent) 68%, transparent);
+  background: rgba(255,255,255,.022);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+#contato-submit {
+  min-height: 46px;
+  padding-inline: 24px !important;
+}
+
+/* Informações laterais: mais organização, sem transformar em outro card pesado. */
+.contact-info {
+  padding: clamp(8px, 1vw, 16px) 0;
+}
+
+.contact-info dt {
+  margin-top: 30px;
+  letter-spacing: .11em;
+}
+
+.contact-info dd {
+  max-width: 34ch;
+  line-height: 1.58;
+}
+
+/* ---------- ÁREA DO CLIENTE ---------- */
+
+/*
+  Não remove ou altera nenhum texto/estado da Área do Cliente.
+  Apenas refina superfícies, campos, bordas e botões existentes.
+*/
+.cliente-wrap .locked,
+.cliente-wrap form,
+.cliente-wrap .login-box,
+.cliente-wrap .login-card,
+.cliente-wrap .client-login-card,
+.cliente-wrap .auth-card,
+.cliente-wrap .private-card {
+  border-radius: 12px;
+}
+
+.cliente-wrap form,
+.cliente-wrap .login-box,
+.cliente-wrap .login-card,
+.cliente-wrap .client-login-card,
+.cliente-wrap .auth-card,
+.cliente-wrap .private-card {
+  border: 1px solid color-mix(in srgb, var(--hairline) 88%, var(--text) 12%);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.018), transparent 48%),
+    color-mix(in srgb, var(--surface) 72%, var(--bg));
+  box-shadow: 0 24px 64px rgba(0,0,0,.17);
+}
+
+.cliente-wrap .field input,
+.cliente-wrap .field textarea,
+.cliente-wrap .field select {
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-bottom-color: color-mix(in srgb, var(--hairline) 86%, var(--text) 14%);
+  border-radius: 7px 7px 3px 3px;
+  background: rgba(0,0,0,.16);
+}
+
+.cliente-wrap .field input:focus,
+.cliente-wrap .field textarea:focus,
+.cliente-wrap .field select:focus {
+  border-color: color-mix(in srgb, var(--accent) 68%, transparent);
+  background: rgba(255,255,255,.022);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* Preserva contraste dos botões da cliente, apenas adotando a forma pill. */
+.cliente-wrap .btn,
+#lightbox-selecao .btn {
+  border-radius: 999px !important;
+  min-height: 43px;
+}
+
+/* Pequenos blocos/status internos ganham acabamento mais editorial. */
+.cliente-wrap .panel,
+.cliente-wrap .status-card,
+.cliente-wrap .client-card {
+  border-radius: 10px;
+  border-color: color-mix(in srgb, var(--hairline) 90%, var(--text) 10%);
+}
+
+/* ---------- RESPONSIVO ---------- */
+
+@media (max-width: 760px) {
+  .hero-sub {
+    max-width: 45ch;
+    font-size: .90rem;
+    line-height: 1.62;
+  }
+
+  .btn {
+    min-height: 42px;
+    padding: 11px 20px;
+  }
+
+  .filter-btn {
+    min-height: 38px;
+    padding: 8px 15px;
+  }
+
+  .contact-grid > form {
+    padding: 24px 20px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-sub {
+    font-size: .87rem;
+  }
+
+  .filters {
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding-inline: 13px;
+  }
 }
