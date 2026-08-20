@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v65 — base do utilizador + WhatsApp premium + hover editável');
+console.log('[admin-v2] Build v68 — Hero Editorial responsivo');
 
 const $ = id => document.getElementById(id);
 
@@ -6846,6 +6846,7 @@ const DESIGN_DEFAULTS = Object.freeze({
   inline_styles: {},
   content_width: 1200,
   section_space: 120,
+  hero_layout: 'fullscreen',
   hero_overlay: 40,
   gallery_gap: 2,
   image_radius: 0,
@@ -6937,6 +6938,7 @@ function normalizeDesignConfig(config = {}) {
     type_scale: clampNumber(c.type_scale, 90, 115, 100),
     content_width: clampNumber(c.content_width, 1040, 1500, 1200),
     section_space: clampNumber(c.section_space, 72, 160, 120),
+    hero_layout: c.hero_layout === 'editorial' ? 'editorial' : 'fullscreen',
     hero_overlay: clampNumber(c.hero_overlay, 0, 70, 40),
     gallery_gap: clampNumber(c.gallery_gap, 0, 16, 2),
     image_radius: clampNumber(c.image_radius, 0, 18, 0),
@@ -7024,6 +7026,7 @@ function collectDesignConfig() {
     type_scale: $('design-type-scale')?.value,
     content_width: $('design-content-width')?.value,
     section_space: $('design-section-space')?.value,
+    hero_layout: $('design-hero-layout')?.value || 'fullscreen',
     hero_overlay: $('design-hero-overlay')?.value,
     gallery_gap: $('design-gallery-gap')?.value,
     image_radius: $('design-image-radius')?.value,
@@ -7087,6 +7090,7 @@ function applyDesignConfigToControls(config) {
     'design-type-scale': c.type_scale,
     'design-content-width': c.content_width,
     'design-section-space': c.section_space,
+    'design-hero-layout': c.hero_layout,
     'design-hero-overlay': c.hero_overlay,
     'design-gallery-gap': c.gallery_gap,
     'design-image-radius': c.image_radius,
@@ -7508,6 +7512,7 @@ function applyDesignPreview() {
   const imageHover = $('design-image-hover')?.value || 'site';
   const motionSpeed = $('design-motion-speed')?.value || 'normal';
 
+  const heroLayout = $('design-hero-layout')?.value === 'editorial' ? 'editorial' : 'fullscreen';
   const heroOverlay = clampNumber($('design-hero-overlay')?.value, 0, 70, 40);
   const imageRadius = clampNumber($('design-image-radius')?.value, 0, 18, 0);
   const clientLayout = $('design-client-layout')?.value || 'editorial-split';
@@ -7552,6 +7557,12 @@ function applyDesignPreview() {
     style = doc.createElement('style');
     style.id = 'admin-design-preview-overrides';
     doc.head.appendChild(style);
+  }
+
+  const heroElement = doc.querySelector('.hero');
+  if (heroElement) {
+    heroElement.classList.toggle('hero-layout-editorial', heroLayout === 'editorial');
+    heroElement.classList.toggle('hero-layout-fullscreen', heroLayout !== 'editorial');
   }
 
   const titleRules = typeScale === 100
@@ -10370,6 +10381,7 @@ function initDesignStudio() {
     'design-type-scale',
     'design-content-width',
     'design-section-space',
+    'design-hero-layout',
     'design-hero-overlay',
     'design-gallery-gap',
     'design-image-radius',
