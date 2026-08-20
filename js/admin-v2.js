@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v64 — WhatsApp editorial premium');
+console.log('[admin-v2] Build v62 — base corrigida + WhatsApp dedicado');
 
 const $ = id => document.getElementById(id);
 
@@ -195,7 +195,7 @@ function setView(v) {
   );
 
   const l = {
-    dashboard: ['Painel', 'Dashboard'],
+    dashboard: ['Painel', 'Hoje'],
     content: ['Páginas', 'Conteúdo'],
     design: ['Site', 'Design'],
     galleries: ['Conteúdo', 'Galerias'],
@@ -1120,6 +1120,13 @@ $('dashboard-new-gallery').addEventListener(
   }
 );
 
+$('quick-new-session')?.addEventListener('click', () => {
+  setView('sessions');
+  openSessionForm();
+});
+
+$('admin-global-search')?.addEventListener('submit', runAdminGlobalSearch);
+
 
 $('new-gallery-btn').addEventListener(
   'click',
@@ -1404,6 +1411,83 @@ async function loadDashboard() {
     mensagens.length
       ? 'var(--accent)'
       : '';
+
+  await loadTodayWorkflow();
+}
+
+async function loadTodayWorkflow() {
+  const grid = $('today-workflow-grid');
+  if (!grid) return;
+
+  const [sessionsResult, messagesResult] = await Promise.all([
+    supabase.from('ensaios').select('id,titulo,cliente_nome,status,created_at').order('created_at', { ascending: false }).limit(200),
+    supabase.from('mensagens').select('id,nome,email,lida,created_at').eq('lida', false).order('created_at', { ascending: false }).limit(200)
+  ]);
+
+  const sessions = sessionsResult.data || [];
+  const unread = messagesResult.data || [];
+  const count = (...statuses) => sessions.filter(s => statuses.includes(s.status)).length;
+  const tasks = [
+    { count: unread.length, label: 'mensagens novas', help: unread.length ? 'Responder clientes enquanto o interesse está quente.' : 'Nenhuma conversa aguardando resposta.', view: 'messages' },
+    { count: count('aguardando_selecao'), label: 'aguardando seleção', help: 'Clientes escolhendo as fotografias favoritas.', view: 'sessions' },
+    { count: count('selecao_finalizada', 'selecionado'), label: 'seleções recebidas', help: 'Prontas para iniciar ou continuar a edição.', view: 'sessions' },
+    { count: count('em_edicao'), label: 'em edição', help: 'Ensaios atualmente em tratamento.', view: 'sessions' },
+    { count: count('fotos_disponiveis'), label: 'prontos para entregar', help: 'Concluir a entrega e encerrar o trabalho.', view: 'sessions' }
+  ];
+
+  grid.innerHTML = tasks.map((task, index) => `
+    <button class="today-task-card ${task.count ? 'is-urgent' : ''}" type="button" data-today-view="${attr(task.view)}">
+      <span class="today-task-icon">${String(index + 1).padStart(2, '0')}</span>
+      <span><strong>${task.count}</strong><small>${esc(task.label)}<br>${esc(task.help)}</small></span>
+    </button>`).join('');
+
+  grid.querySelectorAll('[data-today-view]').forEach(button => {
+    button.addEventListener('click', () => setView(button.dataset.todayView));
+  });
+}
+
+async function runAdminGlobalSearch(event) {
+  event.preventDefault();
+  const input = $('admin-global-search-input');
+  const results = $('admin-global-search-results');
+  const query = safeText(input?.value, 120).toLocaleLowerCase('pt');
+
+  if (!query) {
+    results.hidden = false;
+    results.innerHTML = '<p class="panel-copy">Digite um nome, título, e-mail ou palavra da mensagem.</p>';
+    input?.focus();
+    return;
+  }
+
+  results.hidden = false;
+  results.innerHTML = '<p class="panel-copy">Buscando…</p>';
+
+  const [galleryResult, sessionResult, messageResult] = await Promise.all([
+    supabase.from('galleries').select('id,title,slug').limit(200),
+    supabase.from('ensaios').select('id,titulo,cliente_nome,cliente_email,slug,status').limit(200),
+    supabase.from('mensagens').select('id,nome,email,tipo,mensagem,lida').limit(200)
+  ]);
+
+  const includes = value => String(value || '').toLocaleLowerCase('pt').includes(query);
+  const found = [
+    ...(galleryResult.data || []).filter(item => includes(item.title) || includes(item.slug)).map(item => ({ view: 'galleries', title: item.title || 'Galeria', meta: `Galeria · /${item.slug || ''}` })),
+    ...(sessionResult.data || []).filter(item => includes(item.titulo) || includes(item.cliente_nome) || includes(item.cliente_email) || includes(item.slug)).map(item => ({ view: 'sessions', title: item.titulo || item.cliente_nome || 'Ensaio', meta: `Ensaio · ${item.cliente_nome || 'Cliente'} · ${statusLabel(item.status)}` })),
+    ...(messageResult.data || []).filter(item => includes(item.nome) || includes(item.email) || includes(item.tipo) || includes(item.mensagem)).map(item => ({ view: 'messages', title: item.nome || item.email || 'Mensagem', meta: `Mensagem · ${item.tipo || 'Contato'}${item.lida ? '' : ' · Nova'}` }))
+  ].slice(0, 20);
+
+  if (!found.length) {
+    results.innerHTML = '<p class="panel-copy">Nenhum resultado encontrado.</p>';
+    return;
+  }
+
+  results.innerHTML = found.map(item => `
+    <button class="admin-search-result" type="button" data-search-view="${attr(item.view)}">
+      <span><strong>${esc(item.title)}</strong><small>${esc(item.meta)}</small></span><span aria-hidden="true">Abrir →</span>
+    </button>`).join('');
+
+  results.querySelectorAll('[data-search-view]').forEach(button => {
+    button.addEventListener('click', () => setView(button.dataset.searchView));
+  });
 }
 
 
@@ -3554,7 +3638,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
   brand: 'Rangel Santos',
   version: 'CMS V2',
 
-  nav_dashboard: 'Dashboard',
+  nav_dashboard: 'Hoje',
   nav_design: 'Design',
   nav_galleries: 'Galerias',
   nav_categories: 'Categorias',
@@ -3565,7 +3649,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
   nav_logout: 'Sair',
 
   dashboard_eyebrow: 'Painel',
-  dashboard_title: 'Dashboard',
+  dashboard_title: 'Hoje',
 
   gallery_card_title: 'Galeria',
   gallery_card_button: 'Nova galeria',
@@ -6757,7 +6841,6 @@ const DESIGN_DEFAULTS = Object.freeze({
   whatsapp_number: '',
   whatsapp_message: 'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.',
   whatsapp_position: 'right',
-  whatsapp_style: 'editorial',
   whatsapp_pages: ['inicio','galeria','sobre','contato'],
   inline_styles: {},
   content_width: 1200,
@@ -6889,7 +6972,6 @@ function normalizeDesignConfig(config = {}) {
     whatsapp_number: safeText(c.whatsapp_number, 20).replace(/\D/g,''),
     whatsapp_message: safeText(c.whatsapp_message, 500) || 'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.',
     whatsapp_position: c.whatsapp_position === 'left' ? 'left' : 'right',
-    whatsapp_style: ['editorial','minimal','classic'].includes(c.whatsapp_style) ? c.whatsapp_style : 'editorial',
     whatsapp_pages: Array.isArray(c.whatsapp_pages) ? c.whatsapp_pages.filter(x => ['inicio','galeria','sobre','contato'].includes(x)) : ['inicio','galeria','sobre','contato'],
     inline_styles: c.inline_styles && typeof c.inline_styles === 'object' ? JSON.parse(JSON.stringify(c.inline_styles)) : {},
     content:
@@ -6976,7 +7058,6 @@ function collectDesignConfig() {
     whatsapp_number: ($('design-whatsapp-number')?.value || '').replace(/\D/g,''),
     whatsapp_message: $('design-whatsapp-message')?.value,
     whatsapp_position: $('design-whatsapp-position')?.value,
-    whatsapp_style: $('design-whatsapp-style')?.value || 'editorial',
     whatsapp_pages: ['inicio','galeria','sobre','contato'].filter(p => $('design-whatsapp-page-' + p)?.checked),
     inline_styles: window.__designInlineStyles || {},
     content: collectDesignContentSnapshot()
@@ -7043,7 +7124,6 @@ function applyDesignConfigToControls(config) {
   if ($('design-whatsapp-number')) $('design-whatsapp-number').value = c.whatsapp_number || '';
   if ($('design-whatsapp-message')) $('design-whatsapp-message').value = c.whatsapp_message || '';
   if ($('design-whatsapp-position')) $('design-whatsapp-position').value = c.whatsapp_position || 'right';
-  if ($('design-whatsapp-style')) $('design-whatsapp-style').value = c.whatsapp_style || 'editorial';
   ['inicio','galeria','sobre','contato'].forEach(p => { const el=$('design-whatsapp-page-'+p); if(el) el.checked=(c.whatsapp_pages||[]).includes(p); });
   window.__designInlineStyles = JSON.parse(JSON.stringify(c.inline_styles || {}));
   if (c.content) applyDesignContentSnapshotToControls(c.content);
@@ -9600,12 +9680,12 @@ function bindDesignInlineToolbar(){
 }
 function applyDesignWhatsappPreview(doc){
   if(!doc)return; let btn=doc.getElementById('rs-whatsapp-float-preview');
-  const enabled=$('design-whatsapp-enabled')?.checked!==false, num=($('design-whatsapp-number')?.value||'').replace(/\D/g,''), msg=encodeURIComponent($('design-whatsapp-message')?.value||''), pos=$('design-whatsapp-position')?.value||'right', style=$('design-whatsapp-style')?.value||'editorial';
+  const enabled=$('design-whatsapp-enabled')?.checked!==false, num=($('design-whatsapp-number')?.value||'').replace(/\D/g,''), msg=encodeURIComponent($('design-whatsapp-message')?.value||''), pos=$('design-whatsapp-position')?.value||'right';
   let path='inicio';try{const p=doc.location.pathname;if(p.includes('galeria'))path='galeria';else if(p.includes('sobre'))path='sobre';else if(p.includes('contato'))path='contato';}catch(_){}
   const allowed=$('design-whatsapp-page-'+path)?.checked!==false;
   if(!enabled||!num||!allowed){btn?.remove();return;}
-  if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Fale comigo pelo WhatsApp');btn.innerHTML='<span class="rs-wa-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.04 3.2A12.73 12.73 0 0 0 5.1 22.43L3.4 28.8l6.52-1.7A12.8 12.8 0 1 0 16.04 3.2Zm0 23.32c-2.04 0-4.03-.55-5.77-1.58l-.41-.24-3.87 1.01 1.03-3.76-.27-.43a10.5 10.5 0 1 1 9.29 5Zm5.76-7.87c-.32-.16-1.87-.92-2.16-1.03-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.33-.49-2.54-1.57a9.5 9.5 0 0 1-1.76-2.19c-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.35-.26-.61-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63s1.13 3.05 1.29 3.26c.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.67.76.24 1.44.21 1.99.13.61-.09 1.87-.77 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.14-.29-.21-.61-.37Z"/></svg></span><b>Fale comigo</b>';doc.body.appendChild(btn);}
-  btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.className='rs-whatsapp-float is-'+style+(pos==='left'?' is-left':'');
+  if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.className='rs-whatsapp-float';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Conversar pelo WhatsApp');btn.innerHTML='<span aria-hidden="true">◔</span><b>WhatsApp</b>';doc.body.appendChild(btn);}
+  btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.classList.toggle('is-left',pos==='left');
 }
 function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);ensureDesignPreviewRenderObserver(doc);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
 function openDesignContentSection(page, trigger) {
