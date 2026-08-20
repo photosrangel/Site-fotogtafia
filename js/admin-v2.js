@@ -9,7 +9,7 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v68 — Hero Editorial responsivo');
+console.log('[admin-v2] Build v69 — carregamento do Design corrigido');
 
 const $ = id => document.getElementById(id);
 
@@ -8661,7 +8661,17 @@ function ensureDesignPreviewRenderObserver(doc) {
 }
 
 function decorateDesignInlinePreview(doc){
-  if(!doc||activeView!=='design')return;
+  /*
+    O iframe pode existir alguns milissegundos antes de <head>/<body>.
+    Nunca devemos interromper o carregamento inteiro do Designer por isso.
+  */
+  if(
+    !doc ||
+    !doc.head ||
+    !doc.body ||
+    activeView!=='design'
+  ) return;
+
   let inlineStyle=doc.getElementById('rs-design-inline-editable-style');
   if(!inlineStyle){
     inlineStyle=doc.createElement('style');
@@ -8684,7 +8694,7 @@ function decorateDesignInlinePreview(doc){
         background-color:rgba(255,255,255,.025) !important;
       }
     `;
-    doc.head.appendChild(inlineStyle);
+    doc.head?.appendChild(inlineStyle);
   }
 
   Object.entries(DESIGN_INLINE_FIELDS).forEach(([id,cfg])=>{
