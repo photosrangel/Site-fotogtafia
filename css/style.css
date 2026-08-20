@@ -1862,3 +1862,262 @@ html, body {
     padding-inline: 13px;
   }
 }
+
+/* =========================================================
+   BUILD V67 — HOME + ÁREA DO CLIENTE REFINADAS
+   ========================================================= */
+
+/* ---------- HOME: volta à linguagem tipográfica anterior ---------- */
+
+/*
+  O Hero volta a usar Fraunces, que era a fonte original da identidade.
+  Mantemos o refinamento apenas nos demais títulos editoriais.
+*/
+.hero-title {
+  font-family: var(--font-display) !important;
+  font-weight: 400;
+  letter-spacing: -.02em;
+  line-height: 1.01;
+}
+
+.hero-title em {
+  font-family: var(--font-display) !important;
+  font-style: italic;
+  font-weight: 300;
+}
+
+/*
+  Texto de apoio com mais presença:
+  continua menor que antes, mas ganha peso/contraste para não desaparecer
+  sobre fotografias mais claras.
+*/
+.hero-sub {
+  max-width: 48ch;
+  margin-top: 22px;
+  font-size: clamp(.94rem, .88vw, 1.02rem);
+  font-weight: 500;
+  line-height: 1.62;
+  letter-spacing: -.008em;
+  color: color-mix(in srgb, var(--text) 68%, var(--text-muted));
+  text-shadow: 0 1px 18px rgba(0,0,0,.16);
+}
+
+/* ---------- ÁREA DO CLIENTE: LOGIN MAIS LIMPO E PREMIUM ---------- */
+
+/*
+  Preserva todos os textos e toda a lógica.
+  A mudança é exclusivamente visual.
+*/
+.locked {
+  gap: 18px;
+}
+
+/* Card do formulário de acesso */
+.locked form,
+.locked .login-box,
+.locked .login-card,
+.locked .client-login-card,
+.locked .auth-card,
+.cliente-wrap .locked form,
+.cliente-wrap .login-box,
+.cliente-wrap .login-card,
+.cliente-wrap .client-login-card,
+.cliente-wrap .auth-card {
+  width: min(100%, 430px);
+  padding: 30px 30px 24px;
+  border: 1px solid color-mix(in srgb, var(--hairline) 92%, var(--text) 8%);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.018), transparent 54%),
+    color-mix(in srgb, var(--surface) 58%, var(--bg));
+  box-shadow:
+    0 22px 60px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.018);
+}
+
+/*
+  Labels ficam separados visualmente do campo.
+  Evita o efeito estranho de LOGIN/SENHA “dentro” da caixa.
+*/
+.locked form .field,
+.locked .login-box .field,
+.locked .login-card .field,
+.cliente-wrap .locked form .field,
+.cliente-wrap .login-box .field,
+.cliente-wrap .login-card .field {
+  margin: 0 0 21px;
+  text-align: left;
+}
+
+.locked form .field label,
+.locked .login-box .field label,
+.locked .login-card .field label,
+.cliente-wrap .locked form .field label,
+.cliente-wrap .login-box .field label,
+.cliente-wrap .login-card .field label {
+  display: block;
+  margin: 0 0 9px;
+  color: color-mix(in srgb, var(--accent) 75%, var(--text-muted));
+  font-family: var(--font-mono);
+  font-size: .63rem;
+  line-height: 1;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+/*
+  Campos em linha editorial, sem caixas internas pesadas.
+*/
+.locked form .field input,
+.locked form .field textarea,
+.locked form .field select,
+.locked .login-box .field input,
+.locked .login-card .field input,
+.cliente-wrap .locked form .field input,
+.cliente-wrap .locked form .field textarea,
+.cliente-wrap .locked form .field select,
+.cliente-wrap .login-box .field input,
+.cliente-wrap .login-card .field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 9px 2px 11px;
+  border: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--hairline) 84%, var(--text) 16%) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: .96rem;
+}
+
+.locked form .field input:hover,
+.locked .login-box .field input:hover,
+.locked .login-card .field input:hover,
+.cliente-wrap .locked form .field input:hover,
+.cliente-wrap .login-box .field input:hover,
+.cliente-wrap .login-card .field input:hover {
+  border-bottom-color: color-mix(in srgb, var(--accent) 42%, var(--hairline)) !important;
+}
+
+.locked form .field input:focus,
+.locked .login-box .field input:focus,
+.locked .login-card .field input:focus,
+.cliente-wrap .locked form .field input:focus,
+.cliente-wrap .login-box .field input:focus,
+.cliente-wrap .login-card .field input:focus {
+  outline: none;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Botão de acesso: premium, mas menos “esticado” visualmente */
+.locked form .btn,
+.locked .login-box .btn,
+.locked .login-card .btn,
+.cliente-wrap .locked form .btn,
+.cliente-wrap .login-box .btn,
+.cliente-wrap .login-card .btn {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 4px;
+  padding: 11px 22px;
+  border-radius: 999px !important;
+  font-size: .68rem;
+  letter-spacing: .10em;
+}
+
+/* Texto “Acesso privado e protegido” */
+.locked form .security-note,
+.locked form .login-security,
+.locked .login-box .security-note,
+.locked .login-card .security-note,
+.cliente-wrap .security-note,
+.cliente-wrap .login-security {
+  margin-top: 15px;
+  color: color-mix(in srgb, var(--text-muted) 86%, var(--accent));
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+}
+
+/*
+  Caso o texto de segurança seja apenas um <p> sem classe específica,
+  estiliza somente o último texto curto dentro do formulário.
+*/
+.locked form > p:last-child,
+.locked .login-box > p:last-child,
+.locked .login-card > p:last-child,
+.cliente-wrap .locked form > p:last-child,
+.cliente-wrap .login-box > p:last-child,
+.cliente-wrap .login-card > p:last-child {
+  margin: 15px 0 0;
+  color: color-mix(in srgb, var(--text-muted) 84%, var(--accent));
+  font-family: var(--font-mono);
+  font-size: .56rem;
+  line-height: 1.5;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+/* Olho da senha acompanha a linha sem criar “caixa dentro da caixa”. */
+.locked .password-wrap,
+.cliente-wrap .password-wrap {
+  position: relative;
+}
+
+.locked .password-wrap button,
+.locked .password-toggle,
+.cliente-wrap .password-wrap button,
+.cliente-wrap .password-toggle {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* ---------- RESPONSIVO ---------- */
+
+@media (max-width: 760px) {
+  .hero-title {
+    line-height: 1;
+  }
+
+  .hero-sub {
+    max-width: 44ch;
+    font-size: .92rem;
+    font-weight: 500;
+    line-height: 1.6;
+  }
+
+  .locked form,
+  .locked .login-box,
+  .locked .login-card,
+  .cliente-wrap .locked form,
+  .cliente-wrap .login-box,
+  .cliente-wrap .login-card {
+    width: min(100%, 390px);
+    padding: 26px 22px 21px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero-sub {
+    font-size: .90rem;
+    line-height: 1.58;
+  }
+
+  .locked form,
+  .locked .login-box,
+  .locked .login-card,
+  .cliente-wrap .locked form,
+  .cliente-wrap .login-box,
+  .cliente-wrap .login-card {
+    padding: 24px 18px 20px;
+  }
+}
