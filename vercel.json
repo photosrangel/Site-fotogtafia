@@ -22,7 +22,14 @@
     },
     {
       "source": "/admin",
-      "destination": "/admin.html"
+      "destination": "/admin-v2.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/admin.html",
+      "destination": "/admin",
+      "permanent": false
     }
   ]
 }

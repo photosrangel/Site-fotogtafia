@@ -616,7 +616,7 @@
       <form id="acesso-form" class="client-access-form">
         <div class="field">
           <label for="input-slug" id="client-login-label">Login</label>
-          <input type="text" id="input-slug" required maxlength="80" autocomplete="username">
+          <input type="text" id="input-slug" required autocomplete="username">
         </div>
 
         <div class="field">
@@ -626,7 +626,6 @@
               type="password"
               id="input-codigo"
               required
-              maxlength="64"
               autocomplete="current-password"
             >
             <button
@@ -823,30 +822,14 @@ document.getElementById('acesso-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const slug = document.getElementById('input-slug').value.trim();
   const codigo = document.getElementById('input-codigo').value.trim();
-  if (!slug || !codigo) {
-    acessoMsg.textContent = 'Preencha login e senha.';
-    acessoMsg.className = 'msg erro';
-    return;
-  }
   entrar(slug, codigo);
 });
 
 async function entrar(slug, codigo) {
-  const submit = document.getElementById('client-access-submit');
-  if (submit.disabled) return;
-  submit.disabled = true;
-  submit.setAttribute('aria-busy', 'true');
   acessoMsg.textContent = 'Verificando...';
   acessoMsg.className = 'msg';
 
-  let data;
-  let error;
-  try {
-    ({ data, error } = await supabase.rpc('verificar_ensaio', { p_slug: slug, p_codigo: codigo }));
-  } finally {
-    submit.disabled = false;
-    submit.removeAttribute('aria-busy');
-  }
+  const { data, error } = await supabase.rpc('verificar_ensaio', { p_slug: slug, p_codigo: codigo });
 
   if (error || !data || data.erro) {
     acessoMsg.textContent = 'Link ou código inválido. Confira com o fotógrafo.';

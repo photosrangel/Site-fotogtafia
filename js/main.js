@@ -67,7 +67,6 @@ const PUBLIC_DESIGN_DEFAULTS = {
   type_scale:100,
   content_width:1200,
   section_space:120,
-  hero_layout:'fullscreen',
   hero_overlay:40,
   whatsapp_enabled:true, whatsapp_number:'', whatsapp_message:'Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.', whatsapp_position:'right', whatsapp_style:'editorial', whatsapp_pages:['inicio','galeria','sobre','contato'], inline_styles:{},
   gallery_gap:2,
@@ -118,7 +117,6 @@ function normalizePublicDesign(config={}){
     type_scale:publicDesignClamp(c.type_scale,90,115,100),
     content_width:publicDesignClamp(c.content_width,1040,1500,1200),
     section_space:publicDesignClamp(c.section_space,72,160,120),
-    hero_layout:c.hero_layout==='editorial'?'editorial':'fullscreen',
     hero_overlay:publicDesignClamp(c.hero_overlay,0,70,40),
     whatsapp_enabled:c.whatsapp_enabled!==false,
     whatsapp_number:typeof c.whatsapp_number==='string'?c.whatsapp_number.replace(/\D/g,''):'',
@@ -208,11 +206,6 @@ function applyPublishedWhatsapp(c){
 }
 function applyPublishedDesign(config={}){
   const c=normalizePublicDesign(config);
-  const hero=document.querySelector('.hero');
-  if(hero){
-    hero.classList.toggle('hero-layout-editorial',c.hero_layout==='editorial');
-    hero.classList.toggle('hero-layout-fullscreen',c.hero_layout!=='editorial');
-  }
   let style=document.getElementById('published-design-style');
   if(!style){
     style=document.createElement('style');

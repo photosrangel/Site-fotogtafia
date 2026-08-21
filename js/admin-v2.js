@@ -9,28 +9,111 @@ const supabase = createClient(
   SUPABASE_ANON_KEY
 );
 
-console.log('[admin-v2] Build v70 — publicação e prévia do WhatsApp corrigidas');
+console.log('[admin-v2] Build v67 — menu mobile virou gaveta deslizante (fim da faixa horizontal quebrada)');
 
 const $ = id => document.getElementById(id);
 
 /*
-  Fonte única da verdade para o texto do hero-title.
-  Motivo: o campo <textarea id="hero-title"> perdia a quebra de linha
-  (\n) manual entre o momento em que era escrita e o momento em que o
-  próprio código a relia de volta do DOM, em pontos como
-  collectHeroContentPayload(). Como collectDesignConfig() /
-  collectDesignContentSnapshot() são chamados várias vezes durante um
-  único salvamento (e também a cada atualização da prévia), qualquer
-  perda no DOM era propagada e persistida.
-  A partir de agora, sempre que o título é definido por um caminho
-  legítimo do código (editor visual, carregar rascunho/publicado,
-  digitação direta no campo), atualizamos heroTitleAuthoritative.
-  collectHeroContentPayload() usa esse valor em vez de reler o DOM.
+  Modo de depuração do painel.
+  Por padrão fica DESLIGADO: os logs internos (dlog/dwarn) não
+  aparecem no console em produção — evita ruído e evita expor
+  dados de sessão (e-mail, IDs) a quem abrir o DevTools.
+  Para depurar, digite no console do navegador: ADMIN_DEBUG = true
+  (ou adicione ?debug=1 na URL do painel) e recarregue a página.
 */
-let heroTitleAuthoritative = null;
+window.ADMIN_DEBUG = /[?&]debug=1\b/.test(location.search);
+function dlog(...args) { if (window.ADMIN_DEBUG) console.log(...args); }
+function dwarn(...args) { if (window.ADMIN_DEBUG) console.warn(...args); }
 
-function setHeroTitleAuthoritative(text) {
-  heroTitleAuthoritative = typeof text === 'string' ? text : '';
+/* ============================================================
+   MOTOR GENÉRICO DE CAMPOS DO CMS  (data-cms-field)
+   ============================================================
+   Por que existe:
+   Cada campo editável do painel tinha sua própria função de
+   ler/escrever direto do DOM (ex.: collectHeroContentPayload lendo
+   $('hero-title').value em vários pontos do código). Foi exatamente
+   isso que causou o bug em que a quebra de linha do hero-title se
+   perdia: o DOM era relido em momentos diferentes, sem uma fonte
+   única — e o mesmo padrão se repete, silenciosamente, em outros
+   campos que ainda não tropeçaram visivelmente.
+
+   Como usar (para qualquer campo novo, sem escrever função nova):
+   1. No HTML do painel, adicione ao input/textarea/select:
+        data-cms-field="inicio.hero.title"
+      (o caminho é livre — use "pagina.bloco.campo".)
+   2. Pronto. cmsBindAllFields() já vai:
+      - inicializar o cmsState com o valor atual do campo;
+      - atualizar o cmsState sempre que o utilizador digitar;
+      - nunca mais será preciso reler $('id').value na mão para
+        montar o payload de salvamento — leia com cmsFieldGet().
+
+   Quando o CÓDIGO (não o utilizador) muda um valor — ao carregar um
+   rascunho, ao publicar, ao editar pelo editor visual — use
+   cmsFieldSet(caminho, valor). Isso atualiza o cmsState E empurra o
+   valor de volta para qualquer campo do DOM com esse data-cms-field,
+   nos dois sentidos sempre pelo mesmo caminho.
+   ============================================================ */
+let cmsState = {};
+
+function cmsGetPath(path) {
+  return path.split('.').reduce((node, key) => (node == null ? undefined : node[key]), cmsState);
+}
+
+function cmsSetPath(path, value) {
+  const keys = path.split('.');
+  let node = cmsState;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i];
+    if (typeof node[k] !== 'object' || node[k] === null) node[k] = {};
+    node = node[k];
+  }
+  node[keys[keys.length - 1]] = value;
+}
+
+/* Lê o valor atual de um campo do CMS. Use isto (não $('id').value)
+   sempre que for montar um payload de salvamento ou uma prévia. */
+function cmsFieldGet(path, fallback = '') {
+  const v = cmsGetPath(path);
+  return v == null ? fallback : v;
+}
+
+/* Define o valor "oficial" de um campo — a partir do código, não de
+   digitação do utilizador. Atualiza o estado E qualquer campo do
+   DOM ligado ao mesmo caminho. */
+function cmsFieldSet(path, value) {
+  cmsSetPath(path, value);
+  document.querySelectorAll(`[data-cms-field="${path}"]`).forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.checked = !!value;
+    } else if (el.value !== value) {
+      el.value = value == null ? '' : value;
+    }
+  });
+}
+
+/* Liga um único campo do DOM ao cmsState. Idempotente — pode ser
+   chamado de novo no mesmo elemento sem duplicar o listener. */
+function cmsBindField(el) {
+  const path = el.dataset.cmsField;
+  if (!path || el.dataset.cmsBound === '1') return;
+  el.dataset.cmsBound = '1';
+  // Se o estado ainda não tem valor para este caminho, usa o que já
+  // estiver no campo do DOM como ponto de partida (ex.: HTML estático).
+  if (cmsGetPath(path) === undefined) {
+    cmsSetPath(path, el.type === 'checkbox' ? el.checked : (el.value ?? ''));
+  }
+  const onUserEdit = () => {
+    cmsSetPath(path, el.type === 'checkbox' ? el.checked : el.value);
+  };
+  el.addEventListener('input', onUserEdit);
+  el.addEventListener('change', onUserEdit);
+}
+
+/* Liga todos os campos com data-cms-field encontrados dentro de
+   `root` (por padrão, o documento inteiro). Chamar de novo depois
+   de inserir HTML novo no painel (ex.: um modal) é seguro. */
+function cmsBindAllFields(root = document) {
+  root.querySelectorAll('[data-cms-field]').forEach(cmsBindField);
 }
 
 let currentGallery = null;
@@ -195,7 +278,7 @@ function setView(v) {
   );
 
   const l = {
-    dashboard: ['Painel', 'Hoje'],
+    dashboard: ['Painel', 'Dashboard'],
     content: ['Páginas', 'Conteúdo'],
     design: ['Site', 'Design'],
     galleries: ['Conteúdo', 'Galerias'],
@@ -336,7 +419,7 @@ async function refreshUnreadMessagesCount() {
     .eq('lida', false);
 
   if (error) {
-    console.warn(
+    dwarn(
       '[admin-v2] Não foi possível atualizar contador de mensagens:',
       error.message
     );
@@ -374,7 +457,7 @@ async function refreshCompletedSelectionsCount() {
     .in('status', statuses);
 
   if (error) {
-    console.warn(
+    dwarn(
       '[admin-v2] Não foi possível atualizar contador de seleções:',
       error.message
     );
@@ -400,7 +483,7 @@ async function handleRealtimeMessage(payload) {
   const event = payload?.eventType;
   const row = payload?.new || payload?.old || {};
 
-  console.log('[admin-v2] Realtime mensagens:', event, row?.id || '');
+  dlog('[admin-v2] Realtime mensagens:', event, row?.id || '');
 
   await refreshUnreadMessagesCount();
 
@@ -434,7 +517,7 @@ async function handleRealtimeEnsaio(payload) {
   const statusAntes = normalizarRealtimeStatus(cacheAntes?.status);
   const statusAgora = normalizarRealtimeStatus(novo.status);
 
-  console.log(
+  dlog(
     '[admin-v2] Realtime ensaio:',
     novo.id,
     statusAntes,
@@ -515,7 +598,7 @@ async function startAdminRealtime() {
       }
     )
     .subscribe(status => {
-      console.log('[admin-v2] Realtime:', status);
+      dlog('[admin-v2] Realtime:', status);
     });
 }
 
@@ -528,7 +611,7 @@ async function stopAdminRealtime() {
   try {
     await supabase.removeChannel(channel);
   } catch (error) {
-    console.warn('[admin-v2] Falha ao encerrar Realtime:', error);
+    dwarn('[admin-v2] Falha ao encerrar Realtime:', error);
   }
 }
 
@@ -946,7 +1029,7 @@ async function requireAdmin() {
     data: { session }
   } = await supabase.auth.getSession();
 
-  console.log(
+  dlog(
     '[admin-v2] requireAdmin: sessão',
     session ? session.user.email + ' (id ' + session.user.id + ')' : 'ausente'
   );
@@ -1027,7 +1110,7 @@ $('login-form').addEventListener(
     const inicio = Date.now();
 
     try {
-      console.log('[admin-v2] login: iniciando signInWithPassword', safeText($('login-email').value, 254));
+      dlog('[admin-v2] login: iniciando signInWithPassword', safeText($('login-email').value, 254));
       const resultado = await Promise.race([
         supabase.auth.signInWithPassword({
           email: safeText($('login-email').value, 254).toLowerCase(),
@@ -1036,7 +1119,7 @@ $('login-form').addEventListener(
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
       ]);
 
-      console.log(
+      dlog(
         '[admin-v2] login: resposta em', Date.now() - inicio, 'ms —',
         resultado.error
           ? ('ERRO: ' + (resultado.error.message || resultado.error.code))
@@ -1103,6 +1186,61 @@ document
     );
   });
 
+/*
+  Menu mobile (gaveta deslizante).
+  Abaixo de 860px o menu lateral vira uma gaveta escondida fora da
+  tela por padrão — abre ao tocar no botão ☰ e fecha ao tocar fora
+  dela, ao pressionar Esc, ou ao escolher qualquer item do menu
+  (navegar já é o sinal de que a pessoa terminou de usar o menu).
+*/
+function initMobileSidebarDrawer() {
+  const toggle = $('admin-mobile-menu-toggle');
+  const sidebar = $('admin-sidebar');
+  const backdrop = $('admin-sidebar-backdrop');
+  if (!toggle || !sidebar || !backdrop) return;
+  if (toggle.dataset.bound === '1') return;
+  toggle.dataset.bound = '1';
+
+  const openDrawer = () => {
+    sidebar.classList.add('is-open');
+    backdrop.hidden = false;
+    requestAnimationFrame(() => backdrop.classList.add('is-visible'));
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeDrawer = () => {
+    sidebar.classList.remove('is-open');
+    backdrop.classList.remove('is-visible');
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    setTimeout(() => { if (!backdrop.classList.contains('is-visible')) backdrop.hidden = true; }, 260);
+  };
+
+  toggle.addEventListener('click', () => {
+    if (sidebar.classList.contains('is-open')) closeDrawer();
+    else openDrawer();
+  });
+
+  backdrop.addEventListener('click', closeDrawer);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sidebar.classList.contains('is-open')) closeDrawer();
+  });
+
+  /*
+    Fecha a gaveta ao escolher qualquer destino real do menu —
+    exceto os botões que só abrem/fecham um submenu (esses têm
+    aria-expanded e não devem fechar a gaveta inteira).
+  */
+  sidebar.addEventListener('click', e => {
+    const target = e.target.closest(
+      '.sidebar-link[data-view], .sidebar-link-anchor, #logout-btn, [data-design-jump]'
+    );
+    if (target && window.matchMedia('(max-width: 860px)').matches) closeDrawer();
+  });
+}
+initMobileSidebarDrawer();
 
 /*
   Conteúdo e Design fazem parte da navegação principal.
@@ -1119,13 +1257,6 @@ $('dashboard-new-gallery').addEventListener(
     openGalleryForm();
   }
 );
-
-$('quick-new-session')?.addEventListener('click', () => {
-  setView('sessions');
-  openSessionForm();
-});
-
-$('admin-global-search')?.addEventListener('submit', runAdminGlobalSearch);
 
 
 $('new-gallery-btn').addEventListener(
@@ -1231,9 +1362,16 @@ async function loadDashboard() {
   if (!document.body.dataset.adminUiBooted) {
     document.body.dataset.adminUiBooted = '1';
     loadAdminUiSettings();
+    /*
+      Liga o motor genérico a todos os campos do painel que já
+      tiverem data-cms-field no HTML — inclusive os que ainda vão
+      aparecer dentro de modais abertos depois (cmsBindAllFields
+      pode ser chamado de novo com segurança a qualquer momento).
+    */
+    cmsBindAllFields();
   }
 
-  console.log('[admin-v2] loadDashboard: iniciando');
+  dlog('[admin-v2] loadDashboard: iniciando');
 
   const consultar = async () => {
     const [
@@ -1306,7 +1444,7 @@ async function loadDashboard() {
 
   if (jwtFuture) {
 
-    console.warn(
+    dwarn(
       '[admin-v2] Data API recusou o JWT por diferença temporal. Aguardando e tentando novamente...'
     );
 
@@ -1411,83 +1549,6 @@ async function loadDashboard() {
     mensagens.length
       ? 'var(--accent)'
       : '';
-
-  await loadTodayWorkflow();
-}
-
-async function loadTodayWorkflow() {
-  const grid = $('today-workflow-grid');
-  if (!grid) return;
-
-  const [sessionsResult, messagesResult] = await Promise.all([
-    supabase.from('ensaios').select('id,titulo,cliente_nome,status,created_at').order('created_at', { ascending: false }).limit(200),
-    supabase.from('mensagens').select('id,nome,email,lida,created_at').eq('lida', false).order('created_at', { ascending: false }).limit(200)
-  ]);
-
-  const sessions = sessionsResult.data || [];
-  const unread = messagesResult.data || [];
-  const count = (...statuses) => sessions.filter(s => statuses.includes(s.status)).length;
-  const tasks = [
-    { count: unread.length, label: 'mensagens novas', help: unread.length ? 'Responder clientes enquanto o interesse está quente.' : 'Nenhuma conversa aguardando resposta.', view: 'messages' },
-    { count: count('aguardando_selecao'), label: 'aguardando seleção', help: 'Clientes escolhendo as fotografias favoritas.', view: 'sessions' },
-    { count: count('selecao_finalizada', 'selecionado'), label: 'seleções recebidas', help: 'Prontas para iniciar ou continuar a edição.', view: 'sessions' },
-    { count: count('em_edicao'), label: 'em edição', help: 'Ensaios atualmente em tratamento.', view: 'sessions' },
-    { count: count('fotos_disponiveis'), label: 'prontos para entregar', help: 'Concluir a entrega e encerrar o trabalho.', view: 'sessions' }
-  ];
-
-  grid.innerHTML = tasks.map((task, index) => `
-    <button class="today-task-card ${task.count ? 'is-urgent' : ''}" type="button" data-today-view="${attr(task.view)}">
-      <span class="today-task-icon">${String(index + 1).padStart(2, '0')}</span>
-      <span><strong>${task.count}</strong><small>${esc(task.label)}<br>${esc(task.help)}</small></span>
-    </button>`).join('');
-
-  grid.querySelectorAll('[data-today-view]').forEach(button => {
-    button.addEventListener('click', () => setView(button.dataset.todayView));
-  });
-}
-
-async function runAdminGlobalSearch(event) {
-  event.preventDefault();
-  const input = $('admin-global-search-input');
-  const results = $('admin-global-search-results');
-  const query = safeText(input?.value, 120).toLocaleLowerCase('pt');
-
-  if (!query) {
-    results.hidden = false;
-    results.innerHTML = '<p class="panel-copy">Digite um nome, título, e-mail ou palavra da mensagem.</p>';
-    input?.focus();
-    return;
-  }
-
-  results.hidden = false;
-  results.innerHTML = '<p class="panel-copy">Buscando…</p>';
-
-  const [galleryResult, sessionResult, messageResult] = await Promise.all([
-    supabase.from('galleries').select('id,title,slug').limit(200),
-    supabase.from('ensaios').select('id,titulo,cliente_nome,cliente_email,slug,status').limit(200),
-    supabase.from('mensagens').select('id,nome,email,tipo,mensagem,lida').limit(200)
-  ]);
-
-  const includes = value => String(value || '').toLocaleLowerCase('pt').includes(query);
-  const found = [
-    ...(galleryResult.data || []).filter(item => includes(item.title) || includes(item.slug)).map(item => ({ view: 'galleries', title: item.title || 'Galeria', meta: `Galeria · /${item.slug || ''}` })),
-    ...(sessionResult.data || []).filter(item => includes(item.titulo) || includes(item.cliente_nome) || includes(item.cliente_email) || includes(item.slug)).map(item => ({ view: 'sessions', title: item.titulo || item.cliente_nome || 'Ensaio', meta: `Ensaio · ${item.cliente_nome || 'Cliente'} · ${statusLabel(item.status)}` })),
-    ...(messageResult.data || []).filter(item => includes(item.nome) || includes(item.email) || includes(item.tipo) || includes(item.mensagem)).map(item => ({ view: 'messages', title: item.nome || item.email || 'Mensagem', meta: `Mensagem · ${item.tipo || 'Contato'}${item.lida ? '' : ' · Nova'}` }))
-  ].slice(0, 20);
-
-  if (!found.length) {
-    results.innerHTML = '<p class="panel-copy">Nenhum resultado encontrado.</p>';
-    return;
-  }
-
-  results.innerHTML = found.map(item => `
-    <button class="admin-search-result" type="button" data-search-view="${attr(item.view)}">
-      <span><strong>${esc(item.title)}</strong><small>${esc(item.meta)}</small></span><span aria-hidden="true">Abrir →</span>
-    </button>`).join('');
-
-  results.querySelectorAll('[data-search-view]').forEach(button => {
-    button.addEventListener('click', () => setView(button.dataset.searchView));
-  });
 }
 
 
@@ -3638,7 +3699,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
   brand: 'Rangel Santos',
   version: 'CMS V2',
 
-  nav_dashboard: 'Hoje',
+  nav_dashboard: 'Dashboard',
   nav_design: 'Design',
   nav_galleries: 'Galerias',
   nav_categories: 'Categorias',
@@ -3649,7 +3710,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
   nav_logout: 'Sair',
 
   dashboard_eyebrow: 'Painel',
-  dashboard_title: 'Hoje',
+  dashboard_title: 'Dashboard',
 
   gallery_card_title: 'Galeria',
   gallery_card_button: 'Nova galeria',
@@ -4201,7 +4262,7 @@ function initDesignContentOrderDnD() {
           throw result.error;
         }
       } catch (error) {
-        console.warn(
+        dwarn(
           '[admin-v2] Não foi possível salvar a ordem do Conteúdo:',
           error
         );
@@ -4222,7 +4283,7 @@ async function loadAdminUiSettings() {
         .maybeSingle();
 
     if (error) {
-      console.warn(
+      dwarn(
         '[admin-v2] Interface do painel não carregada:',
         error.message
       );
@@ -4254,7 +4315,7 @@ async function loadAdminUiSettings() {
       adminUiConfig
     );
   } catch (error) {
-    console.warn(
+    dwarn(
       '[admin-v2] Falha ao carregar interface:',
       error
     );
@@ -4537,10 +4598,9 @@ async function loadContent() {
   contentCache = mergeContent(map);
 
   const h = contentCache.inicio.hero;
-  $('hero-eyebrow').value = h.eyebrow || '';
-  $('hero-title').value = h.title || '';
-  setHeroTitleAuthoritative(h.title || '');
-  $('hero-description').value = h.description || '';
+  cmsFieldSet('inicio.hero.eyebrow', h.eyebrow || '');
+  cmsFieldSet('inicio.hero.title', h.title || '');
+  cmsFieldSet('inicio.hero.description', h.description || '');
   $('hero-desktop-image').value = h.desktop_image || '';
   $('hero-mobile-image').value = h.mobile_image || '';
   $('hero-image-alt').value = h.image_alt || '';
@@ -5416,14 +5476,12 @@ document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
 );
 
 /*
-  Mantém heroTitleAuthoritative sincronizado quando o utilizador
-  digita diretamente no campo (fora do editor visual da aba Design).
-  Sem isto, um valor antigo em memória poderia sobrepor uma edição
-  direta legítima.
+  Antes havia aqui um listener manual só para o hero-title, para
+  manter a variável de fonte única sincronizada quando o utilizador
+  digitava direto no campo. Com o motor genérico (cmsBindAllFields),
+  qualquer campo com data-cms-field já faz isso sozinho — este
+  listener específico deixou de ser necessário.
 */
-$('hero-title')?.addEventListener('input', () => {
-  setHeroTitleAuthoritative($('hero-title')?.value || '');
-});
 
 [
   'hero-slide-interval',
@@ -5806,7 +5864,7 @@ async function loadSessions() {
       .order('created_at', { ascending: true });
 
     if (photosError) {
-      console.warn('Não foi possível carregar as capas dos ensaios:', photosError.message);
+      dwarn('Não foi possível carregar as capas dos ensaios:', photosError.message);
     }
 
     const bySession = new Map();
@@ -6846,7 +6904,6 @@ const DESIGN_DEFAULTS = Object.freeze({
   inline_styles: {},
   content_width: 1200,
   section_space: 120,
-  hero_layout: 'fullscreen',
   hero_overlay: 40,
   gallery_gap: 2,
   image_radius: 0,
@@ -6908,7 +6965,7 @@ function repairPersistedHeroTitle(content) {
         'como sempre'
       );
 
-    console.warn(
+    dwarn(
       '[admin-v2] rascunho antigo: “comosempre” reparado para “como sempre”.'
     );
   }
@@ -6938,7 +6995,6 @@ function normalizeDesignConfig(config = {}) {
     type_scale: clampNumber(c.type_scale, 90, 115, 100),
     content_width: clampNumber(c.content_width, 1040, 1500, 1200),
     section_space: clampNumber(c.section_space, 72, 160, 120),
-    hero_layout: c.hero_layout === 'editorial' ? 'editorial' : 'fullscreen',
     hero_overlay: clampNumber(c.hero_overlay, 0, 70, 40),
     gallery_gap: clampNumber(c.gallery_gap, 0, 16, 2),
     image_radius: clampNumber(c.image_radius, 0, 18, 0),
@@ -6992,22 +7048,19 @@ function collectHeroContentPayload(){
   const desktopRaw=safeText($('hero-desktop-image')?.value,2048), mobileRaw=safeText($('hero-mobile-image')?.value,2048);
   const meta=($('hero-meta')?.value||'').split('\n').map(x=>x.trim()).filter(Boolean).slice(0,12).map(line=>{const i=line.indexOf('|');return i<0?{label:safeText(line,80),value:''}:{label:safeText(line.slice(0,i),80),value:safeText(line.slice(i+1),160)}});
   /*
-    O título usa heroTitleAuthoritative (fonte única da verdade) quando
-    disponível, em vez de reler $('hero-title').value diretamente — ver
-    comentário junto da declaração da variável, no topo do arquivo.
-    safeText() faz apenas trim() nas pontas, então a quebra de linha
-    interna (\n) criada pelo editor visual é preservada.
+    Eyebrow, título e descrição vêm do motor genérico (cmsFieldGet),
+    não de reler $('id').value diretamente — ver o bloco "MOTOR
+    GENÉRICO DE CAMPOS DO CMS" no topo do arquivo. safeText() faz
+    apenas trim() nas pontas, então a quebra de linha interna (\n)
+    criada pelo editor visual do título é preservada.
   */
-  const heroTitleRaw = heroTitleAuthoritative != null
-    ? heroTitleAuthoritative
-    : ($('hero-title')?.value ?? '');
-  return {eyebrow:safeText($('hero-eyebrow')?.value,120),title:safeText(heroTitleRaw,180),description:safeText($('hero-description')?.value,1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
+  return {eyebrow:safeText(cmsFieldGet('inicio.hero.eyebrow',$('hero-eyebrow')?.value??''),120),title:safeText(cmsFieldGet('inicio.hero.title',$('hero-title')?.value??''),180),description:safeText(cmsFieldGet('inicio.hero.description',$('hero-description')?.value??''),1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
 }
 function collectRecentContentPayload(){return {eyebrow:safeText($('recent-eyebrow')?.value,120),title:safeText($('recent-title')?.value,180),gallery_limit:clampNumber($('recent-limit')?.value,1,24,6),button:{text:safeText($('recent-btn-text')?.value,80),url:safeHttpUrl($('recent-btn-url')?.value)||'/galeria'}}}
 function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('sobre-portrait-url')?.value||''),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
 function collectContatoContentPayload(){return {eyebrow:safeText($('contato-eyebrow')?.value,120),title:safeText($('contato-title')?.value,180),submit_label:safeText($('contato-submit-label')?.value,80),tipos:($('contato-tipos')?.value||'').split('\n').map(x=>safeText(x,160)).filter(Boolean).slice(0,30),atendimento:safeText($('contato-atendimento')?.value,1000)}}
 function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()}}}
-function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){$('hero-eyebrow').value=h.eyebrow||'';$('hero-title').value=h.title||'';setHeroTitleAuthoritative(h.title||'');$('hero-description').value=h.description||'';$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
+function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){cmsFieldSet('inicio.hero.eyebrow',h.eyebrow||'');cmsFieldSet('inicio.hero.title',h.title||'');cmsFieldSet('inicio.hero.description',h.description||'');$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
   const r=s.inicio?.recent_work;if(r){$('recent-eyebrow').value=r.eyebrow||'';$('recent-title').value=r.title||'';$('recent-limit').value=r.gallery_limit??6;$('recent-btn-text').value=r.button?.text||'';$('recent-btn-url').value=r.button?.url||''}
   const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[])}
   const ct=s.contato?.conteudo;if(ct){$('contato-eyebrow').value=ct.eyebrow||'';$('contato-title').value=ct.title||'';$('contato-submit-label').value=ct.submit_label||'';$('contato-tipos').value=(ct.tipos||[]).join('\n');$('contato-atendimento').value=ct.atendimento||''}}
@@ -7026,7 +7079,6 @@ function collectDesignConfig() {
     type_scale: $('design-type-scale')?.value,
     content_width: $('design-content-width')?.value,
     section_space: $('design-section-space')?.value,
-    hero_layout: $('design-hero-layout')?.value || 'fullscreen',
     hero_overlay: $('design-hero-overlay')?.value,
     gallery_gap: $('design-gallery-gap')?.value,
     image_radius: $('design-image-radius')?.value,
@@ -7059,11 +7111,19 @@ function collectDesignConfig() {
     client_status_selected: $('design-client-status-selected')?.value,
     client_status_editing: $('design-client-status-editing')?.value,
     client_status_ready: $('design-client-status-ready')?.value,
-    whatsapp_enabled: $('design-whatsapp-enabled')?.checked !== false,
-    whatsapp_number: ($('design-whatsapp-number')?.value || '').replace(/\D/g,''),
-    whatsapp_message: $('design-whatsapp-message')?.value,
-    whatsapp_position: $('design-whatsapp-position')?.value,
-    whatsapp_style: $('design-whatsapp-style')?.value || 'editorial',
+    /*
+      Campos de texto/seleção do WhatsApp migrados para o motor
+      genérico (cmsFieldGet) — mesma lógica usada no hero-title,
+      com fallback pro DOM caso o campo ainda não esteja ligado.
+      As 4 caixas de "mostrar nas páginas" continuam lidas direto
+      do DOM: são checkboxes simples, sem o problema de perda de
+      valor que o motor foi criado para resolver.
+    */
+    whatsapp_enabled: cmsFieldGet('design.whatsapp.enabled', $('design-whatsapp-enabled')?.checked) !== false,
+    whatsapp_number: (cmsFieldGet('design.whatsapp.number', $('design-whatsapp-number')?.value || '') || '').replace(/\D/g,''),
+    whatsapp_message: cmsFieldGet('design.whatsapp.message', $('design-whatsapp-message')?.value || ''),
+    whatsapp_position: cmsFieldGet('design.whatsapp.position', $('design-whatsapp-position')?.value || 'right'),
+    whatsapp_style: cmsFieldGet('design.whatsapp.style', $('design-whatsapp-style')?.value || 'editorial'),
     whatsapp_pages: ['inicio','galeria','sobre','contato'].filter(p => $('design-whatsapp-page-' + p)?.checked),
     inline_styles: window.__designInlineStyles || {},
     content: collectDesignContentSnapshot()
@@ -7090,7 +7150,6 @@ function applyDesignConfigToControls(config) {
     'design-type-scale': c.type_scale,
     'design-content-width': c.content_width,
     'design-section-space': c.section_space,
-    'design-hero-layout': c.hero_layout,
     'design-hero-overlay': c.hero_overlay,
     'design-gallery-gap': c.gallery_gap,
     'design-image-radius': c.image_radius,
@@ -7127,11 +7186,11 @@ function applyDesignConfigToControls(config) {
   Object.entries(map).forEach(([id, value]) => {
     if ($(id)) $(id).value = String(value);
   });
-  if ($('design-whatsapp-enabled')) $('design-whatsapp-enabled').checked = c.whatsapp_enabled !== false;
-  if ($('design-whatsapp-number')) $('design-whatsapp-number').value = c.whatsapp_number || '';
-  if ($('design-whatsapp-message')) $('design-whatsapp-message').value = c.whatsapp_message || '';
-  if ($('design-whatsapp-position')) $('design-whatsapp-position').value = c.whatsapp_position || 'right';
-  if ($('design-whatsapp-style')) $('design-whatsapp-style').value = c.whatsapp_style || 'editorial';
+  cmsFieldSet('design.whatsapp.enabled', c.whatsapp_enabled !== false);
+  cmsFieldSet('design.whatsapp.number', c.whatsapp_number || '');
+  cmsFieldSet('design.whatsapp.message', c.whatsapp_message || '');
+  cmsFieldSet('design.whatsapp.position', c.whatsapp_position || 'right');
+  cmsFieldSet('design.whatsapp.style', c.whatsapp_style || 'editorial');
   ['inicio','galeria','sobre','contato'].forEach(p => { const el=$('design-whatsapp-page-'+p); if(el) el.checked=(c.whatsapp_pages||[]).includes(p); });
   window.__designInlineStyles = JSON.parse(JSON.stringify(c.inline_styles || {}));
   if (c.content) applyDesignContentSnapshotToControls(c.content);
@@ -7241,7 +7300,7 @@ async function fetchDesignPersistence() {
       ? draft
       : designPublishedSaved;
 
-  console.log(
+  dlog(
     '[admin-v2] Design inicial:',
     {
       source:
@@ -7258,6 +7317,50 @@ async function fetchDesignPersistence() {
 
   applyDesignConfigToControls(initial);
   updateDesignPublicationState();
+  maybeShowDesignDraftReminder();
+}
+
+/*
+  Lembrete de rascunho pendente.
+  Mostra um aviso destacado no topo da aba Design sempre que existe
+  um rascunho salvo e diferente do que está publicado no site — não
+  só na primeira vez que os dados carregam, mas toda vez que a
+  pessoa volta para esta aba (ver chamadas em setView/initDesignStudio).
+  Objetivo: nunca deixar dúvida entre "isto que vejo é o rascunho ou
+  o que já está no ar?", mesmo voltando dias depois.
+*/
+function maybeShowDesignDraftReminder() {
+  const banner = $('design-draft-reminder');
+  if (!banner) return;
+
+  const hasPendingDraft =
+    designDraftSaved &&
+    designFingerprint(designDraftSaved) !== designFingerprint(designPublishedSaved || DESIGN_DEFAULTS);
+
+  if (!hasPendingDraft) {
+    banner.hidden = true;
+    return;
+  }
+
+  if ($('design-draft-reminder-time')) {
+    $('design-draft-reminder-time').textContent = formatDesignTimestamp(designDraftUpdatedAt);
+  }
+  banner.hidden = false;
+}
+
+if (!window.__designDraftReminderBound) {
+  window.__designDraftReminderBound = true;
+  document.addEventListener('DOMContentLoaded', () => {
+    $('design-draft-reminder-dismiss')?.addEventListener('click', () => {
+      const banner = $('design-draft-reminder');
+      if (banner) banner.hidden = true;
+    });
+    $('design-draft-reminder-publish')?.addEventListener('click', () => {
+      const banner = $('design-draft-reminder');
+      if (banner) banner.hidden = true;
+      $('design-publish')?.click();
+    });
+  });
 }
 
 async function ensureDesignPersistenceLoaded() {
@@ -7373,6 +7476,8 @@ function restorePublishedDesign() {
 
   applyDesignConfigToControls(designPublishedSaved);
   flash('Prévia restaurada para a versão publicada.', 'sucesso');
+  updateDesignPublicationState();
+  maybeShowDesignDraftReminder();
 }
 
 
@@ -7413,6 +7518,7 @@ async function publishDesign() {
 
     flash('Design publicado no site com sucesso.', 'sucesso');
     updateDesignPublicationState();
+    maybeShowDesignDraftReminder();
 
     const frame = $('design-preview-frame');
     if (frame) {
@@ -7512,7 +7618,6 @@ function applyDesignPreview() {
   const imageHover = $('design-image-hover')?.value || 'site';
   const motionSpeed = $('design-motion-speed')?.value || 'normal';
 
-  const heroLayout = $('design-hero-layout')?.value === 'editorial' ? 'editorial' : 'fullscreen';
   const heroOverlay = clampNumber($('design-hero-overlay')?.value, 0, 70, 40);
   const imageRadius = clampNumber($('design-image-radius')?.value, 0, 18, 0);
   const clientLayout = $('design-client-layout')?.value || 'editorial-split';
@@ -7557,12 +7662,6 @@ function applyDesignPreview() {
     style = doc.createElement('style');
     style.id = 'admin-design-preview-overrides';
     doc.head.appendChild(style);
-  }
-
-  const heroElement = doc.querySelector('.hero');
-  if (heroElement) {
-    heroElement.classList.toggle('hero-layout-editorial', heroLayout === 'editorial');
-    heroElement.classList.toggle('hero-layout-fullscreen', heroLayout !== 'editorial');
   }
 
   const titleRules = typeScale === 100
@@ -8661,42 +8760,7 @@ function ensureDesignPreviewRenderObserver(doc) {
 }
 
 function decorateDesignInlinePreview(doc){
-  /*
-    O iframe pode existir alguns milissegundos antes de <head>/<body>.
-    Nunca devemos interromper o carregamento inteiro do Designer por isso.
-  */
-  if(
-    !doc ||
-    !doc.head ||
-    !doc.body ||
-    activeView!=='design'
-  ) return;
-
-  let inlineStyle=doc.getElementById('rs-design-inline-editable-style');
-  if(!inlineStyle){
-    inlineStyle=doc.createElement('style');
-    inlineStyle.id='rs-design-inline-editable-style';
-    inlineStyle.textContent=`
-      [data-design-inline-editable="1"]{
-        cursor:text !important;
-        outline:1px solid transparent;
-        outline-offset:8px;
-        border-radius:2px;
-        transition:outline-color .16s ease,background-color .16s ease,box-shadow .16s ease;
-      }
-      [data-design-inline-editable="1"]:hover{
-        outline-color:rgba(244,241,234,.72) !important;
-        background-color:rgba(255,255,255,.018) !important;
-        box-shadow:0 0 0 1px rgba(0,0,0,.10);
-      }
-      [data-design-inline-editable="1"].design-inline-editing{
-        outline-color:rgba(244,241,234,.94) !important;
-        background-color:rgba(255,255,255,.025) !important;
-      }
-    `;
-    doc.head?.appendChild(inlineStyle);
-  }
-
+  if(!doc||activeView!=='design')return;
   Object.entries(DESIGN_INLINE_FIELDS).forEach(([id,cfg])=>{
     const el=doc.getElementById(id); if(!el)return;
     el.dataset.designInlineEditable='1'; el.dataset.designInlineKey=id;
@@ -9085,7 +9149,7 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
     }
 
     if (key === 'hero-title') {
-      setHeroTitleAuthoritative(sourceValue);
+      cmsFieldSet('inicio.hero.title', sourceValue);
     }
   }
 
@@ -9250,7 +9314,7 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
 
       updateDesignPublicationState();
 
-      console.log(
+      dlog(
         '[admin-v2] editor visual: quebra manual criada',
         {
           offset:
@@ -9350,13 +9414,13 @@ function finishDesignInline(save){
       input.value = a.key === 'hero-title'
         ? (a.textBuffer || input.value || '')
         : (a.el.textContent||'').trim();
-      if (a.key === 'hero-title') setHeroTitleAuthoritative(input.value);
+      if (a.key === 'hero-title') cmsFieldSet('inicio.hero.title', input.value);
       input.dispatchEvent(new Event('input',{bubbles:true}));
     }
   }else{
     if (input && 'originalInputValue' in a) {
       input.value = a.originalInputValue;
-      if (a.key === 'hero-title') setHeroTitleAuthoritative(a.originalInputValue);
+      if (a.key === 'hero-title') cmsFieldSet('inicio.hero.title', a.originalInputValue);
     }
     a.el.innerHTML=a.originalHTML;
     window.__designInlineStyles=window.__designInlineStyles||{};
@@ -9440,7 +9504,7 @@ async function saveDesignInline() {
     ponto onde a quebra de linha se perdia.
   */
   if (active.key === 'hero-title') {
-    setHeroTitleAuthoritative(newText);
+    cmsFieldSet('inicio.hero.title', newText);
   }
 
   /*
@@ -9455,15 +9519,16 @@ async function saveDesignInline() {
     Verificação defensiva: se por qualquer motivo o próprio campo do
     DOM não preservar o valor exatamente como foi escrito (ex.: alguma
     normalização do navegador ou de outro listener), reforçamos a
-    escrita uma segunda vez. heroTitleAuthoritative (já fixado acima)
-    continua correto de qualquer forma, mas isto mantém o campo visível
-    coerente com o que o utilizador digitou.
+    escrita uma segunda vez. O cmsState (já fixado acima via
+    cmsFieldSet) continua correto de qualquer forma — é ele quem
+    collectHeroContentPayload() realmente usa — mas isto mantém o
+    campo visível coerente com o que o utilizador digitou.
   */
   if (
     active.key === 'hero-title' &&
     input.value !== newText
   ) {
-    console.warn(
+    dwarn(
       '[admin-v2] editor visual: campo hero-title divergiu após escrita, reforçando valor.',
       { esperado: newText, obtido: input.value }
     );
@@ -9526,7 +9591,7 @@ async function saveDesignInline() {
       true;
   }
 
-  console.log(
+  dlog(
     '[admin-v2] editor visual: salvando',
     {
       key: editedKey,
@@ -9584,7 +9649,7 @@ async function saveDesignInline() {
       input.value =
         newText;
 
-      console.log(
+      dlog(
         '[admin-v2] editor visual: config forçado antes do save',
         {
           title:
@@ -9620,7 +9685,7 @@ async function saveDesignInline() {
           ?.hero
           ?.title;
 
-      console.log(
+      dlog(
         '[admin-v2] editor visual: título gravado no draft',
         {
           title:
@@ -9678,7 +9743,7 @@ async function saveDesignInline() {
             editedKey
           );
 
-        console.log(
+        dlog(
           '[admin-v2] editor visual: prévia confirmada',
           {
             key: editedKey,
@@ -9729,24 +9794,12 @@ function bindDesignInlineToolbar(){
   document.querySelectorAll('[data-inline-align]').forEach(b=>b.addEventListener('click',()=>{previewInlineStyle({align:b.dataset.inlineAlign});document.querySelectorAll('[data-inline-align]').forEach(x=>x.classList.toggle('active',x===b));}));
 }
 function applyDesignWhatsappPreview(doc){
-  /*
-    O iframe pode disparar a atualização antes de head/body estarem prontos.
-    A prévia do WhatsApp nunca deve interromper o carregamento, o rascunho
-    ou a publicação do Design.
-  */
-  if(
-    !doc ||
-    !doc.documentElement ||
-    !doc.head ||
-    !doc.body
-  ) return;
-
   if(!doc)return; let btn=doc.getElementById('rs-whatsapp-float-preview');
-  const enabled=$('design-whatsapp-enabled')?.checked!==false, num=($('design-whatsapp-number')?.value||'').replace(/\D/g,''), msg=encodeURIComponent($('design-whatsapp-message')?.value||''), pos=$('design-whatsapp-position')?.value||'right', style=$('design-whatsapp-style')?.value||'editorial';
+  const enabled=cmsFieldGet('design.whatsapp.enabled',$('design-whatsapp-enabled')?.checked)!==false, num=(cmsFieldGet('design.whatsapp.number',$('design-whatsapp-number')?.value||'')||'').replace(/\D/g,''), msg=encodeURIComponent(cmsFieldGet('design.whatsapp.message',$('design-whatsapp-message')?.value||'')||''), pos=cmsFieldGet('design.whatsapp.position',$('design-whatsapp-position')?.value||'right'), style=cmsFieldGet('design.whatsapp.style',$('design-whatsapp-style')?.value||'editorial');
   let path='inicio';try{const p=doc.location.pathname;if(p.includes('galeria'))path='galeria';else if(p.includes('sobre'))path='sobre';else if(p.includes('contato'))path='contato';}catch(_){}
   const allowed=$('design-whatsapp-page-'+path)?.checked!==false;
   if(!enabled||!num||!allowed){btn?.remove();return;}
-  if(!btn && doc.body){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.className='rs-whatsapp-float';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Conversar pelo WhatsApp');btn.innerHTML='<span class="rs-wa-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.04 3.2A12.73 12.73 0 0 0 5.1 22.43L3.4 28.8l6.52-1.7A12.8 12.8 0 1 0 16.04 3.2Zm0 23.32c-2.04 0-4.03-.55-5.77-1.58l-.41-.24-3.87 1.01 1.03-3.76-.27-.43a10.5 10.5 0 1 1 9.29 5Zm5.76-7.87c-.32-.16-1.87-.92-2.16-1.03-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.33-.49-2.54-1.57a9.5 9.5 0 0 1-1.76-2.19c-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.35-.26-.61-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63s1.13 3.05 1.29 3.26c.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.67.76.24 1.44.21 1.99.13.61-.09 1.87-.77 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.14-.29-.21-.61-.37Z"/></svg></span><b>Fale comigo</b>';doc.body?.appendChild(btn);}
+  if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Fale comigo pelo WhatsApp');btn.innerHTML='<span class="rs-wa-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.04 3.2A12.73 12.73 0 0 0 5.1 22.43L3.4 28.8l6.52-1.7A12.8 12.8 0 1 0 16.04 3.2Zm0 23.32c-2.04 0-4.03-.55-5.77-1.58l-.41-.24-3.87 1.01 1.03-3.76-.27-.43a10.5 10.5 0 1 1 9.29 5Zm5.76-7.87c-.32-.16-1.87-.92-2.16-1.03-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.33-.49-2.54-1.57a9.5 9.5 0 0 1-1.76-2.19c-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.35-.26-.61-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63s1.13 3.05 1.29 3.26c.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.67.76.24 1.44.21 1.99.13.61-.09 1.87-.77 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.14-.29-.21-.61-.37Z"/></svg></span><b>Fale comigo</b>';doc.body.appendChild(btn);}
   btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.className='rs-whatsapp-float is-'+style+(pos==='left'?' is-left':'');
 }
 function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);ensureDesignPreviewRenderObserver(doc);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
@@ -10380,6 +10433,7 @@ function initDesignStudio() {
       applyDesignPreview();
       sizeDesignPreview();
       updateDesignPublicationState();
+      maybeShowDesignDraftReminder();
     }, 50);
     return;
   }
@@ -10403,7 +10457,6 @@ function initDesignStudio() {
     'design-type-scale',
     'design-content-width',
     'design-section-space',
-    'design-hero-layout',
     'design-hero-overlay',
     'design-gallery-gap',
     'design-image-radius',

@@ -239,8 +239,9 @@
 
 .admin-topbar {
   position: relative;
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: end;
   justify-content: space-between;
   gap: 24px;
   min-height: 92px;
@@ -1455,81 +1456,127 @@
 
 /* ---------- RESPONSIVE — MOBILE NAV ---------- */
 
+/* ---------- MENU MOBILE (gaveta deslizante) ----------
+   Build v67: o menu lateral deixa de tentar caber como uma
+   faixa horizontal rolável (que quebrava ao abrir o submenu do
+   Design, por ser uma lista vertical dentro de uma faixa que só
+   rolava na horizontal). Agora vira uma gaveta de verdade: fica
+   fora da tela por padrão, abre por cima do conteúdo ao tocar no
+   botão ☰, e fecha sozinha ao escolher qualquer item do menu. */
+
+.admin-mobile-menu-toggle {
+  display: none;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .admin-v2-app {
     display: block;
   }
 
-  .admin-sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    height: auto;
+  .admin-mobile-menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 220;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--admin-line-strong);
+    border-radius: 10px;
+    background: #10100f;
+    box-shadow: 0 8px 22px rgba(0,0,0,.3);
+    cursor: pointer;
+  }
+
+  .admin-mobile-menu-toggle span {
     display: block;
-    padding: 12px 14px 10px;
-    border-right: 0;
-    border-bottom: 1px solid var(--admin-line-strong);
-    box-shadow: 0 12px 30px rgba(0,0,0,.2);
+    width: 18px;
+    height: 1px;
+    background: var(--text);
+    transition: transform .2s ease, opacity .2s ease;
+  }
+
+  .admin-mobile-menu-toggle[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(5px) rotate(45deg);
+  }
+  .admin-mobile-menu-toggle[aria-expanded="true"] span:nth-child(2) {
+    opacity: 0;
+  }
+  .admin-mobile-menu-toggle[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-5px) rotate(-45deg);
+  }
+
+  .admin-sidebar-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 190;
+    background: rgba(0,0,0,.55);
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+
+  .admin-sidebar-backdrop.is-visible {
+    opacity: 1;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 200;
+    height: 100vh;
+    width: min(82vw, 320px);
+    display: block;
+    padding: 70px 18px 20px;
+    border-right: 1px solid var(--admin-line-strong);
+    box-shadow: 18px 0 50px rgba(0,0,0,.4);
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform .3s cubic-bezier(.2,.75,.25,1);
+  }
+
+  .admin-sidebar.is-open {
+    transform: translateX(0);
   }
 
   .sidebar-brand {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 2px 3px 11px;
+    padding: 0 3px 16px;
     border-bottom: 1px solid var(--admin-line-soft);
-  }
-
-  .sidebar-brand span {
-    margin-top: 0;
+    margin-bottom: 16px;
   }
 
   .sidebar-nav {
     display: flex;
-    flex-direction: row;
-    gap: 4px;
-    overflow-x: auto;
-    padding: 9px 0 2px;
-    scrollbar-width: none;
-  }
-
-  .sidebar-nav::-webkit-scrollbar {
-    display: none;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
   }
 
   .sidebar-link {
-    flex: 0 0 auto;
-    width: auto;
-    min-height: 36px;
-    padding: 8px 11px;
-    font-size: .56rem;
-    white-space: nowrap;
-  }
-
-  .sidebar-link::before {
-    display: none;
-  }
-
-  .sidebar-link.active {
-    box-shadow: inset 0 -2px 0 var(--accent);
+    width: 100%;
   }
 
   .sidebar-bottom {
     display: flex;
-    flex-direction: row;
-    gap: 5px;
-    padding: 8px 0 0;
-    border-top: 0;
-  }
-
-  .sidebar-bottom .sidebar-link {
-    min-height: 32px;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--admin-line-soft);
+    margin-top: 14px;
   }
 
   .admin-main {
     max-width: none;
-    padding: 25px 20px 60px;
+    padding: 84px 20px 60px;
   }
 
   .admin-topbar {
@@ -1797,11 +1844,10 @@
    ADMIN V2 — FULL WIDTH + GALLERY/SESSION LIST V2.1
    ========================================================= */
 
-/* Tela inteira: a área de conteúdo acompanha a largura disponível. */
-.admin-v2-app {
-  grid-template-columns: var(--admin-sidebar) minmax(0, 1fr);
-}
-
+/* Tela inteira: a área de conteúdo acompanha a largura disponível.
+   (a regra .admin-v2-app { grid-template-columns... } que existia
+   aqui foi removida por ser idêntica à já definida no topo do
+   arquivo — não tinha nenhum efeito, só duplicava código.) */
 .admin-main {
   width: 100%;
   max-width: none;
@@ -2102,11 +2148,6 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-
-/* V63 — central de trabalho do fotógrafo */
-.today-dashboard{display:grid;gap:22px}.today-dashboard[hidden]{display:none}.today-welcome{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding:26px 28px;border:1px solid var(--admin-line-soft);border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.008))}.today-welcome h2{margin-top:5px;font-family:var(--font-display);font-size:clamp(1.8rem,3vw,2.7rem);font-weight:400}.today-quick-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.admin-global-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px;border:1px solid var(--admin-line-soft);border-radius:10px;background:rgba(255,255,255,.018)}.admin-global-search input{min-height:48px;margin:0;padding:0 16px;font-size:.92rem}.admin-global-search .btn{min-height:48px}.admin-global-search-results{display:grid;gap:8px;margin-top:-12px;padding:14px;border:1px solid var(--admin-line-soft);border-radius:10px;background:var(--surface)}.admin-search-result{display:flex;align-items:center;justify-content:space-between;gap:18px;width:100%;padding:13px 15px;border:1px solid var(--admin-line-soft);border-radius:8px;background:rgba(255,255,255,.018);color:var(--text);text-align:left;cursor:pointer}.admin-search-result:hover{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.04)}.admin-search-result strong{display:block;font-size:.88rem}.admin-search-result small{color:var(--text-muted)}.today-workflow-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.today-task-card{display:flex;align-items:flex-start;gap:14px;min-height:118px;padding:20px;border:1px solid var(--admin-line-soft);border-radius:10px;background:rgba(255,255,255,.018);color:var(--text);text-align:left}.today-task-card[data-today-view]{cursor:pointer}.today-task-card[data-today-view]:hover{border-color:rgba(255,255,255,.3);transform:translateY(-1px)}.today-task-card.is-urgent{border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.04)}.today-task-icon{display:grid;place-items:center;width:30px;height:30px;border:1px solid rgba(255,255,255,.2);border-radius:50%;font:500 .75rem var(--font-mono)}.today-task-card strong{display:block;font-size:1.5rem;font-family:var(--font-display);font-weight:400}.today-task-card small{display:block;margin-top:5px;color:var(--text-muted);line-height:1.45}.today-stats{margin-top:2px}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-@media(max-width:980px){.today-welcome{align-items:flex-start;flex-direction:column}.today-quick-actions{justify-content:flex-start}.today-workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.today-welcome{padding:20px}.today-quick-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.today-quick-actions .btn{justify-content:center}.admin-global-search{grid-template-columns:1fr}.today-workflow-grid{grid-template-columns:1fr}.today-task-card{min-height:96px}.admin-search-result{align-items:flex-start;flex-direction:column}}
 
 @media (max-width: 420px) {
   .gallery-admin-card {
@@ -6073,13 +6114,10 @@
 /* ---------------------------------------------------------
    HEADER
    O e-mail real de login ocupa sozinho o extremo direito.
+   (o .admin-topbar com !important que existia aqui foi
+   incorporado à regra original, lá em cima — não precisava
+   mais de duas declarações concorrentes para a mesma coisa.)
    --------------------------------------------------------- */
-
-.admin-topbar {
-  display: grid !important;
-  grid-template-columns: minmax(0,1fr) auto !important;
-  align-items: end !important;
-}
 
 .admin-topbar > .admin-user {
   justify-self: end;
@@ -6432,6 +6470,56 @@
   font-family:var(--font-display);
   font-size:clamp(1.35rem,2vw,1.8rem);
   font-weight:400;
+}
+
+/* ---------- LEMBRETE DE RASCUNHO NÃO PUBLICADO ----------
+   Aparece no topo da aba Design sempre que existe um rascunho
+   salvo que ainda não foi publicado no site — para nunca mais
+   ficar em dúvida se o que está na prévia é o rascunho ou o
+   que já está no ar, mesmo voltando dias depois. */
+.design-draft-reminder {
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+  padding:18px 22px;
+  margin-bottom:22px;
+  border:1px solid rgba(230,180,90,.4);
+  border-left:3px solid #e6b45a;
+  border-radius:var(--admin-radius-sm, 10px);
+  background:linear-gradient(145deg, rgba(230,180,90,.08), transparent 60%), var(--surface);
+}
+.design-draft-reminder-icon {
+  flex:0 0 auto;
+  color:#e6b45a;
+  font-size:.6rem;
+  line-height:1.9;
+}
+.design-draft-reminder-body { flex:1 1 auto; min-width:0; }
+.design-draft-reminder-body strong {
+  display:block;
+  font-family:var(--font-display);
+  font-size:1.05rem;
+  font-weight:500;
+  margin-bottom:4px;
+}
+.design-draft-reminder-body p {
+  margin:0;
+  color:var(--text-muted);
+  font-size:.86rem;
+  line-height:1.6;
+  max-width:60ch;
+}
+.design-draft-reminder-actions {
+  flex:0 0 auto;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-top:2px;
+}
+@media (max-width:780px) {
+  .design-draft-reminder { flex-direction:column; }
+  .design-draft-reminder-actions { width:100%; }
+  .design-draft-reminder-actions .btn { flex:1 1 auto; }
 }
 
 .design-publication-status {
@@ -7575,11 +7663,6 @@ body .design-controls-drawer.is-client-area-editor {
 }
 
 @media (max-width: 620px) {
-  #login-form input,
-  #login-form button {
-    min-height: 44px;
-  }
-
   .design-content-order-item {
     grid-template-columns: 30px minmax(0, 1fr);
   }
@@ -7593,38 +7676,3 @@ body .design-controls-drawer.is-client-area-editor {
 
 /* BUILD V47 — editor visual inline */
 .design-inline-editor{position:sticky;bottom:14px;z-index:80;margin-top:-2px;border:1px solid rgba(255,255,255,.16);background:rgba(15,15,14,.96);backdrop-filter:blur(18px);box-shadow:0 18px 60px rgba(0,0,0,.36);border-radius:10px;padding:10px 12px}.design-inline-editor[hidden]{display:none}.design-inline-editor-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:8px;font-size:.72rem}.design-inline-editor-head span{color:var(--text-muted);font-family:var(--font-mono);font-size:.62rem;text-transform:uppercase;letter-spacing:.08em}.design-inline-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.design-inline-toolbar select,.design-inline-toolbar button{min-height:34px;border:1px solid rgba(255,255,255,.12);background:#111;color:var(--text);border-radius:6px;padding:0 10px}.design-inline-toolbar button{min-width:36px;cursor:pointer}.design-inline-toolbar button.active{background:#f2efe8;color:#111}.design-inline-separator{width:1px;height:24px;background:rgba(255,255,255,.12);margin:0 3px}.design-inline-spacer{flex:1}.design-inline-toolbar .design-inline-discard{color:var(--text-muted)}.design-inline-toolbar .design-inline-save{background:#f2efe8;color:#111;border-color:#f2efe8}.design-control-divider{height:1px;background:rgba(255,255,255,.10);margin:14px 0}.design-control-kicker{font-family:var(--font-mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.12em}.design-control-check{display:flex!important;flex-direction:row!important;justify-content:space-between;align-items:center}.design-page-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.design-page-checks label{display:flex;gap:6px;align-items:center;font-size:.75rem}.design-preview-panel iframe{--inline-editor-ready:1}
-
-
-/* V62 — painel dedicado do WhatsApp */
-.design-accordion[data-design-section="whatsapp"] .design-control-help{
-  margin:0 0 16px;
-  max-width:62ch;
-  font-size:12px;
-  line-height:1.55;
-  opacity:.72;
-}
-.design-accordion[data-design-section="whatsapp"] .design-page-checks{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 14px;
-  margin-top:8px;
-}
-.design-accordion[data-design-section="whatsapp"] .design-page-checks label{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
-
-
-/* V65 — WhatsApp premium */
-.design-accordion[data-design-section="whatsapp"] .design-page-checks{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 14px;
-  margin-top:8px;
-}
-.design-accordion[data-design-section="whatsapp"] .design-page-checks label{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-}
