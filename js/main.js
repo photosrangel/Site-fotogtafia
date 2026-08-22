@@ -195,7 +195,7 @@ function applyPublishedClientTexts(c){
 
 function applyPublishedInlineStyles(c){
   const styles=c.inline_styles||{};
-  Object.entries(styles).forEach(([id,st])=>{const el=document.getElementById(id);if(!el)return;el.style.fontWeight=st.bold?'700':'';el.style.fontStyle=st.italic?'italic':'';el.style.textAlign=st.align||'';el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';});
+  Object.entries(styles).forEach(([id,st])=>{const el=document.getElementById(id);if(!el)return;if(typeof st.text==='string'&&el.textContent!==st.text)el.textContent=st.text;el.style.fontWeight=st.bold?'700':'';el.style.fontStyle=st.italic?'italic':'';el.style.textAlign=st.align||'';el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';const x=Number(st.x||0),y=Number(st.y||0);el.style.translate=x||y?`${x}px ${y}px`:'';});
 }
 function applyPublishedWhatsapp(c){
   document.getElementById('rs-whatsapp-float')?.remove();

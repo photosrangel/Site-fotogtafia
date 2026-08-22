@@ -27,6 +27,24 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function storagePath(url: string, bucket: string) {
+  try {
+    const parsed = new URL(url);
+    const markers = [
+      `/storage/v1/object/public/${bucket}/`,
+      `/storage/v1/object/sign/${bucket}/`,
+      `/storage/v1/object/authenticated/${bucket}/`,
+    ];
+    for (const marker of markers) {
+      const index = parsed.pathname.indexOf(marker);
+      if (index !== -1) return decodeURIComponent(parsed.pathname.slice(index + marker.length));
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return json({ erro: 'Método não permitido.' }, 405);
@@ -78,5 +96,25 @@ Deno.serve(async (req) => {
     return json(data, 429, { 'Retry-After': String(retryAfter) });
   }
   if (data?.erro) return json(data, 401);
+
+  const photos = Array.isArray(data?.fotos) ? data.fotos : [];
+  if (photos.length) {
+    const paths = photos.map((photo: { url?: string }) => storagePath(photo.url || '', 'fotos'));
+    if (paths.some((path: string | null) => !path)) {
+      console.error('client-access: fotografia sem caminho reconhecível');
+      return json({ erro: 'Não foi possível carregar as fotografias agora.' }, 500);
+    }
+    const { data: signed, error: signError } = await supabase.storage
+      .from('fotos')
+      .createSignedUrls(paths as string[], 3600);
+    if (signError || !signed || signed.length !== photos.length) {
+      console.error('client-access signed URLs:', signError?.message || 'resposta incompleta');
+      return json({ erro: 'Não foi possível carregar as fotografias agora.' }, 500);
+    }
+    data.fotos = photos.map((photo: Record<string, unknown>, index: number) => ({
+      ...photo,
+      url: signed[index]?.signedUrl,
+    }));
+  }
   return json(data);
 });

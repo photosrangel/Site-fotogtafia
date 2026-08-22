@@ -12,3 +12,8 @@ Configuração obrigatória:
 3. publicar com `supabase functions deploy client-access --no-verify-jwt`;
 4. testar o acesso correto e o bloqueio;
 5. aplicar `20260822_client_access_rate_limit_finalize.sql` para impedir chamadas anônimas à RPC antiga.
+
+Na Fase 67, a mesma função troca os endereços permanentes do bucket `fotos` por
+URLs assinadas válidas por uma hora. O bucket só deve ser tornado privado depois
+de publicar o código e validar o painel com a migration
+`20260822_private_client_photos_setup.sql`.

@@ -52,7 +52,8 @@ import {
 } from './features/sessions/session-photos-repository.js';
 import {
   uploadToBucket,
-  getPublicUrlFromBucket
+  getPublicUrlFromBucket,
+  createSignedUrlFromBucket
 } from './core/storage-service.js';
 import { storagePathForBucket } from './core/storage-service.js';
 import { uploadGalleryPhoto } from './features/galleries/gallery-upload-service.js';
@@ -213,6 +214,8 @@ let galleriesCache = [];
 let sessionsCache = [];
 let currentSession = null;
 let currentSessionPhotos = [];
+const SESSIONS_BUCKET = 'fotos';
+let designStudioReady = false;
 let heroSlidesDraft = [];
 let messagesCache = [];
 let activeView = 'dashboard';
@@ -4616,7 +4619,7 @@ document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
 );
 
 ['hero-static-mobile-focus-x','hero-static-mobile-focus-y'].forEach(id=>
-  $(id).addEventListener('input',updateStaticMobilePreview)
+  $(id)?.addEventListener('input',updateStaticMobilePreview)
 );
 
 $('hero-desktop-image').addEventListener('input', updateStaticFocalPreview);
@@ -4833,8 +4836,8 @@ async function excluirMensagem(id) {
    ESCAPE HTML
 ========================================================= */
 
-const esc = v =>
-  String(v ?? '')
+function esc(v) {
+  return String(v ?? '')
     .replaceAll(
       '&',
       '&amp;'
@@ -4855,9 +4858,11 @@ const esc = v =>
       "'",
       '&#039;'
     );
+}
 
-
-const attr = esc;
+function attr(v) {
+  return esc(v);
+}
 
 
 /* =========================================================
@@ -4894,7 +4899,6 @@ requireAdmin().catch(err => {
    ENSAIOS (SESSÕES DE CLIENTES)
    ========================================================= */
 
-const SESSIONS_BUCKET = 'fotos';
 const numero = (i) => String(i + 1).padStart(4, '0');
 
 function statusLabel(status) {
@@ -4929,9 +4933,10 @@ async function loadSessions() {
       dwarn('Não foi possível carregar as capas dos ensaios:', photosError.message);
     }
 
+    const signedPhotos = await signSessionPhotoUrls(photos || []);
     const bySession = new Map();
 
-    (photos || []).forEach(photo => {
+    signedPhotos.forEach(photo => {
       if (!bySession.has(photo.ensaio_id)) {
         bySession.set(photo.ensaio_id, []);
       }
@@ -5084,8 +5089,22 @@ async function loadSessionPhotos() {
     msg($('session-msg'), error.message, 'erro');
     return;
   }
-  currentSessionPhotos = data || [];
+  currentSessionPhotos = await signSessionPhotoUrls(data || []);
   renderSessionDetail();
+}
+
+async function signSessionPhotoUrls(photos) {
+  return Promise.all((photos || []).map(async photo => {
+    const originalUrl = photo.storage_url || photo.url || '';
+    const path = storagePathForBucket(originalUrl, SESSIONS_BUCKET);
+    if (!path) return { ...photo, storage_url: originalUrl };
+    const { data, error } = await createSignedUrlFromBucket(SESSIONS_BUCKET, path, 3600);
+    if (error || !data?.signedUrl) {
+      dwarn('Não foi possível assinar uma fotografia privada:', error?.message || path);
+      return { ...photo, storage_url: originalUrl };
+    }
+    return { ...photo, storage_url: originalUrl, url: data.signedUrl };
+  }));
 }
 
 
@@ -5641,7 +5660,6 @@ document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventL
    O iframe usa um viewport real de 1920x1080 ou 390x844 e é
    apenas escalado visualmente para caber no painel do CMS.
    ========================================================= */
-let designStudioReady = false;
 let designDraftSaved = null;
 let designPublishedSaved = null;
 let designDraftUpdatedAt = null;
