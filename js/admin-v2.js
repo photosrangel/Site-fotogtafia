@@ -214,6 +214,8 @@ let galleriesCache = [];
 let sessionsCache = [];
 let currentSession = null;
 let currentSessionPhotos = [];
+const SESSIONS_BUCKET = 'fotos';
+let designStudioReady = false;
 let heroSlidesDraft = [];
 let messagesCache = [];
 let activeView = 'dashboard';
@@ -4617,7 +4619,7 @@ document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
 );
 
 ['hero-static-mobile-focus-x','hero-static-mobile-focus-y'].forEach(id=>
-  $(id).addEventListener('input',updateStaticMobilePreview)
+  $(id)?.addEventListener('input',updateStaticMobilePreview)
 );
 
 $('hero-desktop-image').addEventListener('input', updateStaticFocalPreview);
@@ -4834,8 +4836,8 @@ async function excluirMensagem(id) {
    ESCAPE HTML
 ========================================================= */
 
-const esc = v =>
-  String(v ?? '')
+function esc(v) {
+  return String(v ?? '')
     .replaceAll(
       '&',
       '&amp;'
@@ -4856,9 +4858,11 @@ const esc = v =>
       "'",
       '&#039;'
     );
+}
 
-
-const attr = esc;
+function attr(v) {
+  return esc(v);
+}
 
 
 /* =========================================================
@@ -4895,7 +4899,6 @@ requireAdmin().catch(err => {
    ENSAIOS (SESSÕES DE CLIENTES)
    ========================================================= */
 
-const SESSIONS_BUCKET = 'fotos';
 const numero = (i) => String(i + 1).padStart(4, '0');
 
 function statusLabel(status) {
@@ -5657,7 +5660,6 @@ document.querySelectorAll('[data-close-session-modal]').forEach(e => e.addEventL
    O iframe usa um viewport real de 1920x1080 ou 390x844 e é
    apenas escalado visualmente para caber no painel do CMS.
    ========================================================= */
-let designStudioReady = false;
 let designDraftSaved = null;
 let designPublishedSaved = null;
 let designDraftUpdatedAt = null;
