@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contato — Rangel Santos — Fotografia</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+    <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+      <a href="/inicio">Início</a>
+      <a href="/galeria">Galeria</a>
+      <a href="/sobre">Sobre</a>
+      <a href="/contato" class="active">Contato</a>
+      <a href="/area-cliente" class="nav-cta">Área do Cliente</a>
+    </div>
+  </div>
+</nav>
+
+<section class="section inner-page-section">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="section-eyebrow" id="contato-eyebrow">Renove sua autoestima</p>
+        <h2 class="section-title" id="contato-title">Contato</h2>
+      </div>
+    </div>
+
+    <div class="contact-grid">
+      <form id="contato-form" novalidate>
+        <div class="field">
+          <label for="nome">Nome</label>
+          <input type="text" id="nome" name="nome" maxlength="120" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" name="email" maxlength="254" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="tipo">Tipo de sessão</label>
+          <select id="tipo" name="tipo"></select>
+        </div>
+        <div class="field">
+          <label for="mensagem">Mensagem</label>
+          <textarea id="mensagem" name="mensagem" rows="5" maxlength="3000" required></textarea>
+        </div>
+
+        <div class="contact-honeypot" aria-hidden="true">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <button type="submit" class="btn" id="contato-submit">Enviar mensagem</button>
+        <p class="msg" id="contato-msg"></p>
+      </form>
+
+      <dl class="contact-info" id="contato-info">
+        <dt>E-mail</dt>
+        <dd><a href="mailto:rangelsantos1812@gmail.com" target="_blank" rel="noopener" data-setting="email">rangelsantos1812@gmail.com</a></dd>
+        <dt>WhatsApp</dt>
+        <dd><a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-contact-fixed="whatsapp">+351 931 159 748</a></dd>
+        <dt>Instagram</dt>
+        <dd><a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-contact-fixed="instagram">@photosrangel</a></dd>
+        <dt>Atendimento</dt>
+        <dd id="contato-atendimento">Vale de Cambra e arredores — sessões sob agendamento</dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span>
+    <div class="footer-links footer-mono">
+      <a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-contact-fixed="instagram">Instagram</a>
+      <a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-contact-fixed="whatsapp">WhatsApp</a>
+      <a href="/area-cliente">Área do Cliente</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script type="module" src="js/contato.js"></script>
+</body>
+</html>
