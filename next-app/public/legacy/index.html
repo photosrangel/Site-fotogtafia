@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- SEO será preenchido pelo CMS -->
+  <title id="page-title">Rangel Santos — Estúdio de Fotografia</title>
+
+  <meta
+    id="page-description"
+    name="description"
+    content="Fotografia de retrato feminino em Vale de Cambra, Portugal."
+  >
+
+  <link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add('inicio-cms-loading');
+</script>
+<style>
+  .inicio-cms-loading #hero-eyebrow,
+  .inicio-cms-loading #hero-title,
+  .inicio-cms-loading #hero-description,
+  .inicio-cms-loading #hero-meta,
+  .inicio-cms-loading .hero .btn {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .inicio-cms-ready #hero-eyebrow,
+  .inicio-cms-ready #hero-title,
+  .inicio-cms-ready #hero-description,
+  .inicio-cms-ready #hero-meta,
+  .inicio-cms-ready .hero .btn {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .16s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inicio-cms-ready #hero-eyebrow,
+    .inicio-cms-ready #hero-title,
+    .inicio-cms-ready #hero-description,
+    .inicio-cms-ready #hero-meta,
+    .inicio-cms-ready .hero .btn {
+      transition: none;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- ============================================
+       MENU
+       ============================================ -->
+
+  <nav class="nav">
+
+    <div class="container">
+
+      <a href="/inicio" class="nav-logo" data-setting="site_name">
+        Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span>
+      </a>
+
+      <button
+        class="nav-toggle"
+        aria-label="Abrir menu"
+        type="button"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="nav-links">
+
+        <a href="/inicio" class="active">
+          Início
+        </a>
+
+        <a href="/galeria">
+          Galeria
+        </a>
+
+        <a href="/sobre">
+          Sobre
+        </a>
+
+        <a href="/contato">
+          Contato
+        </a>
+
+        <a
+          href="/area-cliente"
+          class="nav-cta"
+        >
+          Área do Cliente
+        </a>
+
+      </div>
+
+    </div>
+
+  </nav>
+
+
+  <!-- ============================================
+       HERO
+       ============================================ -->
+
+  <header class="hero">
+
+    <div class="hero-media">
+
+      <picture>
+
+        <source
+          id="hero-mobile-image"
+          media="(max-width: 899px)"
+          srcset="images/hero-bg-mobile.jpg"
+        >
+
+        <img
+          id="hero-desktop-image"
+          src="images/hero-bg.jpg"
+          alt="Rangel Santos, fotógrafo"
+          class="hero-photo"
+        >
+
+      </picture>
+
+      <div
+        class="hero-actions"
+        id="hero-slideshow"
+        class="hero-slideshow"
+        aria-hidden="true"
+      ></div>
+
+      <div class="hero-overlay"></div>
+
+    </div>
+
+
+    <div class="container">
+
+      <p
+        id="hero-eyebrow"
+        class="hero-eyebrow"
+      ></p>
+
+
+      <h1
+        id="hero-title"
+        class="hero-title"
+      ></h1>
+<p
+        id="hero-description"
+        class="hero-sub"
+      ></p>
+
+
+      <div
+        style="
+          margin-top:36px;
+          display:flex;
+          gap:16px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <a
+          id="hero-primary-button"
+          href="/galeria"
+          class="btn"
+        >
+          Ver galeria
+        </a>
+
+
+        <a
+          id="hero-secondary-button"
+          href="/contato"
+          class="btn btn-accent"
+        >
+          Agendar sessão
+        </a>
+
+      </div>
+
+
+      <div
+        id="hero-meta"
+        class="hero-meta"
+      ></div>
+
+    </div>
+
+  </header>
+
+
+  <!-- ============================================
+       TRABALHOS RECENTES
+       ============================================ -->
+
+  <section class="section">
+
+    <div class="container">
+
+      <div class="section-head">
+
+        <div>
+
+          <p
+            id="recent-work-eyebrow"
+            class="section-eyebrow"
+          ></p>
+
+
+          <h2
+            id="recent-work-title"
+            class="section-title"
+          ></h2>
+
+        </div>
+
+
+        <a
+          id="recent-work-button"
+          href="/galeria"
+          class="btn"
+        >
+          Galeria completa →
+        </a>
+
+      </div>
+
+
+      <!--
+        As fotografias serão carregadas automaticamente
+        pelo Supabase.
+      -->
+
+      <div
+        id="recent-work-grid"
+        class="grid"
+      ></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ============================================
+       FOOTER
+       ============================================ -->
+
+  <footer class="footer">
+
+    <div class="container">
+
+      <span
+        id="footer-copyright"
+        class="footer-mono"
+        data-setting="footer_text"
+      >
+        © 2026 Rangel Santos — Fotografia
+      </span>
+
+
+      <div class="footer-links footer-mono">
+
+        <a
+          id="footer-instagram"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          data-setting="instagram_url"
+        >
+          Instagram
+        </a>
+
+
+        <a
+          id="footer-whatsapp"
+          href="#"
+          target="_blank"
+          rel="noopener"
+          data-setting="whatsapp"
+        >
+          WhatsApp
+        </a>
+
+
+        <a href="/area-cliente">
+          Área do Cliente
+        </a>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+
+  <!-- ============================================
+       SUPABASE / CMS
+       ============================================ -->
+
+<script type="module">
+  import { initSite } from './js/cms-config.js';
+  initSite();
+</script>
+
+<script type="module" src="./js/inicio.js"></script>
+
+<script src="./js/main.js"></script>
+  
+</body>
+
+</html>
