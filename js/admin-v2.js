@@ -1,13 +1,103 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase-config.js';
-
-const ADMIN_ID = 'e0a315bb-3614-4dbb-b020-3e8175a67e8a';
-const BUCKET = 'site-gallery';
-
-const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+import { ADMIN_ID, SITE_GALLERY_BUCKET as BUCKET } from './core/admin-config.js';
+import { getAdminSession, signInAdmin, signOutAdmin, onAdminAuthStateChange } from './core/admin-auth-service.js';
+import {
+  listCategories,
+  listPublishedCategories,
+  createCategory,
+  updateCategory,
+  removeCategory,
+  listTrails,
+  createTrail,
+  updateTrail,
+  removeTrail
+} from './features/categories/categories-repository.js';
+import {
+  listGalleries,
+  getGallery,
+  getGalleryWithCategory,
+  getGalleryCover,
+  createGallery,
+  updateGallery,
+  updateGalleryFields,
+  updateGallerySortOrder,
+  setGalleryPublished,
+  setGalleryCover
+} from './features/galleries/galleries-repository.js';
+import {
+  listGalleryPhotos,
+  getGalleryPhotoPublication,
+  getFirstGalleryPhoto,
+  getMaxGalleryPhotoOrder,
+  updateGalleryPhotoSortOrder,
+  setGalleryPhotoPublished,
+  setGalleryPhotosPublished,
+} from './features/galleries/gallery-photos-repository.js';
+import {
+  listMessages,
+  countUnreadMessages,
+  markMessageRead,
+  removeMessage
+} from './features/messages/messages-repository.js';
+import {
+  listSessions,
+  countSessionsByStatuses,
+  createSession,
+  updateSession,
+  updateSessionAndReturn
+} from './features/sessions/sessions-repository.js';
+import {
+  listSessionPhotos,
+  listSessionPhotosForSessions,
+  updateSessionPhoto,
+} from './features/sessions/session-photos-repository.js';
+import {
+  uploadToBucket,
+  getPublicUrlFromBucket,
+  createSignedUrlFromBucket
+} from './core/storage-service.js';
+import { storagePathForBucket } from './core/storage-service.js';
+import { uploadGalleryPhoto } from './features/galleries/gallery-upload-service.js';
+import { uploadSessionPhoto } from './features/sessions/session-upload-service.js';
+import {
+  deleteGalleryWithAssets,
+  deleteGalleryPhotoWithAsset
+} from './features/galleries/gallery-deletion-service.js';
+import {
+  deleteSessionPhotoWithAsset,
+  deleteSessionWithAssets
+} from './features/sessions/session-deletion-service.js';
+import { getDashboardSnapshot, logAdminActivity } from './features/dashboard/dashboard-repository.js';
+import {
+  listSiteContent,
+  listSiteContentBySlug,
+  getSiteContentSection,
+  upsertSiteContentSection,
+  parseStoredContent
+} from './features/cms/site-content-repository.js';
+import {
+  getSiteSettings,
+  saveSiteSettings
+} from './features/cms/site-settings-repository.js';
+import {
+  createAdminRealtimeChannel,
+  removeAdminRealtimeChannel
+} from './features/realtime/admin-realtime-service.js';
+import {
+  sendContactReply,
+  notifySession
+} from './features/notifications/notifications-service.js';
+import {
+  renderCategorySelectUI,
+  renderCategoriesUI
+} from './features/categories/categories-controller.js';
+import { renderGalleriesUI } from './features/galleries/galleries-controller.js';
+import { renderGalleryPhotosUI } from './features/galleries/gallery-detail-controller.js';
+import { renderMessagesUI } from './features/messages/messages-controller.js';
+import { renderSessionsUI } from './features/sessions/sessions-controller.js';
+import {
+  normalizeSessionStatus,
+  renderSessionDetailUI
+} from './features/sessions/session-detail-controller.js';
 
 console.log('[admin-v2] Build v67 — menu mobile virou gaveta deslizante (fim da faixa horizontal quebrada)');
 
@@ -118,6 +208,8 @@ function cmsBindAllFields(root = document) {
 
 let currentGallery = null;
 let categoriesCache = [];
+let trailsCache = [];
+let trailDraftEdits = {};
 let galleriesCache = [];
 let sessionsCache = [];
 let currentSession = null;
@@ -413,10 +505,7 @@ function updateSidebarBadge(badge, total, title = '') {
 }
 
 async function refreshUnreadMessagesCount() {
-  const { count, error } = await supabase
-    .from('mensagens')
-    .select('id', { count: 'exact', head: true })
-    .eq('lida', false);
+  const { count, error } = await countUnreadMessages();
 
   if (error) {
     dwarn(
@@ -451,10 +540,7 @@ async function refreshCompletedSelectionsCount() {
     'entregue'
   ];
 
-  const { count, error } = await supabase
-    .from('ensaios')
-    .select('id', { count: 'exact', head: true })
-    .in('status', statuses);
+  const { count, error } = await countSessionsByStatuses(statuses);
 
   if (error) {
     dwarn(
@@ -571,35 +657,17 @@ async function startAdminRealtime() {
     refreshCompletedSelectionsCount()
   ]);
 
-  adminRealtimeChannel = supabase
-    .channel('admin-v2-live')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'mensagens'
-      },
-      payload => {
-        handleRealtimeMessage(payload)
-          .catch(error => console.error('[admin-v2] Realtime mensagens falhou:', error));
-      }
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'ensaios'
-      },
-      payload => {
-        handleRealtimeEnsaio(payload)
-          .catch(error => console.error('[admin-v2] Realtime ensaios falhou:', error));
-      }
-    )
-    .subscribe(status => {
-      dlog('[admin-v2] Realtime:', status);
-    });
+  adminRealtimeChannel = createAdminRealtimeChannel({
+    onMessageChange: payload => {
+      handleRealtimeMessage(payload)
+        .catch(error => console.error('[admin-v2] Realtime mensagens falhou:', error));
+    },
+    onSessionUpdate: payload => {
+      handleRealtimeEnsaio(payload)
+        .catch(error => console.error('[admin-v2] Realtime ensaios falhou:', error));
+    },
+    onStatus: status => dlog('[admin-v2] Realtime:', status)
+  });
 }
 
 async function stopAdminRealtime() {
@@ -609,7 +677,7 @@ async function stopAdminRealtime() {
   adminRealtimeChannel = null;
 
   try {
-    await supabase.removeChannel(channel);
+    await removeAdminRealtimeChannel(channel);
   } catch (error) {
     dwarn('[admin-v2] Falha ao encerrar Realtime:', error);
   }
@@ -983,19 +1051,12 @@ async function sendReplyMessage(event) {
   try {
     const attachments = await serializeReplyAttachments();
 
-    const { data, error } = await supabase.functions.invoke(
-      'contact-notifications',
-      {
-        body: {
-          action: 'reply',
-          message_id: messageId,
-          reply_text: replyText,
-          attachments
-        }
-      }
-    );
+    const data = await sendContactReply({
+      messageId,
+      replyText,
+      attachments
+    });
 
-    if (error) throw error;
     if (!data?.ok) {
       throw new Error(data?.error || 'Não foi possível enviar a resposta.');
     }
@@ -1027,7 +1088,7 @@ async function sendReplyMessage(event) {
 async function requireAdmin() {
   const {
     data: { session }
-  } = await supabase.auth.getSession();
+  } = await getAdminSession();
 
   dlog(
     '[admin-v2] requireAdmin: sessão',
@@ -1046,7 +1107,7 @@ async function requireAdmin() {
       : false;
 
   if (expirou) {
-    await supabase.auth.signOut().catch(() => {});
+    await signOutAdmin().catch(() => {});
 
     $('login-screen').hidden = false;
     $('app').hidden = true;
@@ -1061,7 +1122,7 @@ async function requireAdmin() {
   }
 
   if (session.user.id !== ADMIN_ID) {
-    await supabase.auth.signOut();
+    await signOutAdmin();
 
     $('login-screen').hidden = false;
     $('app').hidden = true;
@@ -1112,10 +1173,10 @@ $('login-form').addEventListener(
     try {
       dlog('[admin-v2] login: iniciando signInWithPassword', safeText($('login-email').value, 254));
       const resultado = await Promise.race([
-        supabase.auth.signInWithPassword({
-          email: safeText($('login-email').value, 254).toLowerCase(),
-          password: $('login-password').value
-        }),
+        signInAdmin(
+          safeText($('login-email').value, 254).toLowerCase(),
+          $('login-password').value
+        ),
         new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
       ]);
 
@@ -1167,7 +1228,7 @@ $('logout-btn').addEventListener(
   'click',
   async () => {
     await stopAdminRealtime();
-    await supabase.auth.signOut();
+    await signOutAdmin();
     location.reload();
   }
 );
@@ -1298,6 +1359,12 @@ $('category-form').addEventListener(
   'submit',
   saveCategory
 );
+initTrailEditor();
+$('trail-form')?.addEventListener('submit',saveTrail);
+$('gallery-trail')?.addEventListener('change',event=>renderGalleryCategoryOptions(event.target.value));
+$('gallery-cover')?.addEventListener('input',updateGalleryCoverFocusPreview);
+['gallery-cover-focus-x','gallery-cover-focus-y'].forEach(id=>$(id)?.addEventListener('input',updateGalleryCoverFocusPreview));
+$('gallery-cover-focus-preview')?.addEventListener('click',event=>{const rect=event.currentTarget.getBoundingClientRect();$('gallery-cover-focus-x').value=Math.round((event.clientX-rect.left)/rect.width*100);$('gallery-cover-focus-y').value=Math.round((event.clientY-rect.top)/rect.height*100);updateGalleryCoverFocusPreview()});
 
 
 $('cancel-category').addEventListener(
@@ -1324,6 +1391,7 @@ $('admin-ui-reset')?.addEventListener(
 
 
 initAdminContentOrderDnD();
+initAdminMainMenuReorder();
 
 
 $('photo-upload').addEventListener(
@@ -1357,6 +1425,17 @@ document
    DASHBOARD
 ========================================================= */
 
+function formatDateTime(value){
+  if(!value)return '—';
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return '—';
+  try{
+    return new Intl.DateTimeFormat('pt-PT',{dateStyle:'short',timeStyle:'short'}).format(date);
+  }catch(_){
+    return date.toLocaleString('pt-PT');
+  }
+}
+
 async function loadDashboard() {
 
   if (!document.body.dataset.adminUiBooted) {
@@ -1374,35 +1453,15 @@ async function loadDashboard() {
   dlog('[admin-v2] loadDashboard: iniciando');
 
   const consultar = async () => {
-    const [
-      a,
-      b,
-      c,
-      m
-    ] = await Promise.all([
-      supabase
-        .from('galleries')
-        .select('id,published'),
+    const snapshot = await getDashboardSnapshot();
 
-      supabase
-        .from('categories')
-        .select('id'),
-
-      supabase
-        .from('gallery_photos')
-        .select('id,published'),
-
-      supabase
-        .from('mensagens')
-        .select('id')
-        .eq('lida', false)
-        .then(
-          r => r,
-          () => ({ data: [] })
-        )
-    ]);
-
-    return { a, b, c, m };
+    return {
+      a: snapshot.galleries,
+      b: snapshot.categories,
+      c: snapshot.photos,
+      m: snapshot.unreadMessages,
+      activities: snapshot.activities
+    };
   };
 
 
@@ -1414,7 +1473,8 @@ async function loadDashboard() {
     resultado.a,
     resultado.b,
     resultado.c,
-    resultado.m
+    resultado.m,
+    resultado.activities
   ]
     .map(r => (r && r.error ? r.error : null))
     .filter(Boolean);
@@ -1459,7 +1519,8 @@ async function loadDashboard() {
       resultado.a,
       resultado.b,
       resultado.c,
-      resultado.m
+      resultado.m,
+      resultado.activities
     ]
       .map(r => (r && r.error ? r.error : null))
       .filter(Boolean);
@@ -1549,6 +1610,12 @@ async function loadDashboard() {
     mensagens.length
       ? 'var(--accent)'
       : '';
+
+  const activityHost=$('dashboard-activity-list');
+  if(activityHost){
+    const activities=resultado.activities?.data||[];
+    activityHost.innerHTML=activities.length?activities.map(item=>`<div class="dashboard-activity-item is-${esc(item.severity||'info')}"><span class="dashboard-activity-dot"></span><div><strong>${esc(item.title||'Atividade')}</strong>${item.detail?`<small>${esc(item.detail)}</small>`:''}</div><time>${formatDateTime(item.created_at)}</time></div>`).join(''):'<p class="panel-copy">Nenhuma atividade registrada ainda.</p>';
+  }
 }
 
 
@@ -1558,14 +1625,12 @@ async function loadDashboard() {
 
 async function loadCategories() {
 
+  await ensureDesignPersistenceLoaded().catch(() => {});
+
   const {
     data,
     error
-  } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order')
-    .order('name');
+  } = await listCategories();
 
   if (error) {
     flash(
@@ -1578,114 +1643,145 @@ async function loadCategories() {
 
   categoriesCache = data || [];
 
+  const trailsResult=await listTrails();
+  trailsCache=(trailsResult.data||[]).map(trail=>trailDraftEdits[trail.id]?{...trail,...trailDraftEdits[trail.id]}:trail).sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+  if(!galleriesCache.length){const galleriesResult=await listGalleries();galleriesCache=galleriesResult.data||[]}
+
   renderCategorySelect();
   renderCategories();
+  renderTrails();
+  enhanceTrailRows();
 }
 
 
 function renderCategorySelect() {
-
-  const s = $('gallery-category');
-  const cur = s.value;
-
-  s.innerHTML =
-    '<option value="">Sem categoria</option>' +
-    categoriesCache
-      .map(
-        c =>
-          `<option value="${c.id}">
-            ${esc(c.name)}
-          </option>`
-      )
-      .join('');
-
-  s.value = cur;
+  const currentTrail = $('gallery-trail')?.value || '';
+  const currentCategory = $('gallery-category')?.value || '';
+  renderCategorySelectUI({ $, categories: categoriesCache, esc });
+  const options='<option value="">Sem trilha</option>'+trailsCache.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  if($('category-trail'))$('category-trail').innerHTML=options;
+  if($('gallery-trail'))$('gallery-trail').innerHTML='<option value="">Todas / sem trilha</option>'+trailsCache.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  if($('gallery-trail')&&trailsCache.some(trail=>trail.id===currentTrail))$('gallery-trail').value=currentTrail;
+  renderGalleryCategoryOptions($('gallery-trail')?.value||'', currentCategory);
 }
 
+function renderGalleryCategoryOptions(trailId='',selected=''){
+  const select=$('gallery-category');if(!select)return;
+  const available=categoriesCache.filter(category=>!trailId||category.trail_id===trailId);
+  select.innerHTML='<option value="">Sem categoria</option>'+available.map(category=>`<option value="${category.id}">${esc(category.name)}</option>`).join('');
+  select.value=available.some(category=>category.id===selected)?selected:'';
+}
+
+function initTrailEditor(){
+  const form=$('trail-form');
+  if(!form||form.dataset.editorReady==='1')return;
+  form.dataset.editorReady='1';
+  const id=document.createElement('input');id.type='hidden';id.id='trail-id';form.prepend(id);
+  const slug=document.createElement('input');slug.id='trail-slug';slug.maxLength=120;slug.placeholder='slug automático';slug.readOnly=true;
+  $('trail-name')?.insertAdjacentElement('afterend',slug);
+  const cancel=document.createElement('button');cancel.type='button';cancel.id='cancel-trail';cancel.className='btn';cancel.textContent='Cancelar';cancel.hidden=true;form.appendChild(cancel);
+  $('trail-name')?.addEventListener('input',()=>{slug.value=slugify($('trail-name').value).slice(0,120)});
+  cancel.addEventListener('click',resetTrailForm);
+}
+
+function resetTrailForm(){
+  $('trail-form')?.reset();
+  if($('trail-id'))$('trail-id').value='';
+  if($('trail-slug'))$('trail-slug').value='';
+  if($('cancel-trail'))$('cancel-trail').hidden=true;
+  const submit=$('trail-form')?.querySelector('button[type="submit"]');if(submit)submit.textContent='+ Adicionar trilha';
+}
+
+function editTrail(id){
+  const trail=trailsCache.find(item=>item.id===id);if(!trail)return;
+  $('trail-id').value=trail.id;$('trail-name').value=trail.name||'';$('trail-slug').value=trail.slug||slugify(trail.name||'');$('trail-description').value=trail.description||'';
+  $('cancel-trail').hidden=false;
+  const submit=$('trail-form')?.querySelector('button[type="submit"]');if(submit)submit.textContent='Salvar alterações';
+  $('trail-name').focus();$('trail-form').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function enhanceTrailRows(){
+  $('trails-list')?.querySelectorAll('[data-trail-row]').forEach(row=>{
+    const actions=row.querySelector('.trail-admin-actions');if(!actions||actions.querySelector('[data-edit-trail]'))return;
+    const button=document.createElement('button');button.type='button';button.className='small-btn';button.dataset.editTrail=row.dataset.trailRow;button.textContent='Editar';
+    actions.prepend(button);button.addEventListener('click',()=>editTrail(row.dataset.trailRow));
+  });
+}
+
+function applyTrailDraftPreview(doc){
+  if(!doc)return;
+  const host=doc.querySelector('.gallery-trails');
+  if(host){
+    const desired=trailsCache.map(trail=>String(trail.id));
+    const current=Array.from(host.querySelectorAll(':scope > [data-gallery-trail-id]')).map(card=>String(card.dataset.galleryTrailId||''));
+    const needsReorder=desired.some((id,index)=>current[index]!==id);
+    if(needsReorder){
+      desired.forEach(id=>{
+        const card=host.querySelector(`[data-gallery-trail-id="${id}"]`);
+        if(card)host.appendChild(card);
+      });
+    }
+  }
+  Object.entries(trailDraftEdits).forEach(([id,draft])=>{
+    const card=doc.querySelector(`[data-gallery-trail-id="${id}"]`);const title=card?.querySelector('strong');const description=card?.querySelector('small');
+    if(title)title.textContent=draft.name||'';if(description&&draft.description!==undefined)description.textContent=draft.description||'Ver ensaios →';
+  });
+}
+
+async function moveTrailDraft(id,direction){
+  const from=trailsCache.findIndex(trail=>trail.id===id),to=from+direction;
+  if(from<0||to<0||to>=trailsCache.length)return;
+  const [trail]=trailsCache.splice(from,1);trailsCache.splice(to,0,trail);
+  trailsCache.forEach((item,index)=>{
+    item.sort_order=index*10;
+    trailDraftEdits[item.id]={...trailDraftEdits[item.id],name:item.name,slug:item.slug,description:item.description??null,sort_order:item.sort_order};
+  });
+  renderCategorySelect();renderTrails();enhanceTrailRows();renderGalleries();
+  try{applyTrailDraftPreview($('design-preview-frame')?.contentDocument)}catch(_){}
+  await saveDesignDraft();updateDesignPublicationState();
+  msg($('trail-msg'),'Nova ordem salva no rascunho. Publique as alterações para atualizar o site.','sucesso');
+}
+
+function renderTrails(){
+  const host=$('trails-list');if(!host)return;
+  host.classList.add('trail-admin-grid');
+  host.innerHTML=trailsCache.length?trailsCache.map((t,index)=>{const cover=t.cover_url||galleriesCache.find(g=>g.trail_id===t.id)?.cover_url||'';const x=Number(t.cover_focus_x??50),y=Number(t.cover_focus_y??50);return `<div class="trail-admin-row" data-trail-row="${t.id}"><div class="trail-admin-identity"><strong>${esc(t.name)}</strong><span>/${esc(t.slug)}</span></div><div class="trail-admin-count">${categoriesCache.filter(c=>c.trail_id===t.id).length} categorias</div><div class="trail-order-actions" aria-label="Reordenar ${attr(t.name)}"><button class="small-btn" type="button" data-move-trail="-1" ${index===0?'disabled':''} aria-label="Mover para a esquerda">←</button><span>${index+1}</span><button class="small-btn" type="button" data-move-trail="1" ${index===trailsCache.length-1?'disabled':''} aria-label="Mover para a direita">→</button></div><div class="trail-focus-editor"><div class="cover-focus-preview" data-trail-focus-preview style="background-image:${cover?`url('${attr(cover)}')`:'none'};background-position:${x}% ${y}%"><span class="cover-focus-marker" style="left:${x}%;top:${y}%"></span></div><label>Horizontal <input data-trail-focus-x type="range" min="0" max="100" value="${x}"></label><label>Vertical <input data-trail-focus-y type="range" min="0" max="100" value="${y}"></label></div><div class="trail-admin-actions"><button class="small-btn" data-save-trail-focus="${t.id}">Salvar enquadramento</button><button class="small-btn" data-delete-trail="${t.id}">Excluir</button></div></div>`}).join(''):'<p class="panel-copy">Nenhuma trilha criada.</p>';
+  host.querySelectorAll('[data-trail-row]').forEach(row=>{const preview=row.querySelector('[data-trail-focus-preview]'),x=row.querySelector('[data-trail-focus-x]'),y=row.querySelector('[data-trail-focus-y]');const draw=()=>{preview.style.backgroundPosition=`${x.value}% ${y.value}%`;const marker=preview.querySelector('.cover-focus-marker');marker.style.left=x.value+'%';marker.style.top=y.value+'%'};x.addEventListener('input',draw);y.addEventListener('input',draw);preview.addEventListener('click',event=>{const rect=preview.getBoundingClientRect();x.value=Math.round((event.clientX-rect.left)/rect.width*100);y.value=Math.round((event.clientY-rect.top)/rect.height*100);draw()});row.querySelectorAll('[data-move-trail]').forEach(button=>button.addEventListener('click',()=>moveTrailDraft(row.dataset.trailRow,Number(button.dataset.moveTrail))));row.querySelector('[data-save-trail-focus]').addEventListener('click',async()=>{const result=await updateTrail(row.dataset.trailRow,{cover_focus_x:Number(x.value),cover_focus_y:Number(y.value)});if(result.error)return flash(result.error.message,'erro');const trail=trailsCache.find(item=>item.id===row.dataset.trailRow);if(trail){trail.cover_focus_x=Number(x.value);trail.cover_focus_y=Number(y.value)}flash('Enquadramento da trilha salvo.','sucesso')})});
+  host.querySelectorAll('[data-delete-trail]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Excluir esta trilha? As categorias ficarão sem trilha.'))return;const r=await removeTrail(b.dataset.deleteTrail);if(r.error)return flash(r.error.message,'erro');await loadCategories()}));
+}
+
+async function saveTrail(event){
+  event.preventDefault();
+  const id=$('trail-id')?.value||'';
+  const name=safeText($('trail-name').value,100);if(!name)return;
+  const slug=slugify(name).slice(0,120);
+  const description=safeText($('trail-description').value,240)||null;
+  if(id){
+    await ensureDesignPersistenceLoaded();
+    trailDraftEdits[id]={...trailDraftEdits[id],name,slug,description};
+    const trail=trailsCache.find(item=>item.id===id);if(trail)Object.assign(trail,trailDraftEdits[id]);
+    renderCategorySelect();renderTrails();enhanceTrailRows();renderGalleries();resetTrailForm();
+    const frame=$('design-preview-frame');try{applyTrailDraftPreview(frame?.contentDocument)}catch(_){}
+    await saveDesignDraft();
+    msg($('trail-msg'),'Alteração salva no rascunho. Revise na prévia e publique quando estiver pronto.','sucesso');
+    updateDesignPublicationState();return;
+  }
+  const r=await createTrail({name,slug,description,published:true,sort_order:trailsCache.length*10});
+  if(r.error)return msg($('trail-msg'),r.error.message,'erro');
+  await logAdminActivity('trail_created',`Trilha “${name}” criada`,{entityType:'gallery_trail',entityId:r.data?.id}).catch(()=>{});
+  resetTrailForm();msg($('trail-msg'),'Trilha criada.','sucesso');await loadCategories();await loadDashboard();
+}
 
 function renderCategories() {
-
-  const c = $('categories-list');
-
-  if (!categoriesCache.length) {
-
-    c.innerHTML =
-      '<p class="panel-copy">Nenhuma categoria cadastrada.</p>';
-
-    return;
-  }
-
-  c.innerHTML =
-    categoriesCache
-      .map(
-        x => `
-          <div class="category-row">
-
-            <div class="category-name">
-              ${esc(x.name)}
-            </div>
-
-            <div class="category-slug">
-              ${esc(x.slug)}
-            </div>
-
-            <div class="category-order">
-              ${x.sort_order}
-            </div>
-
-            <div class="card-actions">
-
-              <button
-                class="small-btn"
-                data-edit-category="${x.id}"
-              >
-                Editar
-              </button>
-
-              <button
-                class="small-btn"
-                data-delete-category="${x.id}"
-              >
-                Excluir
-              </button>
-
-            </div>
-
-          </div>
-        `
-      )
-      .join('');
-
-
-  c
-    .querySelectorAll('[data-edit-category]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        () => editCategory(
-          b.dataset.editCategory
-        )
-      );
-
-    });
-
-
-  c
-    .querySelectorAll('[data-delete-category]')
-    .forEach(b => {
-
-      b.addEventListener(
-        'click',
-        () => withOperationLock('delete-category:' + b.dataset.deleteCategory, () => deleteCategory(
-          b.dataset.deleteCategory
-        ))
-      );
-
-    });
-
+  renderCategoriesUI({
+    $,
+    categories: categoriesCache,
+    esc,
+    onEdit: editCategory,
+    onDelete: deleteCategory,
+    withOperationLock
+  });
 }
-
 
 async function saveCategory(e) {
   e.preventDefault();
@@ -1707,16 +1803,19 @@ async function saveCategory(e) {
       slug,
       sort_order: clampNumber($('category-order').value, 0, 9999, 0),
       published: true
+      ,trail_id: $('category-trail')?.value || null
     };
 
     const r = id
-      ? await supabase.from('categories').update(p).eq('id', id)
-      : await supabase.from('categories').insert(p);
+      ? await updateCategory(id, p)
+      : await createCategory(p);
 
     if (r.error) {
       msg($('category-msg'), r.error.message, 'erro');
       return;
     }
+
+    await logAdminActivity(id ? 'category_updated' : 'category_created', `Categoria “${name}” ${id ? 'atualizada' : 'criada'}`, { entityType: 'category', entityId: id || r.data?.id }).catch(() => {});
 
     msg($('category-msg'), 'Categoria salva.', 'sucesso');
     resetCategoryForm();
@@ -1742,6 +1841,7 @@ function editCategory(id) {
   $('category-slug').value = c.slug;
   $('category-order').value =
     c.sort_order;
+  if($('category-trail'))$('category-trail').value=c.trail_id||'';
 
   $('cancel-category').hidden = false;
 
@@ -1767,10 +1867,7 @@ async function deleteCategory(id) {
 
   const {
     error
-  } = await supabase
-    .from('categories')
-    .delete()
-    .eq('id', id);
+  } = await removeCategory(id);
 
   if (error) {
 
@@ -1810,25 +1907,12 @@ function resetCategoryForm() {
 ========================================================= */
 
 async function loadGalleries() {
+  await ensureDesignPersistenceLoaded().catch(() => {});
 
   const {
     data: galleries,
     error: galleriesError
-  } = await supabase
-    .from('galleries')
-    .select('*, categories(name)')
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    )
-    .order(
-      'created_at',
-      {
-        ascending: false
-      }
-    );
+  } = await listGalleries();
 
   if (galleriesError) {
 
@@ -1847,22 +1931,7 @@ async function loadGalleries() {
   const {
     data: categories,
     error: categoriesError
-  } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('published', true)
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    )
-    .order(
-      'name',
-      {
-        ascending: true
-      }
-    );
+  } = await listPublishedCategories();
 
   if (categoriesError) {
 
@@ -1877,323 +1946,27 @@ async function loadGalleries() {
   categoriesCache =
     categories || [];
 
+  const trailsResult=await listTrails();trailsCache=(trailsResult.data||[]).map(trail=>trailDraftEdits[trail.id]?{...trail,...trailDraftEdits[trail.id]}:trail).sort((a,b)=>(a.sort_order??0)-(b.sort_order??0));
+
   renderGalleries();
   renderCategorySelect();
 }
 
 
 function renderGalleries() {
-
-  const c = $('galleries-list');
-
-  if (!galleriesCache.length) {
-    c.innerHTML = `
-      <div class="panel">
-        <p class="section-eyebrow">Ainda vazio</p>
-        <h2 style="font-family:var(--font-display);font-weight:400;">
-          Nenhuma galeria criada.
-        </h2>
-        <p class="panel-copy" style="margin-top:8px;">
-          Comece criando a primeira galeria do novo CMS.
-        </p>
-      </div>
-    `;
-    return;
-  }
-
-  c.innerHTML = galleriesCache.map(g => `
-    <article
-      class="gallery-admin-card"
-      data-gallery-id="${attr(g.id)}"
-      draggable="true"
-      title="Arraste para mudar a posição da galeria"
-    >
-      <div class="gallery-drag-handle"
-        title="Arraste para mudar a posição ou clique para usar como capa"
-        aria-label="Arraste para mudar a posição"
-      >⋮⋮</div>
-
-      <div class="gallery-thumb-wrap">
-        ${
-          g.cover_url
-            ? `<img class="gallery-thumb" src="${attr(g.cover_url)}" alt="Capa da galeria ${attr(g.title)}" loading="lazy"><span class="gallery-cover-label">CAPA</span>`
-            : `<div class="gallery-thumb empty">SEM CAPA</div>`
-        }
-      </div>
-
-      <div class="gallery-card-content">
-        <div class="gallery-card-title">${esc(g.title)}</div>
-        <div class="gallery-meta">
-          /${esc(g.slug)}
-          ${g.categories?.name ? ` · ${esc(g.categories.name)}` : ''}
-        </div>
-      </div>
-
-      <div class="gallery-card-controls">
-        <span class="status-pill ${g.published ? 'published' : 'draft'}">
-          ${g.published ? 'PUBLICADA' : 'OCULTA'}
-        </span>
-
-        <div class="card-actions gallery-card-actions">
-          <button class="small-btn" data-photos="${attr(g.id)}" type="button">Fotos</button>
-          <button class="small-btn" data-edit-gallery="${attr(g.id)}" type="button">Editar</button>
-          <button class="small-btn" data-toggle-gallery="${attr(g.id)}" type="button">
-            ${g.published ? 'Ocultar' : 'Publicar'}
-          </button>
-          <button class="small-btn danger-btn" data-delete-gallery="${attr(g.id)}" type="button">Excluir</button>
-        </div>
-      </div>
-    </article>
-  `).join('');
-
-  // Abre a galeria ao clicar no cartão inteiro, como já acontece em Ensaios.
-  c.querySelectorAll('.gallery-admin-card').forEach(card => {
-    card.addEventListener('click', e => {
-      if (
-        e.target.closest('button') ||
-        e.target.closest('a') ||
-        e.target.closest('.gallery-drag-handle')
-      ) {
-        return;
-      }
-      openGalleryModal(card.dataset.galleryId);
-    });
+  renderGalleriesUI({
+    $,
+    galleries: galleriesCache,
+    esc,
+    attr,
+    openGalleryModal,
+    editGallery,
+    toggleGallery,
+    deleteGallery,
+    withOperationLock,
+    onReorder: salvarOrdemGalerias
   });
-
-  c.querySelectorAll('[data-photos]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      openGalleryModal(b.dataset.photos);
-    });
-  });
-
-  c.querySelectorAll('[data-edit-gallery]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      editGallery(b.dataset.editGallery);
-    });
-  });
-
-  c.querySelectorAll('[data-toggle-gallery]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      withOperationLock('toggle-gallery:' + b.dataset.toggleGallery, () => toggleGallery(b.dataset.toggleGallery));
-    });
-  });
-
-  c.querySelectorAll('[data-delete-gallery]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      withOperationLock('delete-gallery:' + b.dataset.deleteGallery, () => deleteGallery(b.dataset.deleteGallery));
-    });
-  });
-
-  configurarOrdenacaoGalerias();
 }
-
-/* =========================================================
-   ORDENAÇÃO DAS GALERIAS
-========================================================= */
-
-function configurarOrdenacaoGalerias() {
-
-  const container =
-    $('galleries-list');
-
-  if (!container) return;
-
-  let draggedCard = null;
-
-  const cards = [
-    ...container.querySelectorAll(
-      '.gallery-admin-card'
-    )
-  ];
-
-
-  cards.forEach(card => {
-
-
-    const handle = card.querySelector('.gallery-drag-handle');
-
-    if (handle) {
-      handle.addEventListener('pointerdown', event => {
-        if (event.pointerType === 'mouse' && event.button !== 0) return;
-        card.dataset.dragArmed = '1';
-        card.draggable = true;
-      });
-      handle.addEventListener('mousedown', () => {
-        card.dataset.dragArmed = '1';
-        card.draggable = true;
-      });
-    }
-
-    card.addEventListener(
-      'dragstart',
-      event => {
-
-        if (card.dataset.dragArmed !== '1') {
-          event.preventDefault();
-          card.draggable = false;
-          return;
-        }
-
-        draggedCard = card;
-
-        card.classList.add(
-          'is-dragging'
-        );
-
-        event.dataTransfer.effectAllowed =
-          'move';
-
-        event.dataTransfer.setData(
-          'text/plain',
-          card.dataset.galleryId
-        );
-
-      }
-    );
-
-
-    card.addEventListener(
-      'dragover',
-      event => {
-
-        event.preventDefault();
-
-        if (
-          !draggedCard ||
-          draggedCard === card
-        ) {
-          return;
-        }
-
-        event.dataTransfer.dropEffect =
-          'move';
-
-        const rect =
-          card.getBoundingClientRect();
-
-        /*
-          Grade responsiva: considera eixo Y e X.
-          Assim o arrastar continua natural quando as galerias
-          ficam lado a lado, e não apenas em uma lista vertical.
-        */
-        const centerY =
-          rect.top + rect.height / 2;
-
-        const centerX =
-          rect.left + rect.width / 2;
-
-        const sameRow =
-          Math.abs(event.clientY - centerY) <
-          rect.height * .38;
-
-        const after =
-          event.clientY > centerY ||
-          (
-            sameRow &&
-            event.clientX > centerX
-          );
-
-        container.insertBefore(
-          draggedCard,
-          after ? card.nextSibling : card
-        );
-
-        container
-          .querySelectorAll(
-            '.gallery-admin-card'
-          )
-          .forEach(item => {
-
-            item.classList.remove(
-              'drag-over'
-            );
-
-          });
-
-        card.classList.add(
-          'drag-over'
-        );
-
-      }
-    );
-
-
-    card.addEventListener(
-      'drop',
-      event => {
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        card.classList.remove(
-          'drag-over'
-        );
-
-      }
-    );
-
-
-    card.addEventListener(
-      'dragend',
-      async () => {
-
-        if (!draggedCard) {
-          return;
-        }
-
-        draggedCard.classList.remove(
-          'is-dragging'
-        );
-
-        container
-          .querySelectorAll(
-            '.gallery-admin-card'
-          )
-          .forEach(item => {
-
-            item.classList.remove(
-              'drag-over'
-            );
-
-          });
-
-        draggedCard = null;
-        card.dataset.dragArmed = '0';
-        card.draggable = false;
-
-        await salvarOrdemGalerias();
-
-      }
-    );
-
-
-    card.addEventListener(
-      'dragleave',
-      event => {
-
-        if (
-          !card.contains(
-            event.relatedTarget
-          )
-        ) {
-
-          card.classList.remove(
-            'drag-over'
-          );
-
-        }
-
-      }
-    );
-
-  });
-
-}
-
 
 /* =========================================================
    SALVAR ORDEM DAS GALERIAS
@@ -2218,12 +1991,7 @@ async function salvarOrdemGalerias() {
         const id =
           card.dataset.galleryId;
 
-        return supabase
-          .from('galleries')
-          .update({
-            sort_order: index + 1
-          })
-          .eq('id', id);
+        return updateGallerySortOrder(id, index + 1);
 
       }
     );
@@ -2290,6 +2058,14 @@ async function salvarOrdemGalerias() {
    FORMULÁRIO DE GALERIA
 ========================================================= */
 
+function updateGalleryCoverFocusPreview(){
+  const preview=$('gallery-cover-focus-preview');if(!preview)return;
+  const url=safeText($('gallery-cover')?.value,2048),x=clampNumber($('gallery-cover-focus-x')?.value,0,100,50),y=clampNumber($('gallery-cover-focus-y')?.value,0,100,50);
+  preview.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';preview.style.backgroundPosition=`${x}% ${y}%`;preview.classList.toggle('empty',!url);
+  const marker=preview.querySelector('.cover-focus-marker');if(marker){marker.style.left=x+'%';marker.style.top=y+'%'}
+  if($('gallery-cover-focus-x-out'))$('gallery-cover-focus-x-out').textContent=x+'%';if($('gallery-cover-focus-y-out'))$('gallery-cover-focus-y-out').textContent=y+'%';
+}
+
 function openGalleryForm(g = null) {
 
   $('gallery-form-wrap').hidden =
@@ -2309,14 +2085,19 @@ function openGalleryForm(g = null) {
   $('gallery-slug').value =
     g?.slug || '';
 
-  $('gallery-category').value =
-    g?.category_id || '';
+  const selectedCategory=categoriesCache.find(c=>c.id===g?.category_id);
+  if($('gallery-trail'))$('gallery-trail').value=g?.trail_id||selectedCategory?.trail_id||'';
+  renderGalleryCategoryOptions($('gallery-trail')?.value||'',g?.category_id||'');
 
   $('gallery-description').value =
     g?.description || '';
 
   $('gallery-cover').value =
     g?.cover_url || '';
+
+  $('gallery-cover-focus-x').value=Number(g?.cover_focus_x??50);
+  $('gallery-cover-focus-y').value=Number(g?.cover_focus_y??50);
+  updateGalleryCoverFocusPreview();
 
   $('gallery-order').value =
     g?.sort_order ?? 0;
@@ -2371,18 +2152,24 @@ async function saveGallery(e) {
       slug,
       description: safeText($('gallery-description').value, 2000) || null,
       category_id: $('gallery-category').value || null,
+      trail_id: $('gallery-trail')?.value || null,
+      cover_focus_x: clampNumber($('gallery-cover-focus-x')?.value,0,100,50),
+      cover_focus_y: clampNumber($('gallery-cover-focus-y')?.value,0,100,50),
       cover_url: coverUrl || null,
       sort_order: clampNumber($('gallery-order').value, 0, 9999, 0)
     };
 
+
     const r = id
-      ? await supabase.from('galleries').update(p).eq('id', id).select().single()
-      : await supabase.from('galleries').insert(p).select().single();
+      ? await updateGallery(id, p)
+      : await createGallery(p);
 
     if (r.error) {
       msg($('gallery-form-msg'), r.error.message, 'erro');
       return;
     }
+
+    await logAdminActivity(id ? 'gallery_updated' : 'gallery_created', `Galeria “${title}” ${id ? 'atualizada' : 'criada'}`, { entityType: 'gallery', entityId: id || r.data?.id }).catch(() => {});
 
     msg($('gallery-form-msg'), 'Galeria salva.', 'sucesso');
     await loadGalleries();
@@ -2397,23 +2184,21 @@ async function saveGallery(e) {
 }
 
 
-function editGallery(id) {
-
-  const g =
-    galleriesCache.find(
-      x => x.id === id
-    );
-
-  if (g) {
-
-    openGalleryForm(g);
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-
+async function editGallery(id) {
+  const fresh = await getGalleryWithCategory(id);
+  if (fresh.error) {
+    flash(`Não foi possível abrir a galeria: ${fresh.error.message}`, 'erro');
+    return;
   }
+  const g = fresh.data || galleriesCache.find(x => x.id === id);
+  if (!g) return;
+  const index = galleriesCache.findIndex(item => item.id === id);
+  if (index >= 0) galleriesCache[index] = g;
+  openGalleryForm(g);
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
 }
 
 
@@ -2442,12 +2227,7 @@ async function toggleGallery(id) {
 
   const {
     error: galleryError
-  } = await supabase
-    .from('galleries')
-    .update({
-      published: novoEstado
-    })
-    .eq('id', id);
+  } = await setGalleryPublished(id, novoEstado);
 
 
   if (galleryError) {
@@ -2463,22 +2243,12 @@ async function toggleGallery(id) {
 
   const {
     error: photosError
-  } = await supabase
-    .from('gallery_photos')
-    .update({
-      published: novoEstado
-    })
-    .eq('gallery_id', id);
+  } = await setGalleryPhotosPublished(id, novoEstado);
 
 
   if (photosError) {
 
-    await supabase
-      .from('galleries')
-      .update({
-        published: g.published
-      })
-      .eq('id', id);
+    await setGalleryPublished(id, g.published);
 
 
     flash(
@@ -2517,115 +2287,20 @@ async function toggleGallery(id) {
 
 
 async function deleteGallery(id) {
+  const gallery = galleriesCache.find(item => item.id === id);
+  if (!gallery || !confirm(`Excluir "${gallery.title}" e todas as suas fotografias? Esta ação não pode ser desfeita.`)) return;
 
-  const g =
-    galleriesCache.find(
-      x => x.id === id
-    );
-
-
-  if (
-    !g ||
-    !confirm(
-      `Excluir "${g.title}" e todas as suas fotografias? Esta ação não pode ser desfeita.`
-    )
-  ) {
+  const result = await deleteGalleryWithAssets({ galleryId: id, bucket: BUCKET });
+  if (result.error) {
+    const label = result.stage === 'list-assets' ? 'Erro ao localizar fotos' :
+      result.stage === 'storage' ? 'Não foi possível apagar os arquivos' : 'Erro ao excluir galeria';
+    flash(`${label}: ${result.error.message}`, 'erro');
     return;
   }
-
-
-  const {
-    data: photos,
-    error: qerr
-  } = await supabase
-    .from('gallery_photos')
-    .select(
-      'id,image_url'
-    )
-    .eq(
-      'gallery_id',
-      id
-    );
-
-
-  if (qerr) {
-
-    flash(
-      `Erro ao localizar fotos: ${qerr.message}`,
-      'erro'
-    );
-
-    return;
-  }
-
-
-  const paths =
-    (photos || [])
-      .map(
-        p =>
-          storagePath(
-            p.image_url
-          )
-      )
-      .filter(Boolean);
-
-
-  if (paths.length) {
-
-    const {
-      error
-    } = await supabase
-      .storage
-      .from(BUCKET)
-      .remove(paths);
-
-
-    if (error) {
-
-      flash(
-        `Não foi possível apagar os arquivos: ${error.message}`,
-        'erro'
-      );
-
-      return;
-    }
-
-  }
-
-
-  const {
-    error
-  } = await supabase
-    .from('galleries')
-    .delete()
-    .eq('id', id);
-
-
-  if (error) {
-
-    flash(
-      `Erro ao excluir galeria: ${error.message}`,
-      'erro'
-    );
-
-    return;
-  }
-
-
-  flash(
-    'Galeria excluída.',
-    'sucesso'
-  );
-
-
+  flash('Galeria excluída.', 'sucesso');
   await loadGalleries();
   await loadDashboard();
 }
-
-
-/* =========================================================
-   MODAL DA GALERIA
-========================================================= */
 
 async function openGalleryModal(id) {
 
@@ -2672,14 +2347,7 @@ async function loadPhotos() {
   const {
     data: freshGallery,
     error: ge
-  } = await supabase
-    .from('galleries')
-    .select('*')
-    .eq(
-      'id',
-      currentGallery.id
-    )
-    .single();
+  } = await getGallery(currentGallery.id);
 
 
   if (ge) {
@@ -2701,27 +2369,7 @@ async function loadPhotos() {
   const {
     data,
     error
-  } = await supabase
-    .from('gallery_photos')
-    .select(
-      'id,gallery_id,image_url,alt_text,sort_order,published,created_at'
-    )
-    .eq(
-      'gallery_id',
-      currentGallery.id
-    )
-    .order(
-      'sort_order',
-      {
-        ascending: true
-      }
-    )
-    .order(
-      'created_at',
-      {
-        ascending: true
-      }
-    );
+  } = await listGalleryPhotos(currentGallery.id);
 
 
   if (error) {
@@ -2739,308 +2387,12 @@ async function loadPhotos() {
   const photos =
     data || [];
 
+  renderGalleryPhotosUI({
+    $, photos, gallery: currentGallery, attr, withOperationLock,
+    setCover, togglePhotoPublished, deletePhoto, savePhotoOrder
+  });
+  return;
 
-  $('photo-count').textContent =
-    `${photos.length} fotografia${
-      photos.length === 1
-        ? ''
-        : 's'
-    }`;
-
-
-  if (!photos.length) {
-
-    $('photo-grid').innerHTML =
-      '<p class="panel-copy" style="grid-column:1/-1;padding:20px;">Nenhuma fotografia nesta galeria.</p>';
-
-    return;
-  }
-
-
-  $('photo-grid').innerHTML =
-    photos
-      .map(
-        (x, index) => `
-
-          <div
-            class="
-              admin-photo
-              ${
-                currentGallery.cover_url ===
-                x.image_url
-                  ? 'admin-photo-cover'
-                  : ''
-              }
-              ${
-                x.published
-                  ? 'photo-is-published'
-                  : 'photo-is-hidden'
-              }
-            "
-            data-photo-id="${attr(x.id)}"
-            draggable="true"
-            title="Arraste para reorganizar ou clique na fotografia para definir como capa"
-          >
-
-            <img
-              src="${attr(x.image_url)}"
-              alt="${attr(
-                x.alt_text ||
-                currentGallery.title ||
-                ''
-              )}"
-              loading="lazy"
-              onerror="this.parentElement.classList.add('photo-load-error')"
-            >
-
-            <span class="photo-order">
-              ${index + 1}
-            </span>
-
-            ${
-              currentGallery.cover_url ===
-              x.image_url
-                ? '<span class="photo-cover-label">CAPA</span>'
-                : ''
-            }
-
-            <button
-              class="photo-status ${
-                x.published
-                  ? 'published'
-                  : 'hidden'
-              }"
-              data-toggle-photo="${attr(x.id)}"
-              title="${
-                x.published
-                  ? 'Ocultar fotografia do site'
-                  : 'Publicar fotografia no site'
-              }"
-              type="button"
-            >
-              ${
-                x.published
-                  ? '✓ PUBLICADA'
-                  : '○ OCULTA'
-              }
-            </button>
-
-            <button
-              class="photo-delete"
-              data-delete-photo="${attr(x.id)}"
-              title="Excluir fotografia"
-              type="button"
-            >
-              ×
-            </button>
-
-          </div>
-
-        `
-      )
-      .join('');
-
-
-  const grid =
-    $('photo-grid');
-
-
-  grid
-    .querySelectorAll('.admin-photo')
-    .forEach(el => {
-
-      const pht =
-        photos.find(
-          x =>
-            x.id ===
-            el.dataset.photoId
-        );
-
-
-      el.addEventListener(
-        'click',
-        e => {
-
-          if (
-            e.target.closest(
-              '.photo-delete'
-            ) ||
-            e.target.closest(
-              '.photo-status'
-            )
-          ) {
-            return;
-          }
-
-
-          if (pht) {
-            withOperationLock('cover-gallery:' + (currentGallery?.id || ''), () => setCover(pht));
-          }
-
-        }
-      );
-
-
-      el.addEventListener(
-        'dragstart',
-        e => {
-
-          el.classList.add(
-            'is-dragging'
-          );
-
-          e.dataTransfer.effectAllowed =
-            'move';
-
-          e.dataTransfer.setData(
-            'text/plain',
-            el.dataset.photoId
-          );
-
-        }
-      );
-
-
-      el.addEventListener(
-        'dragend',
-        () => {
-
-          el.classList.remove(
-            'is-dragging'
-          );
-
-          grid
-            .querySelectorAll(
-              '.admin-photo'
-            )
-            .forEach(item =>
-              item.classList.remove(
-                'drag-over'
-              )
-            );
-
-          savePhotoOrder();
-
-        }
-      );
-
-
-      el.addEventListener(
-        'dragover',
-        e => {
-
-          e.preventDefault();
-
-          const dragging =
-            grid.querySelector(
-              '.is-dragging'
-            );
-
-
-          if (
-            !dragging ||
-            dragging === el
-          ) {
-            return;
-          }
-
-
-          const rect =
-            el.getBoundingClientRect();
-
-
-          const after =
-            e.clientY >
-            rect.top +
-            rect.height / 2;
-
-
-          grid.insertBefore(
-            dragging,
-            after
-              ? el.nextSibling
-              : el
-          );
-
-
-          el.classList.add(
-            'drag-over'
-          );
-
-        }
-      );
-
-
-      el.addEventListener(
-        'dragleave',
-        () => {
-
-          el.classList.remove(
-            'drag-over'
-          );
-
-        }
-      );
-
-
-      el.addEventListener(
-        'drop',
-        e => {
-
-          e.preventDefault();
-
-          el.classList.remove(
-            'drag-over'
-          );
-
-        }
-      );
-
-    });
-
-
-  grid
-    .querySelectorAll(
-      '[data-toggle-photo]'
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          withOperationLock('toggle-photo:' + button.dataset.togglePhoto, () => togglePhotoPublished(
-            button.dataset.togglePhoto
-          ));
-
-        }
-      );
-
-    });
-
-
-  grid
-    .querySelectorAll(
-      '[data-delete-photo]'
-    )
-    .forEach(button => {
-
-      button.addEventListener(
-        'click',
-        e => {
-
-          e.stopPropagation();
-
-          withOperationLock('delete-photo:' + button.dataset.deletePhoto, () => deletePhoto(
-            button.dataset.deletePhoto
-          ));
-
-        }
-      );
-
-    });
 
 }
 
@@ -3054,16 +2406,7 @@ async function togglePhotoPublished(id) {
   const {
     data: photo,
     error: findError
-  } = await supabase
-    .from('gallery_photos')
-    .select(
-      'id,published'
-    )
-    .eq(
-      'id',
-      id
-    )
-    .single();
+  } = await getGalleryPhotoPublication(id);
 
 
   if (
@@ -3086,16 +2429,7 @@ async function togglePhotoPublished(id) {
 
   const {
     error
-  } = await supabase
-    .from('gallery_photos')
-    .update({
-      published:
-        novoEstado
-    })
-    .eq(
-      'id',
-      id
-    );
+  } = await setGalleryPhotoPublished(id, novoEstado);
 
 
   if (error) {
@@ -3161,16 +2495,7 @@ async function savePhotoOrder() {
 
     const {
       error
-    } = await supabase
-      .from('gallery_photos')
-      .update({
-        sort_order:
-          item.sort_order
-      })
-      .eq(
-        'id',
-        item.id
-      );
+    } = await updateGalleryPhotoSortOrder(item.id, item.sort_order);
 
 
     if (error) {
@@ -3234,21 +2559,7 @@ async function uploadPhotos(files, g) {
   );
 
 
-  const q =
-    await supabase
-      .from('gallery_photos')
-      .select('sort_order')
-      .eq(
-        'gallery_id',
-        g.id
-      )
-      .order(
-        'sort_order',
-        {
-          ascending: false
-        }
-      )
-      .limit(1);
+  const q = await getMaxGalleryPhotoOrder(g.id);
 
 
   let order =
@@ -3287,79 +2598,24 @@ async function uploadPhotos(files, g) {
       )}.${safe}`;
 
 
-    const up =
-      await supabase
-        .storage
-        .from(BUCKET)
-        .upload(
-          path,
-          file,
-          {
-            upsert: false
-          }
-        );
+    const result = await uploadGalleryPhoto({
+      bucket: BUCKET,
+      path,
+      file,
+      gallery: g,
+      sortOrder: order + 1
+    });
 
-
-    if (up.error) {
-
+    if (result.error) {
       msg(
         $('upload-msg'),
-        `Erro no upload de ${file.name}: ${up.error.message}`,
+        `${result.stage === 'upload' ? 'Erro no upload de' : 'Erro ao registrar'} ${file.name}: ${result.error.message}`,
         'erro'
       );
-
+      if (result.stage === 'database') order++;
       continue;
     }
-
-
-    const {
-      data: url
-    } =
-      supabase
-        .storage
-        .from(BUCKET)
-        .getPublicUrl(path);
-
-
     order++;
-
-
-    const ins =
-      await supabase
-        .from('gallery_photos')
-        .insert({
-          gallery_id:
-            g.id,
-
-          image_url:
-            url.publicUrl,
-
-          alt_text:
-            g.title,
-
-          sort_order:
-            order,
-
-          published:
-            g.published === true
-        });
-
-
-    if (ins.error) {
-
-      await supabase
-        .storage
-        .from(BUCKET)
-        .remove([path]);
-
-
-      msg(
-        $('upload-msg'),
-        `Erro ao registrar ${file.name}: ${ins.error.message}`,
-        'erro'
-      );
-
-    }
 
   }
 
@@ -3393,14 +2649,7 @@ async function ensureCover(id) {
 
   const {
     data: g
-  } = await supabase
-    .from('galleries')
-    .select('cover_url')
-    .eq(
-      'id',
-      id
-    )
-    .single();
+  } = await getGalleryCover(id);
 
 
   if (g?.cover_url) {
@@ -3410,33 +2659,12 @@ async function ensureCover(id) {
 
   const {
     data: p
-  } =
-    await supabase
-      .from('gallery_photos')
-      .select('image_url')
-      .eq(
-        'gallery_id',
-        id
-      )
-      .order(
-        'sort_order'
-      )
-      .limit(1)
-      .maybeSingle();
+  } = await getFirstGalleryPhoto(id);
 
 
   if (p?.image_url) {
 
-    await supabase
-      .from('galleries')
-      .update({
-        cover_url:
-          p.image_url
-      })
-      .eq(
-        'id',
-        id
-      );
+    await setGalleryCover(id, p.image_url);
 
   }
 }
@@ -3451,16 +2679,7 @@ async function setCover(p) {
 
   const {
     error
-  } = await supabase
-    .from('galleries')
-    .update({
-      cover_url:
-        p.image_url
-    })
-    .eq(
-      'id',
-      currentGallery.id
-    );
+  } = await setGalleryCover(currentGallery.id, p.image_url);
 
 
   if (error) {
@@ -3494,151 +2713,33 @@ async function setCover(p) {
 ========================================================= */
 
 async function deletePhoto(id) {
+  if (!confirm('Excluir esta fotografia?')) return;
 
-  const {
-    data: p,
-    error: q
-  } = await supabase
-    .from('gallery_photos')
-    .select('*')
-    .eq(
-      'id',
-      id
-    )
-    .single();
-
-
-  if (
-    q ||
-    !p
-  ) {
-
-    flash(
-      'Fotografia não encontrada.',
-      'erro'
-    );
-
+  const result = await deleteGalleryPhotoWithAsset({ photoId: id, bucket: BUCKET });
+  if (result.error) {
+    const label = result.stage === 'find' ? 'Fotografia não encontrada' :
+      result.stage === 'storage' ? 'Erro ao excluir arquivo' : 'Erro ao excluir registro';
+    flash(`${label}: ${result.error.message || ''}`, 'erro');
     return;
   }
 
-
-  if (
-    !confirm(
-      'Excluir esta fotografia?'
-    )
-  ) {
-    return;
+  const photo = result.data.photo;
+  if (currentGallery.cover_url === photo.image_url) {
+    await setGalleryCover(currentGallery.id, null);
+    await ensureCover(currentGallery.id);
+    await refreshGalleryCache(currentGallery.id);
   }
-
-
-  const path =
-    storagePath(
-      p.image_url
-    );
-
-
-  if (path) {
-
-    const {
-      error
-    } = await supabase
-      .storage
-      .from(BUCKET)
-      .remove([path]);
-
-
-    if (error) {
-
-      flash(
-        `Erro ao excluir arquivo: ${error.message}`,
-        'erro'
-      );
-
-      return;
-    }
-
-  }
-
-
-  const {
-    error
-  } = await supabase
-    .from('gallery_photos')
-    .delete()
-    .eq(
-      'id',
-      id
-    );
-
-
-  if (error) {
-
-    flash(
-      `Erro ao excluir registro: ${error.message}`,
-      'erro'
-    );
-
-    return;
-  }
-
-
-  if (
-    currentGallery.cover_url ===
-    p.image_url
-  ) {
-
-    await supabase
-      .from('galleries')
-      .update({
-        cover_url:
-          null
-      })
-      .eq(
-        'id',
-        currentGallery.id
-      );
-
-
-    await ensureCover(
-      currentGallery.id
-    );
-
-
-    await refreshGalleryCache(
-      currentGallery.id
-    );
-
-  }
-
-
-  flash(
-    'Fotografia excluída.',
-    'sucesso'
-  );
-
-
+  flash('Fotografia excluída.', 'sucesso');
   await loadPhotos();
   await loadGalleries();
   await loadDashboard();
 }
 
-
-/* =========================================================
-   CACHE
-========================================================= */
-
 async function refreshGalleryCache(id) {
 
   const {
     data
-  } = await supabase
-    .from('galleries')
-    .select('*, categories(name)')
-    .eq(
-      'id',
-      id
-    )
-    .single();
+  } = await getGalleryWithCategory(id);
 
 
   if (data) {
@@ -3660,24 +2761,6 @@ async function refreshGalleryCache(id) {
 /* =========================================================
    STORAGE
 ========================================================= */
-
-function storagePathForBucket(url, bucket) {
-  const marker =
-    `/storage/v1/object/public/${bucket}/`;
-
-  const i =
-    (url || '').indexOf(marker);
-
-  if (i === -1) {
-    return null;
-  }
-
-  return decodeURIComponent(
-    url.slice(
-      i + marker.length
-    )
-  );
-}
 
 function storagePath(url) {
   return storagePathForBucket(url, BUCKET);
@@ -3727,6 +2810,15 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
     'sobre',
     'contato',
     'client_area'
+  ],
+  menu_order: [
+    'dashboard',
+    'design',
+    'galleries',
+    'categories',
+    'sessions',
+    'messages',
+    'settings'
   ]
 });
 
@@ -3792,6 +2884,16 @@ function normalizeAdminUiConfig(config = {}) {
       });
 
       return normalized.slice(0, allowed.length);
+    })(),
+
+    menu_order: (() => {
+      const allowed = [
+        'dashboard','design','galleries','categories','sessions','messages','settings'
+      ];
+      const incoming = Array.isArray(c.menu_order) ? c.menu_order : [];
+      const normalized = incoming.filter(item => allowed.includes(item));
+      allowed.forEach(item => { if (!normalized.includes(item)) normalized.push(item); });
+      return normalized.slice(0, allowed.length);
     })()
   };
 }
@@ -3820,6 +2922,7 @@ function collectAdminUiConfig() {
 
     safe_title: $('admin-ui-safe-title')?.value,
     safe_status: $('admin-ui-safe-status')?.value,
+    menu_order: collectAdminMenuOrder(),
     safe_copy: $('admin-ui-safe-copy')?.value,
 
     design_content_order:
@@ -3960,6 +3063,10 @@ function applyAdminUiConfig(config = adminUiConfig) {
     c.design_content_order
   );
 
+  renderAdminMenuOrder(
+    c.menu_order
+  );
+
   if (activeView === 'dashboard') {
     if ($('view-eyebrow')) {
       $('view-eyebrow').textContent =
@@ -3971,6 +3078,70 @@ function applyAdminUiConfig(config = adminUiConfig) {
         c.dashboard_title;
     }
   }
+}
+
+
+function collectAdminMenuOrder() {
+  const menu = $('admin-main-menu');
+  if (!menu) return [...ADMIN_UI_DEFAULTS.menu_order];
+  return [...menu.querySelectorAll(':scope > [data-admin-menu-key]')]
+    .map(node => node.dataset.adminMenuKey)
+    .filter(Boolean);
+}
+
+function renderAdminMenuOrder(order = []) {
+  const menu = $('admin-main-menu');
+  if (!menu) return;
+  const nodes = new Map(
+    [...menu.querySelectorAll(':scope > [data-admin-menu-key]')]
+      .map(node => [node.dataset.adminMenuKey,node])
+  );
+  order.forEach(key => { const node=nodes.get(key); if(node) menu.appendChild(node); });
+}
+
+async function persistAdminMenuOrder() {
+  const order = collectAdminMenuOrder();
+  adminUiConfig = normalizeAdminUiConfig({...adminUiConfig,menu_order:order});
+  try {
+    const result = await upsertSiteContentSection('admin','interface',adminUiConfig);
+    if (result.error) throw result.error;
+    flash('Nova ordem do menu guardada.','sucesso');
+  } catch (error) {
+    dwarn('[admin-v2] Não foi possível guardar a ordem do menu:',error);
+    flash('Não foi possível guardar a ordem do menu.','erro');
+  }
+}
+
+function initAdminMainMenuReorder() {
+  const menu=$('admin-main-menu'),button=$('admin-menu-reorder');
+  if(!menu||!button||menu.dataset.reorderBound==='1')return;
+  menu.dataset.reorderBound='1';
+  let active=false,dragged=null;
+  const items=()=>[...menu.querySelectorAll(':scope > [data-admin-menu-key]')];
+  const setMode=value=>{
+    active=value;menu.classList.toggle('is-reordering',active);
+    button.setAttribute('aria-pressed',String(active));
+    button.textContent=active?'Concluir reordenação':'Reordenar menu';
+    items().forEach(item=>{item.draggable=active;});
+  };
+  menu.addEventListener('dragstart',event=>{
+    if(!active)return event.preventDefault();
+    const item=event.target.closest('[data-admin-menu-key]');
+    if(!item||item.parentElement!==menu)return;
+    dragged=item;item.classList.add('is-menu-dragging');event.dataTransfer.effectAllowed='move';
+  });
+  menu.addEventListener('dragover',event=>{
+    if(!active||!dragged)return;
+    const target=event.target.closest('[data-admin-menu-key]');
+    if(!target||target.parentElement!==menu||target===dragged)return;
+    event.preventDefault();const rect=target.getBoundingClientRect();
+    menu.insertBefore(dragged,event.clientY<rect.top+rect.height/2?target:target.nextSibling);
+  });
+  menu.addEventListener('dragend',()=>{dragged?.classList.remove('is-menu-dragging');dragged=null;});
+  button.addEventListener('click',async()=>{
+    if(active){setMode(false);await persistAdminMenuOrder();}else setMode(true);
+  });
+  setMode(false);
 }
 
 
@@ -4225,38 +3396,11 @@ function initDesignContentOrderDnD() {
       );
 
       try {
-        const { data: existing, error: selectError } =
-          await supabase
-            .from('site_content')
-            .select('id')
-            .eq('slug', 'admin')
-            .eq('section_key', 'interface')
-            .limit(1)
-            .maybeSingle();
-
-        if (selectError) {
-          throw selectError;
-        }
-
-        const row = {
-          slug: 'admin',
-          section_key: 'interface',
-          content: normalizeAdminUiConfig(
-            adminUiConfig
-          ),
-          updated_at:
-            new Date().toISOString()
-        };
-
-        const result =
-          existing?.id
-            ? await supabase
-                .from('site_content')
-                .update(row)
-                .eq('id', existing.id)
-            : await supabase
-                .from('site_content')
-                .insert(row);
+        const result = await upsertSiteContentSection(
+          'admin',
+          'interface',
+          normalizeAdminUiConfig(adminUiConfig)
+        );
 
         if (result.error) {
           throw result.error;
@@ -4274,13 +3418,11 @@ function initDesignContentOrderDnD() {
 async function loadAdminUiSettings() {
   try {
     const { data, error } =
-      await supabase
-        .from('site_content')
-        .select('content')
-        .eq('slug', 'admin')
-        .eq('section_key', 'interface')
-        .limit(1)
-        .maybeSingle();
+      await getSiteContentSection(
+        'admin',
+        'interface',
+        'content'
+      );
 
     if (error) {
       dwarn(
@@ -4336,36 +3478,11 @@ async function saveAdminUiSettings(event) {
     const payload =
       collectAdminUiConfig();
 
-    const { data: existing, error: selectError } =
-      await supabase
-        .from('site_content')
-        .select('id')
-        .eq('slug', 'admin')
-        .eq('section_key', 'interface')
-        .limit(1)
-        .maybeSingle();
-
-    if (selectError) {
-      throw selectError;
-    }
-
-    const row = {
-      slug: 'admin',
-      section_key: 'interface',
-      content: payload,
-      updated_at:
-        new Date().toISOString()
-    };
-
-    const result =
-      existing?.id
-        ? await supabase
-            .from('site_content')
-            .update(row)
-            .eq('id', existing.id)
-        : await supabase
-            .from('site_content')
-            .insert(row);
+    const result = await upsertSiteContentSection(
+      'admin',
+      'interface',
+      payload
+    );
 
     if (result.error) {
       throw result.error;
@@ -4413,11 +3530,7 @@ async function loadSettings() {
   const {
     data,
     error
-  } = await supabase
-    .from('site_settings')
-    .select('*')
-    .limit(1)
-    .maybeSingle();
+  } = await getSiteSettings();
 
 
   if (error) {
@@ -4493,10 +3606,7 @@ async function saveSettings(e) {
       updated_at: new Date().toISOString()
     };
 
-    const { data: ex } = await supabase.from('site_settings').select('id').limit(1).maybeSingle();
-    const r = ex?.id
-      ? await supabase.from('site_settings').update(p).eq('id', ex.id)
-      : await supabase.from('site_settings').insert(p);
+    const r = await saveSiteSettings(p);
 
     if (r.error) {
       msg($('settings-msg'), r.error.message, 'erro');
@@ -4521,6 +3631,10 @@ const CONTENT_DEFAULTS = {
       description: '',
       desktop_image: '',
       mobile_image: '',
+      static_focus_x: 50,
+      static_focus_y: 50,
+      static_mobile_focus_x: 50,
+      static_mobile_focus_y: 50,
       image_alt: 'Rangel Santos, fotógrafo',
       primary_button: { text: 'Ver galeria', url: '/galeria' },
       secondary_button: { text: 'Agendar sessão', url: '/contato' },
@@ -4558,22 +3672,15 @@ const CONTENT_DEFAULTS = {
 let contentCache = null;
 
 async function fetchContent() {
-  const { data } = await supabase
-    .from('site_content')
-    .select('slug, section_key, content');
+  const { data } = await listSiteContent();
 
   const map = { inicio: {}, sobre: {}, contato: {} };
 
   (data || []).forEach(row => {
     if (!map[row.slug]) return;
 
-    let content = row.content;
-    if (typeof content === 'string') {
-      try { content = JSON.parse(content); }
-      catch (e) { content = {}; }
-    }
-
-    map[row.slug][row.section_key] = content || {};
+    map[row.slug][row.section_key] =
+      parseStoredContent(row.content, {});
   });
 
   return map;
@@ -4609,6 +3716,8 @@ async function loadContent() {
   $('hero-mode-slideshow').checked = heroMode === 'slideshow';
   $('hero-static-focus-x').value = Number(h.static_focus_x ?? 50);
   $('hero-static-focus-y').value = Number(h.static_focus_y ?? 50);
+  $('hero-static-mobile-focus-x').value = Number(h.static_mobile_focus_x ?? h.static_focus_x ?? 50);
+  $('hero-static-mobile-focus-y').value = Number(h.static_mobile_focus_y ?? h.static_focus_y ?? 50);
   $('hero-slide-interval').value = Number(h.slide_interval ?? 5);
   $('hero-slide-transition').value = Number(h.slide_transition ?? 1.2);
   $('hero-slide-width').value = h.slide_width || HERO_SLIDESHOW_DEFAULTS.width;
@@ -4697,23 +3806,11 @@ function collectSpecs() {
 async function upsertContent(slug, sectionKey, payload, msgId) {
   if (msgId && $(msgId)) msg($(msgId), 'Salvando...');
 
-  const { data: existing } = await supabase
-    .from('site_content')
-    .select('id')
-    .eq('slug', slug)
-    .eq('section_key', sectionKey)
-    .maybeSingle();
-
-  const row = {
+  const r = await upsertSiteContentSection(
     slug,
-    section_key: sectionKey,
-    content: payload,
-    updated_at: new Date().toISOString()
-  };
-
-  const r = existing?.id
-    ? await supabase.from('site_content').update(row).eq('id', existing.id)
-    : await supabase.from('site_content').insert(row);
+    sectionKey,
+    payload
+  );
 
   if (r.error) {
     if (msgId && $(msgId)) msg($(msgId), 'Erro ao salvar: ' + r.error.message, 'erro');
@@ -4736,23 +3833,32 @@ function focalStyle(x, y) {
   return `${Number(x ?? 50)}% ${Number(y ?? 50)}%`;
 }
 
+function resolvePreviewMediaUrl(value) {
+  const url=String(value||'').trim();
+  if(!url||/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+  return `/legacy/${url.replace(/^\.\//,'')}`;
+}
+
 
 function updateStaticMobilePreview() {
   const preview = $('hero-static-mobile-preview');
   if (!preview) return;
 
-  const desktopUrl = safeText($('hero-desktop-image')?.value, 2048);
-  const mobileUrl = safeText($('hero-mobile-image')?.value, 2048);
+  const desktopUrl = resolvePreviewMediaUrl(safeText($('hero-desktop-image')?.value, 2048));
+  const mobileUrl = resolvePreviewMediaUrl(safeText($('hero-mobile-image')?.value, 2048));
   const activeUrl = mobileUrl || desktopUrl;
 
   preview.style.backgroundImage = activeUrl
     ? `url("${activeUrl.replace(/"/g, '%22')}")`
     : '';
 
-  preview.style.backgroundPosition = focalStyle(
-    Number($('hero-static-focus-x')?.value) || 50,
-    Number($('hero-static-focus-y')?.value) || 50
-  );
+  const x=clampNumber($('hero-static-mobile-focus-x')?.value,0,100,50);
+  const y=clampNumber($('hero-static-mobile-focus-y')?.value,0,100,50);
+  preview.style.backgroundPosition=focalStyle(x,y);
+  const marker=preview.querySelector('.focal-marker');
+  if(marker){marker.style.left=x+'%';marker.style.top=y+'%'}
+  if($('hero-static-mobile-focus-x-out'))$('hero-static-mobile-focus-x-out').textContent=x+'%';
+  if($('hero-static-mobile-focus-y-out'))$('hero-static-mobile-focus-y-out').textContent=y+'%';
 
   preview.classList.toggle('empty', !activeUrl);
   preview.classList.toggle('uses-desktop-fallback', !mobileUrl && Boolean(desktopUrl));
@@ -5091,9 +4197,9 @@ function closeHeroSlidesManager() {
 
 function updateStaticFocalPreview() {
   const preview = $('hero-static-preview');
-  const url = $('hero-desktop-image').value.trim();
-  const x = Number($('hero-static-focus-x').value) || 50;
-  const y = Number($('hero-static-focus-y').value) || 50;
+  const url = resolvePreviewMediaUrl($('hero-desktop-image').value);
+  const x = clampNumber($('hero-static-focus-x').value,0,100,50);
+  const y = clampNumber($('hero-static-focus-y').value,0,100,50);
   preview.style.backgroundImage = url ? `url("${url.replace(/"/g, '%22')}")` : '';
   preview.style.backgroundPosition = focalStyle(x, y);
   preview.classList.toggle('empty', !url);
@@ -5117,12 +4223,12 @@ async function uploadHeroFiles(files) {
   for (const file of files) {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const path = `home-hero/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    const { error } = await uploadToBucket(BUCKET, path, file, {
       cacheControl: '3600',
       upsert: false
     });
     if (error) throw error;
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data } = getPublicUrlFromBucket(BUCKET, path);
     if (data?.publicUrl) uploaded.push(data.publicUrl);
   }
   return uploaded;
@@ -5455,6 +4561,8 @@ document.querySelectorAll('input[name="hero-mode"]').forEach(r =>
   r.addEventListener('change', () => {
     updateHeroModeUI();
     renderHeroSlideshowOverview();
+    applyDesignContentPreview();
+    updateDesignPublicationState();
   })
 );
 
@@ -5508,6 +4616,10 @@ document.querySelectorAll('[data-close-hero-slides]').forEach(element =>
   $(id).addEventListener('input', updateStaticFocalPreview)
 );
 
+['hero-static-mobile-focus-x','hero-static-mobile-focus-y'].forEach(id=>
+  $(id).addEventListener('input',updateStaticMobilePreview)
+);
+
 $('hero-desktop-image').addEventListener('input', updateStaticFocalPreview);
 $('hero-mobile-image').addEventListener('input', updateStaticMobilePreview);
 
@@ -5516,6 +4628,14 @@ $('hero-static-preview').addEventListener('click', e => {
     $('hero-static-focus-x').value = x;
     $('hero-static-focus-y').value = y;
     updateStaticFocalPreview();
+  });
+});
+
+$('hero-static-mobile-preview').addEventListener('click',e=>{
+  setFocalFromClick($('hero-static-mobile-preview'),e,(x,y)=>{
+    $('hero-static-mobile-focus-x').value=x;
+    $('hero-static-mobile-focus-y').value=y;
+    updateStaticMobilePreview();
   });
 });
 
@@ -5649,17 +4769,7 @@ async function loadMessages() {
   const list = $('messages-list');
   list.innerHTML = '';
 
-  const { data, error } = await supabase
-    .from('mensagens')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .then(
-      r => r,
-      () => ({
-        data: null,
-        error: { message: 'tabela-inexistente' }
-      })
-    );
+  const { data, error } = await listMessages();
 
   if (error) {
     messagesCache = [];
@@ -5676,56 +4786,20 @@ async function loadMessages() {
 
   await refreshUnreadMessagesCount();
 
-  if (!rows.length) {
-    list.innerHTML = `
-      <div class="panel">
-        <p class="section-eyebrow">Nenhuma mensagem</p>
-        <p class="panel-copy">As mensagens enviadas pelo formulário da página de contato aparecerão aqui.</p>
-      </div>`;
-    return;
-  }
-
-  list.innerHTML = rows.map(m => `
-    <article class="msg-card ${m.lida ? '' : 'nao-lida'}">
-      <div class="msg-card-head">
-        <div>
-          <div class="msg-card-nome">${esc(m.nome)}</div>
-          <div class="msg-card-meta">${esc(m.email || '')}${m.tipo ? ' · ' + esc(m.tipo) : ''}</div>
-        </div>
-        <span class="msg-card-meta">${new Date(m.created_at).toLocaleString('pt-PT')}</span>
-      </div>
-
-      <p class="msg-card-corpo">${esc(m.mensagem)}</p>
-
-      <div class="card-actions">
-        <button class="small-btn msg-reply-btn" data-reply-msg="${attr(m.id)}" type="button">Responder</button>
-        ${m.lida ? '' : `<button class="small-btn" data-mark-read="${attr(m.id)}" type="button">Marcar como lida</button>`}
-        <button class="small-btn danger-btn" data-del-msg="${attr(m.id)}" type="button">Excluir</button>
-      </div>
-    </article>`).join('');
-
-  list.querySelectorAll('[data-reply-msg]').forEach(b =>
-    b.addEventListener('click', () => openReplyMessage(b.dataset.replyMsg))
-  );
-
-  list.querySelectorAll('[data-mark-read]').forEach(b =>
-    b.addEventListener('click', () =>
-      withOperationLock('message-read:' + b.dataset.markRead, () => marcarLida(b.dataset.markRead))
-    )
-  );
-
-  list.querySelectorAll('[data-del-msg]').forEach(b =>
-    b.addEventListener('click', () =>
-      withOperationLock('message-delete:' + b.dataset.delMsg, () => excluirMensagem(b.dataset.delMsg))
-    )
-  );
+  renderMessagesUI({
+    list,
+    rows,
+    esc,
+    attr,
+    openReplyMessage,
+    markRead: marcarLida,
+    deleteMessage: excluirMensagem,
+    withOperationLock
+  });
 }
 
 async function marcarLida(id) {
-  const { error } = await supabase
-    .from('mensagens')
-    .update({ lida: true })
-    .eq('id', id);
+  const { error } = await markMessageRead(id);
 
   if (error) {
     flash('Erro: ' + error.message, 'erro');
@@ -5741,10 +4815,7 @@ async function marcarLida(id) {
 async function excluirMensagem(id) {
   if (!confirm('Excluir esta mensagem?')) return;
 
-  const { error } = await supabase
-    .from('mensagens')
-    .delete()
-    .eq('id', id);
+  const { error } = await removeMessage(id);
 
   if (error) {
     flash('Erro: ' + error.message, 'erro');
@@ -5794,7 +4865,7 @@ const attr = esc;
    AUTH
 ========================================================= */
 
-supabase.auth.onAuthStateChange(
+onAdminAuthStateChange(
   (_e, s) => {
 
     if (!s) {
@@ -5837,10 +4908,7 @@ function statusLabel(status) {
 
 async function loadSessions() {
 
-  const { data, error } = await supabase
-    .from('ensaios')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await listSessions();
 
   if (error) {
     flash(`Erro ao carregar ensaios: ${error.message}`, 'erro');
@@ -5856,20 +4924,16 @@ async function loadSessions() {
   if (sessionsCache.length) {
     const ids = sessionsCache.map(s => s.id);
 
-    const { data: photos, error: photosError } = await supabase
-      .from('fotos')
-      .select('id, ensaio_id, url, tipo, ordem, created_at')
-      .in('ensaio_id', ids)
-      .order('ordem', { ascending: true })
-      .order('created_at', { ascending: true });
+    const { data: photos, error: photosError } = await listSessionPhotosForSessions(ids);
 
     if (photosError) {
       dwarn('Não foi possível carregar as capas dos ensaios:', photosError.message);
     }
 
+    const signedPhotos = await signSessionPhotoUrls(photos || []);
     const bySession = new Map();
 
-    (photos || []).forEach(photo => {
+    signedPhotos.forEach(photo => {
       if (!bySession.has(photo.ensaio_id)) {
         bySession.set(photo.ensaio_id, []);
       }
@@ -5909,78 +4973,15 @@ async function loadSessions() {
 }
 
 function renderSessions() {
-
-  const c = $('sessions-list');
-
-  if (!sessionsCache.length) {
-    c.innerHTML = `
-      <div class="panel">
-        <p class="section-eyebrow">Ainda vazio</p>
-        <h2 style="font-family:var(--font-display);font-weight:400;">
-          Nenhum ensaio criado.
-        </h2>
-        <p class="panel-copy" style="margin-top:8px;">
-          Comece criando a primeira sessão de cliente.
-        </p>
-      </div>`;
-    return;
-  }
-
-  c.innerHTML = sessionsCache.map(s => `
-    <article
-      class="gallery-admin-card session-admin-card"
-      data-session-id="${attr(s.id)}"
-      title="Clique para abrir o ensaio"
-    >
-      <div class="gallery-drag-handle session-drag-placeholder"
-        title="Ensaio"
-        aria-hidden="true"
-      >⋮⋮</div>
-
-      <div class="gallery-thumb-wrap">
-        ${
-          s.cover_url
-            ? `<img class="gallery-thumb" src="${attr(s.cover_url)}" alt="Capa do ensaio ${attr(s.titulo)}" loading="lazy"><span class="gallery-cover-label">CAPA</span>`
-            : `<div class="gallery-thumb empty">SEM CAPA</div>`
-        }
-      </div>
-
-      <div class="gallery-card-content">
-        <div class="gallery-card-title">${esc(s.titulo)}</div>
-        <div class="gallery-meta">
-          ${esc(s.cliente_nome || '—')} · /${esc(s.slug)}
-        </div>
-      </div>
-
-      <div class="gallery-card-controls">
-        <span class="status-pill ${s.status === 'preparando' ? 'draft' : 'published'}">
-          ${esc(statusLabel(s.status))}
-        </span>
-
-        <div class="card-actions gallery-card-actions">
-          <button class="small-btn" data-open-session="${attr(s.id)}" type="button">Abrir</button>
-          <button class="small-btn danger-btn" data-delete-session="${attr(s.id)}" type="button">Excluir</button>
-        </div>
-      </div>
-    </article>
-  `).join('');
-
-  c.querySelectorAll('.session-admin-card').forEach(card => {
-    card.addEventListener('click', () => openSessionModal(card.dataset.sessionId));
-  });
-
-  c.querySelectorAll('[data-open-session]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      openSessionModal(b.dataset.openSession);
-    });
-  });
-
-  c.querySelectorAll('[data-delete-session]').forEach(b => {
-    b.addEventListener('click', e => {
-      e.stopPropagation();
-      withOperationLock('delete-session:' + b.dataset.deleteSession, () => excluirSession(b.dataset.deleteSession));
-    });
+  renderSessionsUI({
+    $,
+    sessions: sessionsCache,
+    esc,
+    attr,
+    statusLabel,
+    openSessionModal,
+    deleteSession: excluirSession,
+    withOperationLock
   });
 }
 
@@ -6037,7 +5038,7 @@ async function saveSession(e) {
       slug: login
     };
 
-    const { error } = await supabase.from('ensaios').insert(p);
+    const { error } = await createSession(p);
     if (error) {
       msgEl.textContent = (error.message.includes('duplicate') || error.message.includes('unique'))
         ? `O login "${p.slug}" já está em uso por outro ensaio. Escolha outro.`
@@ -6080,20 +5081,32 @@ function closeSessionModal() {
 
 async function loadSessionPhotos() {
   if (!currentSession) return;
-  const { data, error } = await supabase.from('fotos').select('*').eq('ensaio_id', currentSession.id).order('ordem');
+  const { data, error } = await listSessionPhotos(currentSession.id);
   if (error) {
     msg($('session-msg'), error.message, 'erro');
     return;
   }
-  currentSessionPhotos = data || [];
+  currentSessionPhotos = await signSessionPhotoUrls(data || []);
   renderSessionDetail();
+}
+
+async function signSessionPhotoUrls(photos) {
+  return Promise.all((photos || []).map(async photo => {
+    const originalUrl = photo.storage_url || photo.url || '';
+    const path = storagePathForBucket(originalUrl, SESSIONS_BUCKET);
+    if (!path) return { ...photo, storage_url: originalUrl };
+    const { data, error } = await createSignedUrlFromBucket(SESSIONS_BUCKET, path, 3600);
+    if (error || !data?.signedUrl) {
+      dwarn('Não foi possível assinar uma fotografia privada:', error?.message || path);
+      return { ...photo, storage_url: originalUrl };
+    }
+    return { ...photo, storage_url: originalUrl, url: data.signedUrl };
+  }));
 }
 
 
 function sessionStatusNormalizado(status) {
-  if (status === 'selecionado') return 'selecao_finalizada';
-  if (status === 'entregue') return 'fotos_disponiveis';
-  return status || 'preparando';
+  return normalizeSessionStatus(status);
 }
 
 function renderSessionProgress(s) {
@@ -6170,12 +5183,7 @@ async function salvarEmailClienteEnsaio() {
     return;
   }
 
-  const { data, error } = await supabase
-    .from('ensaios')
-    .update({ cliente_email: email })
-    .eq('id', currentSession.id)
-    .select('*')
-    .single();
+  const { data, error } = await updateSessionAndReturn(currentSession.id, { cliente_email: email });
 
   if (error) {
     flash(`Erro ao salvar e-mail: ${error.message}`, 'erro');
@@ -6190,35 +5198,31 @@ async function salvarEmailClienteEnsaio() {
 }
 
 async function invocarNotificacaoEnsaio(action, extra = {}) {
-  const { data, error } = await supabase.functions.invoke('ensaio-notifications', {
-    body: {
-      action,
-      ensaio_id: currentSession?.id,
-      ...extra
-    }
+  return notifySession(action, {
+    sessionId: currentSession?.id,
+    ...extra
   });
-
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  return data || {};
 }
 
 async function iniciarEdicao() {
   if (!currentSession) return;
-  const { data, error } = await supabase
-    .from('ensaios')
-    .update({ status: 'em_edicao' })
-    .eq('id', currentSession.id)
-    .select('*')
-    .single();
+  const provas=currentSessionPhotos.filter(photo=>photo.tipo==='prova');
+  const selecionadas=provas.filter(photo=>photo.selecionada);
+  const numbers=selecionadas.map(photo=>numero(provas.indexOf(photo)));
+  if(!confirm(`Iniciar edição e liberar armazenamento?\n\nOs números selecionados serão guardados (${numbers.join(', ')||'nenhum'}), mas ${provas.length} provas serão apagadas definitivamente.`))return;
+  const { data, error } = await updateSessionAndReturn(currentSession.id, { status: 'em_edicao',selected_photo_numbers:numbers,selection_completed_at:currentSession.selection_completed_at||new Date().toISOString() });
 
   if (error) {
     flash(`Erro ao iniciar edição: ${error.message}`, 'erro');
     return;
   }
 
-  currentSession = data || { ...currentSession, status: 'em_edicao' };
-  flash('Ensaio marcado como “Em edição”.', 'sucesso');
+  currentSession = data || { ...currentSession, status: 'em_edicao',selected_photo_numbers:numbers };
+  for(const photo of provas){const result=await deleteSessionPhotoWithAsset({photo,session:currentSession,bucket:SESSIONS_BUCKET});if(result.error){flash(`Edição iniciada, mas uma prova não pôde ser removida: ${result.error.message}`,'erro');break}}
+  await updateSession(currentSession.id,{selection_cleaned_at:new Date().toISOString()});
+  await logAdminActivity('session_editing_started', `Edição iniciada para “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}”`, { detail: `${numbers.length} foto(s) escolhida(s); provas removidas do armazenamento.`, entityType: 'session', entityId: currentSession.id }).catch(() => {});
+  flash('Edição iniciada. As provas foram removidas e os números escolhidos ficaram guardados.','sucesso');
+  await loadSessionPhotos();
   await loadSessions();
   renderSessionDetail();
 }
@@ -6286,158 +5290,24 @@ document.querySelectorAll('.session-stage-toggle').forEach(toggle => {
 
 function renderSessionDetail() {
   if (!currentSession) return;
-  const s = currentSession;
-  const linkCliente = `${location.origin}/area-cliente`;
-
-  $('modal-session-title').textContent = s.titulo;
-  $('session-link').textContent = linkCliente;
-  $('session-login-box').textContent = s.slug;
-  $('session-senha').textContent = s.codigo_acesso;
-  $('session-client-email').value = s.cliente_email || '';
-  renderSessionProgress(s);
-  renderSessionEmailState(s);
-
-  const provas = currentSessionPhotos.filter(f => f.tipo === 'prova');
-  const finais = currentSessionPhotos.filter(f => f.tipo === 'final');
-  const selecionadas = provas.filter(f => f.selecionada);
-
-  $('prova-count').textContent = provas.length;
-  $('final-count').textContent = finais.length;
-  syncSessionStageAccordions();
-
-  const fallbackCoverPhotoId = currentSessionPhotos
-    .slice()
-    .sort((a, b) => Number(a.ordem ?? 999999) - Number(b.ordem ?? 999999))[0]?.id || null;
-
-  // A capa agora é independente da ordem das fotografias.
-  // Se a coluna capa_foto_id ainda não existir, usamos a primeira foto como fallback visual.
-  const coverPhotoId = currentSession.capa_foto_id || fallbackCoverPhotoId;
-
-  $('prova-grid').innerHTML = provas.length
-    ? provas.map((f, i) => `
-        <div
-          class="session-photo ${f.selecionada ? 'selecionada' : ''} ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
-          data-session-photo-id="${attr(f.id)}"
-          draggable="true"
-          title="Arraste para mudar a posição ou clique para usar como capa"
-        >
-          <img src="${attr(f.url)}" alt="" loading="lazy">
-          ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
-          <span class="photo-order">${numero(i)}</span>
-          
-          <button
-            class="photo-delete session-photo-delete"
-            data-delete-session-photo="${attr(f.id)}"
-            title="Excluir esta prova"
-            type="button"
-          >×</button>
-        </div>`).join('')
-    : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma prova enviada ainda.</p>';
-
-  $('prova-grid').querySelectorAll('[data-delete-session-photo]').forEach(button => {
-    button.addEventListener('click', e => {
-      e.stopPropagation();
-      withOperationLock('delete-session-photo:' + button.dataset.deleteSessionPhoto, () => excluirFotoEnsaio(button.dataset.deleteSessionPhoto));
-    });
+  renderSessionDetailUI({
+    $, session: currentSession, photos: currentSessionPhotos,
+    attr, esc, numero, msg, location,
+    syncAccordions: syncSessionStageAccordions,
+    configureOrdering: configurarOrdenacaoFotosEnsaio,
+    withOperationLock,
+    setCover: definirCapaEnsaio,
+    deletePhoto: excluirFotoEnsaio,
+    sendSelection: enviarParaSelecao,
+    startEditing: iniciarEdicao,
+    retrySelectionNotifications: reenviarNotificacoesSelecao,
+    extendExpiry: estenderPrazoEnsaio
   });
+  return;
 
-  configurarOrdenacaoFotosEnsaio($('prova-grid'));
-
-  $('prova-grid').querySelectorAll('.session-photo[data-session-photo-id]').forEach(card => {
-    card.addEventListener('click', e => {
-      if (e.target.closest('button')) return;
-      const id = card.dataset.sessionPhotoId;
-      if (id && id !== coverPhotoId) withOperationLock('cover-session:' + currentSession.id, () => definirCapaEnsaio(id));
-    });
-  });
-
-  const numerosSelecionados = selecionadas.map(f => numero(provas.indexOf(f))).join(', ');
-  $('selecionadas-box').innerHTML = selecionadas.length
-    ? `<div class="session-select-box"><p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${selecionadas.length}):</p><p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);">${esc(numerosSelecionados.replaceAll(', ', '.cr3, ') + '.cr3')}</p></div>`
-    : '';
-
-  $('final-grid').innerHTML = finais.length
-    ? finais.map((f, i) => `
-        <div
-          class="session-photo ${f.id === coverPhotoId ? 'session-photo-cover' : ''}"
-          data-session-photo-id="${attr(f.id)}"
-          draggable="true"
-          title="Arraste para mudar a posição ou clique para usar como capa"
-        >
-          <img src="${attr(f.url)}" alt="" loading="lazy">
-          ${f.id === coverPhotoId ? '<span class="session-cover-label">CAPA</span>' : ''}
-          <span class="photo-order">${numero(i)}</span>
-          
-        </div>`).join('')
-    : '<p class="panel-copy" style="grid-column:1/-1;padding:10px;">Nenhuma foto final enviada ainda.</p>';
-
-  configurarOrdenacaoFotosEnsaio($('final-grid'));
-
-  $('final-grid').querySelectorAll('.session-photo[data-session-photo-id]').forEach(card => {
-    card.addEventListener('click', e => {
-      if (e.target.closest('button')) return;
-      const id = card.dataset.sessionPhotoId;
-      if (id && id !== coverPhotoId) withOperationLock('cover-session:' + currentSession.id, () => definirCapaEnsaio(id));
-    });
-  });
-
-  const statusAtual = sessionStatusNormalizado(s.status);
-
-  const linkWhatsSelecao = s.cliente_telefone
-    ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos já estão prontas para você escolher as favoritas! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
-    : null;
-
-  const acoes = $('selecao-actions');
-  if (statusAtual === 'preparando') {
-    acoes.innerHTML = `<button class="btn btn-accent" id="btn-enviar-selecao" ${provas.length === 0 ? 'disabled' : ''}>Enviar fotos para seleção</button>`;
-    $('btn-enviar-selecao').addEventListener('click', () => withOperationLock('selecao:' + (currentSession?.id || ''), enviarParaSelecao));
-  } else if (statusAtual === 'aguardando_selecao') {
-    acoes.innerHTML = `
-      <span class="status-pill published">Aguardando seleção da cliente</span>
-      ${linkWhatsSelecao ? `<a href="${attr(linkWhatsSelecao)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : ''}`;
-  } else {
-    const faltamEmailsSelecao = !s.email_selecao_cliente_enviado_em || !s.email_selecao_fotografo_enviado_em;
-    acoes.innerHTML = `
-      <span class="status-pill published">✓ Seleção finalizada</span>
-      ${statusAtual === 'selecao_finalizada' ? '<button class="btn btn-accent" id="btn-iniciar-edicao" type="button">Iniciar edição</button>' : ''}
-      ${faltamEmailsSelecao ? '<button class="small-btn" id="btn-reenviar-selecao" type="button">Tentar e-mails novamente</button>' : ''}`;
-
-    if ($('btn-iniciar-edicao')) $('btn-iniciar-edicao').addEventListener('click', () => withOperationLock('start-edit:' + (currentSession?.id || ''), iniciarEdicao));
-    if ($('btn-reenviar-selecao')) $('btn-reenviar-selecao').addEventListener('click', () => withOperationLock('retry-selection-mail:' + (currentSession?.id || ''), reenviarNotificacoesSelecao));
-  }
-
-  const btnEntregar = $('btn-entregar');
-  const jaPublicado = statusAtual === 'fotos_disponiveis';
-  const podePublicar = statusAtual === 'em_edicao' && finais.length > 0;
-
-  if (jaPublicado) {
-    btnEntregar.textContent = s.email_entrega_cliente_enviado_em
-      ? 'Fotos publicadas ✓'
-      : 'Reenviar e-mail de entrega';
-    btnEntregar.className = s.email_entrega_cliente_enviado_em ? 'btn' : 'btn btn-accent';
-    btnEntregar.disabled = Boolean(s.email_entrega_cliente_enviado_em);
-  } else {
-    btnEntregar.textContent = 'Publicar fotos finais';
-    btnEntregar.className = 'btn btn-accent';
-    btnEntregar.disabled = !podePublicar;
-    btnEntregar.title = statusAtual !== 'em_edicao'
-      ? 'Marque o ensaio como “Em edição” antes de publicar.'
-      : (finais.length === 0 ? 'Adicione pelo menos uma foto final.' : 'Publicar e avisar a cliente por e-mail.');
-  }
-
-  const linkWhatsEntrega = s.cliente_telefone
-    ? `https://wa.me/${s.cliente_telefone}?text=${encodeURIComponent(`Olá${s.cliente_nome ? ', ' + s.cliente_nome : ''}! Suas fotos finais já estão prontas para download! \n\nAcesse: ${linkCliente}\nLogin: ${s.slug}\nSenha: ${s.codigo_acesso}`)}`
-    : null;
-  const whatsEntrega = $('link-whats-entrega');
-  if (jaPublicado && linkWhatsEntrega) {
-    whatsEntrega.href = linkWhatsEntrega;
-    whatsEntrega.style.display = '';
-  } else {
-    whatsEntrega.style.display = 'none';
-  }
-
-  msg($('session-msg'), '');
 }
+
+async function estenderPrazoEnsaio(){if(!currentSession)return;const days=clampNumber(prompt('Quantos dias deseja acrescentar?', '30'),1,365,30);const base=currentSession.expires_at?new Date(currentSession.expires_at):new Date();base.setDate(base.getDate()+days);const {data,error}=await updateSessionAndReturn(currentSession.id,{expires_at:base.toISOString(),expired_at:null,deletion_scheduled_at:null});if(error)return flash(error.message,'erro');currentSession=data||{...currentSession,expires_at:base.toISOString()};flash(`Prazo estendido por ${days} dias.`,'sucesso');renderSessionDetail()}
 
 
 function configurarOrdenacaoFotosEnsaio(grid) {
@@ -6505,11 +5375,7 @@ async function salvarOrdemFotosEnsaio(grid) {
 
   const results = await Promise.all(
     ids.map((id, index) =>
-      supabase
-        .from('fotos')
-        .update({ ordem: index })
-        .eq('id', id)
-        .eq('ensaio_id', currentSession.id)
+      updateSessionPhoto(id, { ordem: index }, currentSession.id)
     )
   );
 
@@ -6541,12 +5407,7 @@ async function definirCapaEnsaio(id) {
     return;
   }
 
-  const { data, error } = await supabase
-    .from('ensaios')
-    .update({ capa_foto_id: id })
-    .eq('id', currentSession.id)
-    .select('*')
-    .single();
+  const { data, error } = await updateSessionAndReturn(currentSession.id, { capa_foto_id: id });
 
   if (error) {
     const columnMissing =
@@ -6570,56 +5431,24 @@ async function definirCapaEnsaio(id) {
 
 async function excluirFotoEnsaio(id) {
   if (!currentSession) return;
-
-  const foto = currentSessionPhotos.find(f => f.id === id);
-  if (!foto) {
+  const photo = currentSessionPhotos.find(item => item.id === id);
+  if (!photo) {
     flash('Fotografia não encontrada.', 'erro');
     return;
   }
-
-  const confirmado = confirm(
-    'Excluir esta prova?\n\nEsta ação remove a fotografia do ensaio e não pode ser desfeita.'
-  );
-  if (!confirmado) return;
+  if (!confirm('Excluir esta prova?\n\nEsta ação remove a fotografia do ensaio e não pode ser desfeita.')) return;
 
   flash('Excluindo fotografia...', 'erro');
-
-  // Se a fotografia excluída for a capa escolhida, limpa a referência antes de removê-la.
-  if (currentSession.capa_foto_id === id) {
-    const { error: clearCoverError } = await supabase
-      .from('ensaios')
-      .update({ capa_foto_id: null })
-      .eq('id', currentSession.id);
-
-    if (!clearCoverError) {
-      currentSession.capa_foto_id = null;
-    }
-  }
-
-  const path = storagePathForBucket(foto.url, SESSIONS_BUCKET);
-
-  if (path) {
-    const { error: storageError } = await supabase
-      .storage
-      .from(SESSIONS_BUCKET)
-      .remove([path]);
-
-    if (storageError) {
-      flash(`Erro ao excluir arquivo: ${storageError.message}`, 'erro');
-      return;
-    }
-  }
-
-  const { error } = await supabase
-    .from('fotos')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    flash(`Erro ao excluir registro: ${error.message}`, 'erro');
+  const result = await deleteSessionPhotoWithAsset({
+    photo,
+    session: currentSession,
+    bucket: SESSIONS_BUCKET
+  });
+  if (result.error) {
+    flash(`Erro ao excluir ${result.stage === 'storage' ? 'arquivo' : 'registro'}: ${result.error.message}`, 'erro');
     return;
   }
-
+  if (result.data.coverCleared) currentSession.capa_foto_id = null;
   flash('Fotografia excluída.', 'sucesso');
   await loadSessionPhotos();
 }
@@ -6684,51 +5513,21 @@ async function uploadSessionPhotos(files, tipo) {
         const path =
           `${currentSession.id}/${tipo}/${displayNumber}-${crypto.randomUUID()}.${ext}`;
 
-        const { error: upErr } = await supabase
-          .storage
-          .from(SESSIONS_BUCKET)
-          .upload(
-            path,
-            file,
-            { upsert: false }
-          );
+        const result = await uploadSessionPhoto({
+          bucket: SESSIONS_BUCKET,
+          path,
+          file,
+          sessionId: currentSession.id,
+          type: tipo,
+          sortOrder: nextOrder
+        });
 
-        if (upErr) {
+        if (result.error) {
           msg(
             msgEl,
-            `Erro ao enviar ${displayNumber}: ${upErr.message}`,
+            `${result.stage === 'upload' ? 'Erro ao enviar' : 'Erro ao registrar'} ${displayNumber}: ${result.error.message}`,
             'erro'
           );
-          continue;
-        }
-
-        const { data: urlData } = supabase
-          .storage
-          .from(SESSIONS_BUCKET)
-          .getPublicUrl(path);
-
-        const { error: dbErr } = await supabase
-          .from('fotos')
-          .insert({
-            ensaio_id: currentSession.id,
-            url: urlData.publicUrl,
-            tipo,
-            ordem: nextOrder
-          });
-
-        if (dbErr) {
-          await supabase
-            .storage
-            .from(SESSIONS_BUCKET)
-            .remove([path])
-            .catch(() => {});
-
-          msg(
-            msgEl,
-            `Erro ao registrar ${displayNumber}: ${dbErr.message}`,
-            'erro'
-          );
-
           continue;
         }
 
@@ -6752,7 +5551,7 @@ async function uploadSessionPhotos(files, tipo) {
 async function enviarParaSelecao() {
   if (!currentSession) return;
   const msgEl = $('session-msg');
-  const { error } = await supabase.from('ensaios').update({ status: 'aguardando_selecao' }).eq('id', currentSession.id);
+  const { error } = await updateSession(currentSession.id, { status: 'aguardando_selecao' });
   if (error) {
     msgEl.textContent = 'Erro: ' + error.message;
     msgEl.className = 'msg erro';
@@ -6787,6 +5586,8 @@ async function marcarEntregue() {
     if (result.ensaio) currentSession = { ...currentSession, ...result.ensaio };
     else currentSession.status = 'fotos_disponiveis';
 
+    await logAdminActivity('session_delivered', `Ensaio “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}” entregue`, { detail: 'Prazo de 30 dias iniciado.', entityType: 'session', entityId: currentSession.id }).catch(() => {});
+
     msgEl.textContent = result.email_sent === false
       ? (result.message || 'Fotos publicadas. O e-mail não foi enviado; verifique o e-mail da cliente e a configuração do serviço.')
       : (result.message || 'Fotos publicadas e cliente notificada por e-mail!');
@@ -6801,24 +5602,14 @@ async function marcarEntregue() {
 }
 
 async function excluirSession(id) {
-  const s = sessionsCache.find(x => x.id === id);
-  if (!s) return;
-  const confirmado = confirm(`Tem certeza que quer excluir "${s.titulo}"?\n\nIsso apaga TODAS as fotos e dados desse ensaio para sempre. Não tem como desfazer.`);
-  if (!confirmado) return;
+  const session = sessionsCache.find(item => item.id === id);
+  if (!session) return;
+  if (!confirm(`Tem certeza que quer excluir "${session.titulo}"?\n\nIsso apaga TODAS as fotos e dados desse ensaio para sempre. Não tem como desfazer.`)) return;
 
   flash('Excluindo...', 'erro');
-
-  for (const subpasta of ['prova', 'final']) {
-    const { data: arquivos } = await supabase.storage.from(SESSIONS_BUCKET).list(`${id}/${subpasta}`);
-    if (arquivos && arquivos.length) {
-      const caminhos = arquivos.map(a => `${id}/${subpasta}/${a.name}`);
-      await supabase.storage.from(SESSIONS_BUCKET).remove(caminhos);
-    }
-  }
-
-  const { error } = await supabase.from('ensaios').delete().eq('id', id);
-  if (error) {
-    flash(`Erro ao excluir: ${error.message}`, 'erro');
+  const result = await deleteSessionWithAssets({ sessionId: id, bucket: SESSIONS_BUCKET });
+  if (result.error) {
+    flash(`Erro ao excluir: ${result.error.message}`, 'erro');
     return;
   }
   flash('Ensaio excluído.', 'sucesso');
@@ -7054,13 +5845,13 @@ function collectHeroContentPayload(){
     apenas trim() nas pontas, então a quebra de linha interna (\n)
     criada pelo editor visual do título é preservada.
   */
-  return {eyebrow:safeText(cmsFieldGet('inicio.hero.eyebrow',$('hero-eyebrow')?.value??''),120),title:safeText(cmsFieldGet('inicio.hero.title',$('hero-title')?.value??''),180),description:safeText(cmsFieldGet('inicio.hero.description',$('hero-description')?.value??''),1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
+  return {eyebrow:safeText(cmsFieldGet('inicio.hero.eyebrow',$('hero-eyebrow')?.value??''),120),title:safeText(cmsFieldGet('inicio.hero.title',$('hero-title')?.value??''),180),description:safeText(cmsFieldGet('inicio.hero.description',$('hero-description')?.value??''),1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),static_mobile_focus_x:clampNumber($('hero-static-mobile-focus-x')?.value,0,100,50),static_mobile_focus_y:clampNumber($('hero-static-mobile-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
 }
 function collectRecentContentPayload(){return {eyebrow:safeText($('recent-eyebrow')?.value,120),title:safeText($('recent-title')?.value,180),gallery_limit:clampNumber($('recent-limit')?.value,1,24,6),button:{text:safeText($('recent-btn-text')?.value,80),url:safeHttpUrl($('recent-btn-url')?.value)||'/galeria'}}}
 function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('sobre-portrait-url')?.value||''),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
 function collectContatoContentPayload(){return {eyebrow:safeText($('contato-eyebrow')?.value,120),title:safeText($('contato-title')?.value,180),submit_label:safeText($('contato-submit-label')?.value,80),tipos:($('contato-tipos')?.value||'').split('\n').map(x=>safeText(x,160)).filter(Boolean).slice(0,30),atendimento:safeText($('contato-atendimento')?.value,1000)}}
-function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()}}}
-function applyDesignContentSnapshotToControls(s){if(!s)return;const h=s.inicio?.hero;if(h){cmsFieldSet('inicio.hero.eyebrow',h.eyebrow||'');cmsFieldSet('inicio.hero.title',h.title||'');cmsFieldSet('inicio.hero.description',h.description||'');$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
+function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()},galeria:{trail_edits:JSON.parse(JSON.stringify(trailDraftEdits))}}}
+function applyDesignContentSnapshotToControls(s){if(!s)return;trailDraftEdits=s.galeria?.trail_edits&&typeof s.galeria.trail_edits==='object'?JSON.parse(JSON.stringify(s.galeria.trail_edits)):{};const h=s.inicio?.hero;if(h){cmsFieldSet('inicio.hero.eyebrow',h.eyebrow||'');cmsFieldSet('inicio.hero.title',h.title||'');cmsFieldSet('inicio.hero.description',h.description||'');$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-static-mobile-focus-x').value=Number(h.static_mobile_focus_x??h.static_focus_x??50);$('hero-static-mobile-focus-y').value=Number(h.static_mobile_focus_y??h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
   const r=s.inicio?.recent_work;if(r){$('recent-eyebrow').value=r.eyebrow||'';$('recent-title').value=r.title||'';$('recent-limit').value=r.gallery_limit??6;$('recent-btn-text').value=r.button?.text||'';$('recent-btn-url').value=r.button?.url||''}
   const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[])}
   const ct=s.contato?.conteudo;if(ct){$('contato-eyebrow').value=ct.eyebrow||'';$('contato-title').value=ct.title||'';$('contato-submit-label').value=ct.submit_label||'';$('contato-tipos').value=(ct.tipos||[]).join('\n');$('contato-atendimento').value=ct.atendimento||''}}
@@ -7260,11 +6051,10 @@ function updateDesignPublicationState() {
 }
 
 async function fetchDesignPersistence() {
-  const { data, error } = await supabase
-    .from('site_content')
-    .select('id,section_key,content,updated_at')
-    .eq('slug', 'design')
-    .in('section_key', ['draft', 'published']);
+  const { data, error } = await listSiteContentBySlug(
+    'design',
+    ['draft', 'published']
+  );
 
   if (error) throw error;
 
@@ -7331,21 +6121,7 @@ async function fetchDesignPersistence() {
 */
 function maybeShowDesignDraftReminder() {
   const banner = $('design-draft-reminder');
-  if (!banner) return;
-
-  const hasPendingDraft =
-    designDraftSaved &&
-    designFingerprint(designDraftSaved) !== designFingerprint(designPublishedSaved || DESIGN_DEFAULTS);
-
-  if (!hasPendingDraft) {
-    banner.hidden = true;
-    return;
-  }
-
-  if ($('design-draft-reminder-time')) {
-    $('design-draft-reminder-time').textContent = formatDesignTimestamp(designDraftUpdatedAt);
-  }
-  banner.hidden = false;
+  if (banner) banner.hidden = true;
 }
 
 if (!window.__designDraftReminderBound) {
@@ -7382,26 +6158,11 @@ async function ensureDesignPersistenceLoaded() {
 async function upsertDesignRow(sectionKey, config) {
   const normalized = normalizeDesignConfig(config);
 
-  const { data: existing, error: selectError } = await supabase
-    .from('site_content')
-    .select('id')
-    .eq('slug', 'design')
-    .eq('section_key', sectionKey)
-    .limit(1)
-    .maybeSingle();
-
-  if (selectError) throw selectError;
-
-  const row = {
-    slug: 'design',
-    section_key: sectionKey,
-    content: normalized,
-    updated_at: new Date().toISOString()
-  };
-
-  const result = existing?.id
-    ? await supabase.from('site_content').update(row).eq('id', existing.id)
-    : await supabase.from('site_content').insert(row);
+  const result = await upsertSiteContentSection(
+    'design',
+    sectionKey,
+    normalized
+  );
 
   if (result.error) throw result.error;
   return normalized;
@@ -7465,17 +6226,19 @@ async function saveDesignDraft(configOverride = null) {
 
 function restorePublishedDesign() {
   if (!designPersistenceLoaded || !designPublishedSaved) return;
+  if (designInlineActive) finishDesignInline(false);
 
   const currentFp = designFingerprint(collectDesignConfig());
   const publishedFp = designFingerprint(designPublishedSaved);
 
   if (
     currentFp !== publishedFp &&
-    !confirm('Restaurar a versão publicada? As alterações atuais da prévia serão descartadas.')
+    !confirm('Descartar todas as alterações feitas na prévia?')
   ) return;
 
   applyDesignConfigToControls(designPublishedSaved);
-  flash('Prévia restaurada para a versão publicada.', 'sucesso');
+  const previewFrame=$('design-preview-frame');if(previewFrame){setDesignPreviewLoading(true);const previewUrl=new URL(previewFrame.src||'/inicio',location.origin);previewUrl.searchParams.set('_discard',Date.now());previewFrame.src=previewUrl.href}
+  flash('Alterações descartadas.', 'sucesso');
   updateDesignPublicationState();
   maybeShowDesignDraftReminder();
 }
@@ -7483,8 +6246,19 @@ function restorePublishedDesign() {
 
 async function publishDesignContent(snapshot){if(!snapshot)return;for(const [slug,key,payload] of [['inicio','hero',snapshot.inicio?.hero],['inicio','recent_work',snapshot.inicio?.recent_work],['sobre','conteudo',snapshot.sobre?.conteudo],['contato','conteudo',snapshot.contato?.conteudo]]){if(!payload)continue;const ok=await upsertContent(slug,key,payload,null);if(!ok)throw new Error(`Falha ao publicar ${slug}/${key}.`)}contentCache=JSON.parse(JSON.stringify(snapshot))}
 
+async function publishTrailDrafts(){
+  for(const [index,trail] of trailsCache.entries()){
+    const draft=trailDraftEdits[trail.id];
+    const payload={sort_order:index*10};
+    if(draft){payload.name=safeText(draft.name,100);payload.slug=slugify(draft.name||draft.slug).slice(0,120);payload.description=safeText(draft.description,240)||null}
+    const result=await updateTrail(trail.id,payload);
+    if(result.error)throw result.error;
+  }
+}
+
 async function publishDesign() {
   if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
+  if (designInlineActive) await saveDesignInline();
 
   const current = collectDesignConfig();
   const currentFp = designFingerprint(current);
@@ -7496,7 +6270,7 @@ async function publishDesign() {
     return;
   }
 
-  if (!confirm('Publicar estas alterações de Design no site agora?')) return;
+  if (!confirm('Salvar estas alterações no site agora?')) return;
 
   const button = $('design-publish');
   if (button?.dataset.busy === '1') return;
@@ -7504,19 +6278,20 @@ async function publishDesign() {
   if (button) {
     button.dataset.busy = '1';
     button.disabled = true;
-    button.textContent = 'Publicando…';
+    button.textContent = 'Salvando…';
   }
 
   try {
     designDraftSaved = await upsertDesignRow('draft', current);
     designDraftUpdatedAt = new Date().toISOString();
 
+    await publishTrailDrafts();
     await publishDesignContent(current.content);
 
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
 
-    flash('Design publicado no site com sucesso.', 'sucesso');
+    flash('Alterações salvas com sucesso.', 'sucesso');
     updateDesignPublicationState();
     maybeShowDesignDraftReminder();
 
@@ -7524,6 +6299,7 @@ async function publishDesign() {
     if (frame) {
       const url = new URL(frame.src || '/inicio', location.origin);
       url.searchParams.set('_design', Date.now());
+      setDesignPreviewLoading(true);
       frame.src = url.href;
     }
   } catch (error) {
@@ -7532,7 +6308,7 @@ async function publishDesign() {
   } finally {
     if (button) {
       button.dataset.busy = '0';
-      button.textContent = 'Publicar no site';
+      button.textContent = 'Publicar alterações no site';
     }
     updateDesignPublicationState();
   }
@@ -7542,6 +6318,32 @@ function getDesignPreviewDocument() {
   const frame = $('design-preview-frame');
   try { return frame?.contentDocument || frame?.contentWindow?.document || null; }
   catch (_) { return null; }
+}
+
+function setDesignPreviewLoading(loading = true) {
+  document
+    .querySelector('#design-preview-stage .design-browser-frame')
+    ?.classList.toggle('is-loading', Boolean(loading));
+}
+
+async function waitForDesignPreviewHydration(frame, timeout = 1200) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeout) {
+    try {
+      const doc = frame?.contentDocument;
+
+      if (
+        doc?.documentElement?.dataset?.reactHydrated === '1'
+      ) {
+        return;
+      }
+    } catch (_) {
+      return;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
 }
 
 function getDesignPreviewViewport() {
@@ -7593,7 +6395,7 @@ function sizeDesignPreview() {
   stage.style.minHeight = '0';
 
   if ($('design-preview-label')) {
-    $('design-preview-label').textContent = viewport.label;
+    $('design-preview-label').innerHTML = `<strong>Prévia responsiva</strong><small>${viewport.label}</small>`;
   }
 }
 
@@ -8034,15 +6836,30 @@ function replayDesignAnimations() {
   } catch (_) {}
 }
 
+function runDesignTransitionAfterRoute(doc, pathname) {
+  const startedAt = Date.now();
+  const waitForRoute = () => {
+    let currentPath = '';
+    try { currentPath = doc.location.pathname; } catch (_) { return; }
+    if (currentPath === pathname) {
+      requestAnimationFrame(() => requestAnimationFrame(runDesignPageTransition));
+      return;
+    }
+    if (Date.now() - startedAt < 1500) setTimeout(waitForRoute, 25);
+  };
+  setTimeout(waitForRoute, 0);
+}
+
 function installDesignPreviewNavigationGuard() {
   const doc = getDesignPreviewDocument();
   const frame = $('design-preview-frame');
 
-  if (!doc || !frame || doc.__designNavigationGuardInstalled) return;
+  if (!doc || !frame) return;
 
-  doc.__designNavigationGuardInstalled = true;
+  if (!doc.__designNavigationGuardInstalled) {
+    doc.__designNavigationGuardInstalled = true;
 
-  doc.addEventListener('click', event => {
+    doc.addEventListener('click', event => {
     const link = event.target.closest?.('a[href]');
 
     if (!link) return;
@@ -8059,50 +6876,42 @@ function installDesignPreviewNavigationGuard() {
 
     if (url.origin !== doc.location.origin) return;
 
+    setTimeout(installDesignPreviewNavigationGuard, 500);
+    setTimeout(applyDesignContentPreview, 500);
+
     const mode = $('design-page-animation')?.value || 'none';
 
     if (mode === 'none') return;
+    runDesignTransitionAfterRoute(doc, url.pathname);
+    });
+  }
 
-    event.preventDefault();
-
-    const browser = document.querySelector(
-      '#design-preview-stage .design-browser-frame'
-    );
-
-    if (!browser) {
+  const nestedFrame = doc.querySelector('iframe.legacy-frame');
+  const bindNestedNavigation = () => {
+    let nestedDoc;
+    try { nestedDoc = nestedFrame?.contentDocument; } catch (_) { return; }
+    if (!nestedDoc || nestedDoc.__designOuterNavigationInstalled) return;
+    decorateDesignInlinePreview(nestedDoc);
+    nestedDoc.__designOuterNavigationInstalled = true;
+    nestedDoc.addEventListener('click', event => {
+      const link = event.target.closest?.('a[href]');
+      if (!link || link.target || link.hasAttribute('download')) return;
+      let url;
+      try { url = new URL(link.href, nestedDoc.location.href); } catch (_) { return; }
+      if (url.origin !== nestedDoc.location.origin) return;
+      event.preventDefault();
+      setDesignPreviewLoading(true);
       frame.src = url.href;
-      return;
-    }
-
-    const speed = $('design-motion-speed')?.value || 'normal';
-
-    const duration =
-      speed === 'fast'
-        ? 120
-        : speed === 'slow'
-          ? 220
-          : 160;
-
-    browser
-      .animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        {
-          duration,
-          easing: 'ease-out',
-          fill: 'forwards'
-        }
-      )
-      .finished
-      .catch(() => {})
-      .finally(() => {
-        frame.src = url.href;
-      });
-  });
+    });
+  };
+  nestedFrame?.addEventListener('load', bindNestedNavigation);
+  bindNestedNavigation();
 }
 
 function setDesignDevice(device) {
   designPreviewDevice = device === 'mobile' ? 'mobile' : 'desktop';
   const mobile = designPreviewDevice === 'mobile';
+  try{localStorage.setItem('rangel-design-preview-device',designPreviewDevice)}catch(_){}
 
   $('design-preview-stage')?.classList.toggle('is-mobile', mobile);
   $('design-preview-stage')?.classList.toggle('is-desktop', !mobile);
@@ -8114,10 +6923,21 @@ function setDesignDevice(device) {
   const frame = $('design-preview-frame');
 
   try {
+    const doc=frame?.contentDocument;
+    const nextPending=doc?.querySelector('script[src*="/_next/"]')&&doc.documentElement?.dataset?.reactHydrated!=='1';
+    if(doc&&!nextPending)decorateDesignInlinePreview(doc);
+  } catch (_) {}
+
+  try {
     frame?.contentWindow?.scrollTo(0, 0);
   } catch (_) {}
 
   sizeDesignPreview();
+
+  /* A troca de viewport também troca o bloco de estilos (desktop/mobile). */
+  applyDesignContentPreview();
+  setTimeout(()=>{try{applyDesignContentPreview()}catch(_){}},80);
+  setTimeout(()=>{try{applyDesignContentPreview()}catch(_){}},260);
 
   setTimeout(() => {
     try {
@@ -8513,41 +7333,43 @@ function applyInicioDesignPreview(doc, snapshot) {
       hero.description || '';
   }
 
-  const desktop =
-    doc.getElementById(
-      'hero-desktop-image'
-    );
+  const heroMedia=doc.querySelector('.hero-media');
+  let desktop = doc.getElementById('hero-desktop-image') || doc.querySelector('.hero-photo');
 
-  const mobile =
-    doc.getElementById(
-      'hero-mobile-image'
-    );
+  let mobile = doc.getElementById('hero-mobile-image') || doc.querySelector('.hero-media source[media]');
 
-  const picture =
-    desktop?.closest('picture');
+  let picture = desktop?.closest('picture') || doc.querySelector('.hero-media picture');
 
-  const slideshow =
-    doc.getElementById(
-      'hero-slideshow'
-    );
+  let slideshow = doc.getElementById('hero-slideshow') || doc.querySelector('.hero-slideshow');
+
+  if(heroMedia&&!picture){
+    picture=doc.createElement('picture');
+    mobile=doc.createElement('source');mobile.setAttribute('media','(max-width: 899px)');
+    desktop=doc.createElement('img');desktop.className='hero-photo';
+    picture.append(mobile,desktop);heroMedia.insertBefore(picture,heroMedia.firstChild);
+  }
+  if(heroMedia&&!slideshow){
+    slideshow=doc.createElement('div');slideshow.className='hero-slideshow';slideshow.setAttribute('aria-hidden','true');
+    heroMedia.insertBefore(slideshow,picture?.nextSibling||heroMedia.firstChild);
+  }
 
   if (
     desktop &&
     hero.desktop_image
   ) {
-    desktop.src =
-      hero.desktop_image;
+    desktop.src = resolvePreviewMediaUrl(hero.desktop_image);
 
     desktop.alt =
       hero.image_alt || '';
 
-    desktop.style.objectPosition =
-      `${Number(hero.static_focus_x ?? 50)}% ${Number(hero.static_focus_y ?? 50)}%`;
+    const mobileViewport=(doc.defaultView?.innerWidth||1920)<=899;
+    const focusX=mobileViewport?Number(hero.static_mobile_focus_x??hero.static_focus_x??50):Number(hero.static_focus_x??50);
+    const focusY=mobileViewport?Number(hero.static_mobile_focus_y??hero.static_focus_y??50):Number(hero.static_focus_y??50);
+    desktop.style.objectPosition=`${focusX}% ${focusY}%`;
   }
 
   if (mobile) {
-    mobile.srcset =
-      hero.mobile_image || '';
+    mobile.srcset = resolvePreviewMediaUrl(hero.mobile_image || '');
   }
 
   const visibleSlides =
@@ -8558,10 +7380,7 @@ function applyInicioDesignPreview(doc, snapshot) {
           slide.published !== false
       );
 
-  const slideshowMode =
-    Boolean(slideshow) &&
-    hero.mode === 'slideshow' &&
-    visibleSlides.length > 0;
+  const slideshowMode = hero.mode === 'slideshow' && visibleSlides.length > 0;
 
   if (slideshow) {
     stopDesignHeroPreviewTimer(doc);
@@ -8573,7 +7392,7 @@ function applyInicioDesignPreview(doc, snapshot) {
             <div
               class="hero-slide ${index === 0 ? 'is-visible' : ''}"
               style="
-                background-image:url('${esc(slide.url)}');
+                background-image:url('${esc(resolvePreviewMediaUrl(slide.url))}');
                 background-position:${Number(slide.focus_x ?? 50)}% ${Number(slide.focus_y ?? 50)}%;
               "
               aria-hidden="${index === 0 ? 'false' : 'true'}"
@@ -8686,8 +7505,39 @@ function applyInicioDesignPreview(doc, snapshot) {
   }
 }
 
-function applySobreDesignPreview(doc,s){const d=s.sobre?.conteudo||{},text=doc.querySelector('.about-text');if(text){const eb=text.querySelector('.section-eyebrow');if(eb)eb.textContent=d.eyebrow||'';text.querySelectorAll(':scope > p:not(.section-eyebrow)').forEach(p=>p.remove());const specs=text.querySelector('.specs');(d.paragraphs||[]).forEach(x=>{const p=doc.createElement('p');p.textContent=x;text.insertBefore(p,specs||null)});if(specs)specs.innerHTML=(d.specs||[]).map(x=>`<div><dt>${esc(x.label||'')}</dt><dd>${esc(x.value||'')}</dd></div>`).join('');const cta=text.querySelector('.btn.btn-accent');if(cta){cta.textContent=d.cta_text||'';cta.href=d.cta_url||'/contato'}}const portrait=doc.querySelector('.about-portrait img');if(portrait&&d.portrait_url){portrait.src=d.portrait_url;portrait.alt=d.portrait_alt||''}}
-function applyContatoDesignPreview(doc,s){const d=s.contato?.conteudo||{},eb=doc.querySelector('.section-head .section-eyebrow'),title=doc.querySelector('.section-head .section-title');if(eb)eb.textContent=d.eyebrow||'';if(title)title.textContent=d.title||'';const form=doc.querySelector('.contact-grid form');if(form){const btn=form.querySelector('button[type="submit"]');if(btn)btn.textContent=d.submit_label||'Enviar mensagem';const sel=form.querySelector('select[name="tipo"],#tipo');if(sel)sel.innerHTML=(d.tipos||[]).map(x=>`<option>${esc(x)}</option>`).join('')}const info=doc.querySelector('.contact-info');if(info){const dt=[...info.querySelectorAll('dt')].find(n=>n.textContent.trim().toLowerCase()==='atendimento');if(dt?.nextElementSibling)dt.nextElementSibling.textContent=d.atendimento||''}}
+function applySobreDesignPreview(doc,s){
+  const d=s.sobre?.conteudo||{},text=doc.querySelector('.about-text');
+  if(text){
+    const eb=text.querySelector('.section-eyebrow');if(eb)eb.textContent=d.eyebrow||eb.textContent||'Sobre mim';
+    text.querySelectorAll(':scope > p:not(.section-eyebrow)').forEach(p=>p.remove());
+    const specs=text.querySelector('.specs');
+    (d.paragraphs||[]).forEach(x=>{const p=doc.createElement('p');p.textContent=x;text.insertBefore(p,specs||null)});
+    if(specs){
+      const defaults=[
+        {label:'Baseado em',value:'Vale de Cambra, Portugal'},
+        {label:'Especialidade',value:'Retrato Feminino & Autoestima'},
+        {label:'Prazo de entrega',value:'05–10 dias úteis'},
+        {label:'Atende',value:'Vale de Cambra e arredores'}
+      ];
+      const normalize=value=>String(value||'').toLocaleLowerCase('pt-PT').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      const existing=[...specs.querySelectorAll(':scope > div')].map(row=>({label:row.querySelector('dt')?.textContent?.trim()||'',value:row.querySelector('dd')?.textContent?.trim()||''})).filter(x=>x.label&&x.value);
+      const merged=new Map(defaults.map(x=>[normalize(x.label),x]));
+      existing.forEach(x=>merged.set(normalize(x.label),x));
+      (Array.isArray(d.specs)?d.specs:[]).filter(x=>x?.label&&x?.value).forEach(x=>merged.set(normalize(x.label),x));
+      specs.innerHTML=[...merged.values()].map(x=>`<div><dt>${esc(x.label||'')}</dt><dd>${esc(x.value||'')}</dd></div>`).join('');
+    }
+    const cta=text.querySelector('.btn.btn-accent');if(cta){cta.textContent=d.cta_text||cta.textContent||'Vamos conversar';cta.href=d.cta_url||'/contato'}
+  }
+  const portrait=doc.querySelector('.about-portrait img');if(portrait&&d.portrait_url){portrait.src=d.portrait_url;portrait.alt=d.portrait_alt||''}
+}
+function applyContatoDesignPreview(doc,s){
+  const d=s.contato?.conteudo||{},eb=doc.querySelector('.section-head .section-eyebrow'),title=doc.querySelector('.section-head .section-title');
+  if(eb&&d.eyebrow)eb.textContent=d.eyebrow;if(title&&d.title)title.textContent=d.title;
+  const form=doc.querySelector('.contact-grid form');
+  if(form){const btn=form.querySelector('button[type="submit"]');if(btn)btn.textContent=d.submit_label||'Enviar mensagem';const sel=form.querySelector('select[name="tipo"],#tipo');if(sel&&Array.isArray(d.tipos)&&d.tipos.length)sel.innerHTML=d.tipos.map(x=>`<option>${esc(x)}</option>`).join('')}
+  const info=doc.querySelector('.contact-info');
+  if(info){const normalize=value=>String(value||'').toLocaleLowerCase('pt-PT').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();const dt=[...info.querySelectorAll('dt')].find(n=>normalize(n.textContent)==='atendimento');if(dt?.nextElementSibling)dt.nextElementSibling.textContent=d.atendimento||dt.nextElementSibling.textContent||'Vale de Cambra e arredores — sessões sob agendamento'}
+}
 
 const DESIGN_INLINE_FIELDS = {
   'hero-eyebrow': {input:'hero-eyebrow', label:'Texto acima do título'},
@@ -8697,30 +7547,82 @@ const DESIGN_INLINE_FIELDS = {
   'hero-secondary-button': {input:'hero-secondary-text', label:'Botão secundário'},
   'recent-work-eyebrow': {input:'recent-eyebrow', label:'Texto de Trabalhos recentes'},
   'recent-work-title': {input:'recent-title', label:'Título de Trabalhos recentes'},
-  'recent-work-button': {input:'recent-btn-text', label:'Botão da galeria'}
+  'recent-work-button': {input:'recent-btn-text', label:'Botão da galeria'},
+  'gallery-eyebrow': {visual:true, label:'Texto acima da Galeria'},
+  'gallery-title': {visual:true, label:'Título da Galeria'},
+  'footer-text-preview': {visual:true, label:'Texto do rodapé'},
+  'footer-link-0': {visual:true, label:'Primeiro link do rodapé'},
+  'footer-link-1': {visual:true, label:'Segundo link do rodapé'},
+  'footer-link-2': {visual:true, label:'Terceiro link do rodapé'},
+  'sobre-eyebrow-preview': {input:'sobre-eyebrow', label:'Texto acima da página Sobre'},
+  'sobre-cta-preview': {input:'sobre-cta-text', label:'Botão da página Sobre'},
+  'contato-eyebrow-preview': {input:'contato-eyebrow', label:'Texto acima de Contato'},
+  'contato-title-preview': {input:'contato-title', label:'Título de Contato'},
+  'contato-submit-preview': {input:'contato-submit-label', label:'Botão do formulário'},
+  'contato-atendimento-preview': {input:'contato-atendimento', label:'Informação de atendimento'},
+  'client-visual-text': {visual:true, label:'Texto visual da Área do Cliente'},
+  'client-access-eyebrow': {input:'design-client-text-eyebrow', label:'Texto acima do acesso'},
+  'client-access-title-main': {input:'design-client-text-title', label:'Título da Área do Cliente'},
+  'client-access-title-emphasis': {input:'design-client-text-title-emphasis', label:'Destaque do título'},
+  'client-access-description': {input:'design-client-text-description', label:'Descrição do acesso'},
+  'client-login-label': {input:'design-client-text-login', label:'Campo de login'},
+  'client-password-label': {input:'design-client-text-password', label:'Campo de senha'},
+  'client-access-submit': {input:'design-client-text-button', label:'Botão de acesso'},
+  'client-access-secure-text': {input:'design-client-text-secure', label:'Aviso de segurança'},
+  'client-gallery-eyebrow': {input:'design-client-text-gallery-eyebrow', label:'Texto da galeria privada'},
+  'client-stage-selection': {input:'design-client-stage-selection', label:'Etapa Seleção'},
+  'client-stage-selection-sub': {input:'design-client-stage-selection-sub', label:'Descrição da Seleção'},
+  'client-stage-editing': {input:'design-client-stage-editing', label:'Etapa Edição'},
+  'client-stage-editing-sub': {input:'design-client-stage-editing-sub', label:'Descrição da Edição'},
+  'client-stage-delivery': {input:'design-client-stage-delivery', label:'Etapa Entrega'},
+  'client-stage-delivery-sub': {input:'design-client-stage-delivery-sub', label:'Descrição da Entrega'}
 };
 let designInlineActive=null;
+function getInlineStyleForDevice(key){
+  const base=(window.__designInlineStyles||{})[key]||{};
+  return designPreviewDevice==='mobile'?{...base,...(base.mobile||{})}:base;
+}
+function getInlineBaseFontSize(el){
+  const device=designPreviewDevice==='mobile'?'mobile':'desktop';
+  el.__designInlineBaseFontSizes=el.__designInlineBaseFontSizes||{};
+  if(!el.__designInlineBaseFontSizes[device]){
+    const previous=el.style.fontSize;
+    el.style.removeProperty('font-size');
+    const view=el.ownerDocument?.defaultView;
+    el.__designInlineBaseFontSizes[device]=parseFloat(view?.getComputedStyle(el).fontSize||'')||16;
+    el.style.fontSize=previous;
+  }
+  return el.__designInlineBaseFontSizes[device];
+}
+function getInlineSizeScale(st,key=''){
+  const legacy=st.size==='small'?86:st.size==='large'?114:100;
+  const value=Number(st.size_scale??legacy);
+  const maximum=designPreviewDevice==='mobile'&&key==='hero-title'?160:250;
+  return Number.isFinite(value)?Math.max(50,Math.min(maximum,value)):100;
+}
 function applyInlineStyleToElement(el,key){
-  const st=(window.__designInlineStyles||{})[key]||{};
+  const st=getInlineStyleForDevice(key);
+  if(typeof st.text==='string'&&el.textContent!==st.text&&el.contentEditable!=='true')el.textContent=st.text;
   el.style.fontWeight=st.bold?'700':'';
   el.style.fontStyle=st.italic?'italic':'';
   el.style.textAlign=st.align||'';
-  el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';
+  const sizeScale=getInlineSizeScale(st,key);
+  el.style.fontSize=sizeScale===100?'':`${getInlineBaseFontSize(el)*sizeScale/100}px`;
+  const x=Number(st.x||0),y=Number(st.y||0);
+  el.style.translate=x||y?`${x}px ${y}px`:'';
 }
 
 function ensureDesignPreviewRenderObserver(doc) {
   if (
     !doc ||
-    doc.documentElement?.dataset
-      ?.designPreviewObserver === '1'
+    doc.__designPreviewObserverInstalled
   ) {
     return;
   }
 
   if (!doc.documentElement) return;
 
-  doc.documentElement.dataset
-    .designPreviewObserver = '1';
+  doc.__designPreviewObserverInstalled = true;
 
   let scheduled = false;
 
@@ -8761,6 +7663,14 @@ function ensureDesignPreviewRenderObserver(doc) {
 
 function decorateDesignInlinePreview(doc){
   if(!doc||activeView!=='design')return;
+  const mobilePreview=designPreviewDevice==='mobile';
+  doc.querySelectorAll('.filters .filter-btn').forEach(el=>{
+    if(el.id?.startsWith('gallery-filter-'))el.removeAttribute('id');
+    delete el.dataset.designEditable;
+    delete el.dataset.designInlineEditable;
+    delete el.dataset.designInlineKey;
+    el.removeAttribute('title');
+  });
   Object.entries(DESIGN_INLINE_FIELDS).forEach(([id,cfg])=>{
     const el=doc.getElementById(id); if(!el)return;
     el.dataset.designInlineEditable='1'; el.dataset.designInlineKey=id;
@@ -8790,6 +7700,19 @@ function decorateDesignInlinePreview(doc){
         );
       }
     );
+  });
+  doc.querySelectorAll('[data-design-editable="1"][id]').forEach(el=>{
+    if(el.closest('.nav')){
+      delete el.dataset.designInlineEditable;
+      delete el.dataset.designInlineKey;
+      el.removeAttribute('title');
+      return;
+    }
+    const key=el.id;if(DESIGN_INLINE_FIELDS[key]||el.dataset.designInlineBound==='1')return;
+    const cfg={visual:true,label:'Elemento da página'};
+    el.dataset.designInlineEditable='1';el.dataset.designInlineKey=key;el.dataset.designInlineBound='1';
+    el.title='Clique para editar este elemento';applyInlineStyleToElement(el,key);
+    el.addEventListener('click',ev=>{if(el.closest('.nav'))return;ev.preventDefault();ev.stopPropagation();openDesignInlineEditor(el,cfg,key,getDesignEditableOffsetFromPoint(el,ev.clientX,ev.clientY))});
   });
 }
 
@@ -9392,8 +8315,12 @@ function openDesignInlineEditor(el,cfg,key,initialOffset=null){
 
   const box=$('design-inline-editor'); if(box)box.hidden=false;
   if($('design-inline-editor-label'))$('design-inline-editor-label').textContent=`${cfg.label} · Enter cria nova linha`;
-  const st=(window.__designInlineStyles||{})[key]||{};
-  if($('design-inline-size'))$('design-inline-size').value=st.size||'inherit';
+  const st=getInlineStyleForDevice(key);
+  const sizeScale=getInlineSizeScale(st,key);
+  if($('design-inline-size'))$('design-inline-size').value=String(sizeScale);
+  if($('design-inline-size-out'))$('design-inline-size-out').textContent=`${sizeScale}%`;
+  if($('design-inline-x'))$('design-inline-x').value=String(Number(st.x||0));
+  if($('design-inline-y'))$('design-inline-y').value=String(Number(st.y||0));
   document.querySelectorAll('[data-inline-command]').forEach(b=>b.classList.toggle('active',!!st[b.dataset.inlineCommand]));
   document.querySelectorAll('[data-inline-align]').forEach(b=>b.addEventListener ? b.classList.toggle('active',(st.align||'left')===b.dataset.inlineAlign) : null);
 }
@@ -9401,7 +8328,9 @@ function previewInlineStyle(patch){
   if(!designInlineActive)return;
   window.__designInlineStyles=window.__designInlineStyles||{};
   const cur=window.__designInlineStyles[designInlineActive.key]||{};
-  window.__designInlineStyles[designInlineActive.key]={...cur,...patch};
+  window.__designInlineStyles[designInlineActive.key]=designPreviewDevice==='mobile'
+    ? {...cur,mobile:{...(cur.mobile||{}),...patch}}
+    : {...cur,...patch};
   applyInlineStyleToElement(designInlineActive.el,designInlineActive.key);
   updateDesignPublicationState();
 }
@@ -9437,6 +8366,13 @@ async function saveDesignInline() {
 
   const active =
     designInlineActive;
+  /*
+    Os listeners dos campos podem reconstruir a prévia enquanto o botão
+    Aplicar está sendo processado. Guardamos primeiro uma cópia imutável
+    dos estilos (incluindo o bloco mobile) para que nenhum render intermédio
+    consiga apagar o ajuste recém-feito.
+  */
+  const inlineStylesSnapshot=JSON.parse(JSON.stringify(window.__designInlineStyles||{}));
 
   const serializeInlineText=root=>{
     const walk=node=>{
@@ -9482,6 +8418,30 @@ async function saveDesignInline() {
     $(active.cfg.input);
 
   if (!input) {
+    if (active.cfg.visual) {
+      window.__designInlineStyles=window.__designInlineStyles||{};
+      window.__designInlineStyles[active.key]={...(window.__designInlineStyles[active.key]||{}),text:newText};
+      const visualStylesSnapshot=JSON.parse(JSON.stringify(window.__designInlineStyles));
+      active.el.textContent=newText;
+      active.el.contentEditable='false';
+      active.el.onkeydown=null;active.el.oninput=null;active.el.classList.remove('design-inline-editing');
+      designInlineActive=null;
+      if($('design-inline-editor'))$('design-inline-editor').hidden=true;
+      try{
+        const visualConfig=collectDesignConfig();
+        visualConfig.inline_styles=visualStylesSnapshot;
+        await saveDesignDraft(visualConfig);
+        if(designDraftSaved)applyDesignConfigToControls(designDraftSaved);
+        applyDesignContentPreview();
+        requestAnimationFrame(()=>applyDesignContentPreview());
+        setTimeout(()=>applyDesignContentPreview(),100);
+        flash('Texto salvo no rascunho e aplicado à prévia.','sucesso');
+      }catch(error){
+        console.error('[admin-v2] editor visual: erro ao salvar elemento visual',error);
+        flash(`Erro ao salvar o texto: ${error.message}`,'erro');
+      }
+      return;
+    }
     console.error(
       '[admin-v2] editor visual: campo de origem não encontrado',
       active.cfg.input
@@ -9607,15 +8567,12 @@ async function saveDesignInline() {
   );
 
   try {
-    let forcedConfig =
-      null;
+    let forcedConfig =collectDesignConfig();
+    forcedConfig.inline_styles=inlineStylesSnapshot;
 
     if (
       editedKey === 'hero-title'
     ) {
-      forcedConfig =
-        collectDesignConfig();
-
       forcedConfig.content =
         forcedConfig.content &&
         typeof forcedConfig.content === 'object'
@@ -9702,11 +8659,13 @@ async function saveDesignInline() {
         Isso elimina qualquer valor antigo que algum listener tenha
         deixado no textarea antes do save.
       */
-      if (designDraftSaved) {
-        applyDesignConfigToControls(
-          designDraftSaved
-        );
-      }
+    }
+
+    /* Recarrega sempre o rascunho confirmado, inclusive no modo celular. */
+    if (designDraftSaved) {
+      applyDesignConfigToControls(
+        designDraftSaved
+      );
     }
 
     /*
@@ -9789,8 +8748,16 @@ function bindDesignInlineToolbar(){
   if(document.body.dataset.inlineToolbarBound==='1')return;document.body.dataset.inlineToolbarBound='1';
   $('design-inline-discard')?.addEventListener('click',()=>finishDesignInline(false));
   $('design-inline-save')?.addEventListener('click',saveDesignInline);
-  $('design-inline-size')?.addEventListener('change',e=>previewInlineStyle({size:e.target.value}));
-  document.querySelectorAll('[data-inline-command]').forEach(b=>b.addEventListener('click',()=>{if(!designInlineActive)return;const k=b.dataset.inlineCommand,cur=(window.__designInlineStyles||{})[designInlineActive.key]||{};previewInlineStyle({[k]:!cur[k]});b.classList.toggle('active',!cur[k]);}));
+  $('design-inline-size')?.addEventListener('input',e=>{
+    const maximum=designPreviewDevice==='mobile'&&designInlineActive?.key==='hero-title'?160:250;
+    const sizeScale=Math.max(50,Math.min(maximum,Number(e.target.value||100)));
+    e.target.value=String(sizeScale);
+    if($('design-inline-size-out'))$('design-inline-size-out').textContent=`${sizeScale}%`;
+    previewInlineStyle({size_scale:sizeScale});
+  });
+  $('design-inline-x')?.addEventListener('input',e=>previewInlineStyle({x:Number(e.target.value||0)}));
+  $('design-inline-y')?.addEventListener('input',e=>previewInlineStyle({y:Number(e.target.value||0)}));
+  document.querySelectorAll('[data-inline-command]').forEach(b=>b.addEventListener('click',()=>{if(!designInlineActive)return;const k=b.dataset.inlineCommand,cur=getInlineStyleForDevice(designInlineActive.key);previewInlineStyle({[k]:!cur[k]});b.classList.toggle('active',!cur[k]);}));
   document.querySelectorAll('[data-inline-align]').forEach(b=>b.addEventListener('click',()=>{previewInlineStyle({align:b.dataset.inlineAlign});document.querySelectorAll('[data-inline-align]').forEach(x=>x.classList.toggle('active',x===b));}));
 }
 function applyDesignWhatsappPreview(doc){
@@ -9802,7 +8769,35 @@ function applyDesignWhatsappPreview(doc){
   if(!btn){btn=doc.createElement('a');btn.id='rs-whatsapp-float-preview';btn.target='_blank';btn.rel='noopener';btn.setAttribute('aria-label','Fale comigo pelo WhatsApp');btn.innerHTML='<span class="rs-wa-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path fill="currentColor" d="M16.04 3.2A12.73 12.73 0 0 0 5.1 22.43L3.4 28.8l6.52-1.7A12.8 12.8 0 1 0 16.04 3.2Zm0 23.32c-2.04 0-4.03-.55-5.77-1.58l-.41-.24-3.87 1.01 1.03-3.76-.27-.43a10.5 10.5 0 1 1 9.29 5Zm5.76-7.87c-.32-.16-1.87-.92-2.16-1.03-.29-.11-.5-.16-.71.16-.21.32-.82 1.03-1 1.24-.18.21-.37.24-.69.08-.32-.16-1.33-.49-2.54-1.57a9.5 9.5 0 0 1-1.76-2.19c-.18-.32-.02-.49.14-.65.14-.14.32-.37.47-.55.16-.18.21-.32.32-.53.11-.21.05-.4-.03-.55-.08-.16-.71-1.71-.97-2.35-.26-.61-.52-.53-.71-.54h-.61c-.21 0-.55.08-.84.4-.29.32-1.1 1.08-1.1 2.63s1.13 3.05 1.29 3.26c.16.21 2.22 3.39 5.38 4.75.75.32 1.34.52 1.8.67.76.24 1.44.21 1.99.13.61-.09 1.87-.77 2.13-1.5.26-.74.26-1.37.18-1.5-.08-.14-.29-.21-.61-.37Z"/></svg></span><b>Fale comigo</b>';doc.body.appendChild(btn);}
   btn.href='https://wa.me/'+num+(msg?'?text='+msg:'');btn.className='rs-whatsapp-float is-'+style+(pos==='left'?' is-left':'');
 }
-function applyDesignContentPreview(){if(activeView!=='design')return;const doc=getDesignPreviewDocument();if(!doc)return;const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);ensureDesignPreviewRenderObserver(doc);decorateDesignInlinePreview(doc);applyDesignWhatsappPreview(doc)}
+function applyDesignContentPreview(){
+  if(activeView!=='design')return;
+  const doc=getDesignPreviewDocument();if(!doc)return;
+  const isNextPage=Boolean(doc.querySelector('script[src*="/_next/"]'));
+  if(isNextPage&&doc.documentElement?.dataset?.reactHydrated!=='1'){
+    if(!doc.__designHydrationWaitBound){
+      doc.__designHydrationWaitBound=true;
+      doc.defaultView?.addEventListener('rangel:hydrated',()=>{doc.__designHydrationWaitBound=false;applyDesignContentPreview()},{once:true});
+    }
+    return;
+  }
+  /*
+    A página Next também possui o aplicador dos estilos publicados.
+    Dentro do Designer ele não pode competir com o rascunho, senão a
+    atualização publicada desfaz a edição logo após o clique em Aplicar.
+    A marca só é adicionada depois da hidratação, portanto não cria mismatch.
+  */
+  if(doc.documentElement)doc.documentElement.dataset.designPreviewActive='1';
+  ensureDesignPreviewRenderObserver(doc);
+  const s=collectDesignContentSnapshot();let path='';try{path=doc.location.pathname}catch(_){return}
+  if(path==='/'||path==='/inicio'||path.endsWith('/inicio.html'))applyInicioDesignPreview(doc,s);
+  if(path==='/sobre'||path.endsWith('/sobre.html'))applySobreDesignPreview(doc,s);
+  if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);
+  if(path==='/galeria'||path.endsWith('/galeria.html'))applyTrailDraftPreview(doc);
+  decorateDesignInlinePreview(doc);applyTrailDraftPreview(doc);
+  const nested=doc.querySelector('iframe.legacy-frame');
+  try{if(nested?.contentDocument){ensureDesignPreviewRenderObserver(nested.contentDocument);decorateDesignInlinePreview(nested.contentDocument);applyTrailDraftPreview(nested.contentDocument)}}catch(_){}
+  applyDesignWhatsappPreview(doc);
+}
 function openDesignContentSection(page, trigger) {
   if (page === 'client_area') {
     openDesignDrawer(
@@ -10117,14 +9112,9 @@ function initDesignSidebarNavigation() {
     toggle.dataset.bound = '1';
 
     toggle.addEventListener('click', () => {
-      const expanded =
-        toggle.getAttribute('aria-expanded') === 'true';
-
-      setDesignNavExpanded(!expanded);
-
-      if (!expanded) {
-        setView?.('design');
-      }
+      setDesignNavExpanded(false);
+      setView?.('design');
+      setTimeout(()=>document.querySelector('.design-preview-panel')?.scrollIntoView({behavior:'smooth',block:'start'}),40);
     });
   }
 
@@ -10416,15 +9406,147 @@ function updateDesignClientImagePreview() {
   img.src = url;
 }
 
-async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await supabase.storage.from(BUCKET).upload(path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return supabase.storage.from(BUCKET).getPublicUrl(path).data?.publicUrl||''}
+async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
+
+function updateDesignPageSwitcher(pathname='/inicio'){
+  const normalized=pathname==='/'?'/inicio':pathname.replace(/\/$/,'')||'/inicio';
+  document.querySelectorAll('[data-design-page]').forEach(button=>{
+    button.classList.toggle('active',button.dataset.designPage===normalized);
+  });
+  const openLink=document.querySelector('.design-preview-toolbar a');
+  if(openLink)openLink.href=normalized;
+  const address=document.querySelector('.design-browser-bar span');
+  if(address)address.textContent=`photosrangel.pt${normalized}`;
+}
+
+function initDesignPageSwitcher(){
+  const frame=$('design-preview-frame');
+  if(!frame||frame.dataset.pageSwitcherBound==='1')return;
+  frame.dataset.pageSwitcherBound='1';
+  document.querySelectorAll('[data-design-page]').forEach(button=>{
+    button.addEventListener('click',async()=>{
+      if(designInlineActive)await saveDesignInline();
+      const path=button.dataset.designPage||'/inicio';
+      updateDesignPageSwitcher(path);setDesignPreviewLoading(true);frame.src=path;
+    });
+  });
+  frame.addEventListener('load',()=>{
+    try{updateDesignPageSwitcher(frame.contentWindow?.location?.pathname||'/inicio')}catch(_){ }
+  });
+  updateDesignPageSwitcher('/inicio');
+}
+
+const designPanelSnapshots=new WeakMap();
+function designPanelFields(panel){
+  const selector='input,select,textarea';
+  const fields=[...panel.querySelectorAll(selector)];
+  if(panel.dataset.inlinePanel==='hero')document.querySelectorAll('[id^="hero-"]').forEach(field=>{if(field.matches?.(selector)&&!fields.includes(field))fields.push(field)});
+  return fields;
+}
+function captureDesignPanelSnapshot(panel,force=false){
+  if(!force&&designPanelSnapshots.has(panel))return;
+  designPanelSnapshots.set(panel,designPanelFields(panel).map(field=>({field,value:field.value,checked:field.checked})));
+}
+function discardDesignPanel(panel){
+  const snapshot=designPanelSnapshots.get(panel)||[];
+  snapshot.forEach(({field,value,checked})=>{field.value=value;if('checked'in field)field.checked=checked;field.dispatchEvent(new Event('change',{bubbles:true}))});
+  updateHeroModeUI();updateStaticFocalPreview();renderHeroSlideshowOverview();applyDesignPreview();applyDesignContentPreview();updateDesignPublicationState();
+  flash('Alterações deste painel descartadas.','sucesso');
+}
+function initDesignPanelsReorder(){
+  const stack=$('design-inline-panels'),button=$('design-panels-reorder');if(!stack||!button||button.dataset.bound==='1')return;button.dataset.bound='1';
+  try{const order=JSON.parse(localStorage.getItem('rangel-design-panel-order')||'[]');const map=new Map([...stack.querySelectorAll(':scope>.design-stack-panel')].map(x=>[x.dataset.inlinePanel,x]));order.forEach(key=>{const panel=map.get(key);if(panel)stack.appendChild(panel)})}catch(_){}
+  let active=false,dragged=null;const panels=()=>[...stack.querySelectorAll(':scope>.design-stack-panel')];
+  const mode=value=>{active=value;stack.classList.toggle('is-reordering',value);button.setAttribute('aria-pressed',String(value));button.textContent=value?'Concluir reordenação':'Reordenar painéis';panels().forEach(p=>p.draggable=value)};
+  stack.addEventListener('dragstart',event=>{const panel=event.target.closest('.design-stack-panel');if(!active||!panel)return event.preventDefault();dragged=panel;panel.classList.add('is-panel-dragging')});
+  stack.addEventListener('dragover',event=>{const target=event.target.closest('.design-stack-panel');if(!active||!dragged||!target||target===dragged)return;event.preventDefault();const rect=target.getBoundingClientRect();stack.insertBefore(dragged,event.clientY<rect.top+rect.height/2?target:target.nextSibling)});
+  stack.addEventListener('dragend',()=>{dragged?.classList.remove('is-panel-dragging');dragged=null});
+  button.addEventListener('click',()=>{if(active){try{localStorage.setItem('rangel-design-panel-order',JSON.stringify(panels().map(p=>p.dataset.inlinePanel)))}catch(_){}mode(false);flash('Ordem dos painéis guardada.','sucesso')}else mode(true)});mode(false);
+}
+
+function initDesignInlinePanels(){
+  const stack=$('design-inline-panels');
+  if(!stack||stack.dataset.bound==='1')return;
+  stack.dataset.bound='1';
+
+  const preview=document.querySelector('.design-preview-panel');
+  const pageSwitcher=document.querySelector('.design-page-switcher');
+  const previewStage=$('design-preview-stage');
+  if(preview&&pageSwitcher&&previewStage)preview.insertBefore(pageSwitcher,previewStage);
+
+  const previewToggle=$('design-preview-collapse');
+  previewToggle?.addEventListener('click',()=>{
+    const collapsed=preview.classList.toggle('is-collapsed');
+    previewToggle.setAttribute('aria-expanded',String(!collapsed));
+    previewToggle.setAttribute('aria-label',collapsed?'Expandir prévia':'Recolher prévia');
+    if(!collapsed)setTimeout(sizeDesignPreview,40);
+  });
+
+  const heroForm=$('form-hero');
+  const heroPanel=heroForm?.closest('.panel');
+  const heroHost=$('design-inline-hero');
+  if(heroPanel&&heroHost){
+    heroHost.appendChild(heroPanel);
+    const submit=heroForm.querySelector('button[type="submit"]');
+    if(submit)submit.textContent='Aplicar na prévia';
+  }
+
+  ['menu','animations','general','whatsapp','galleries','client_area'].forEach(name=>{
+    const section=document.querySelector(`.design-accordion[data-design-section="${name}"]`);
+    const host=$(`design-inline-${name}`);
+    if(!section||!host)return;
+    host.appendChild(section);section.classList.add('is-open');
+    const body=section.querySelector('.design-accordion-body');
+    if(body)body.hidden=false;
+  });
+
+  document.querySelectorAll('.design-stack-panel').forEach(panel=>{
+    const toggle=panel.querySelector('.design-stack-toggle');
+    const body=panel.querySelector('.design-stack-body');
+    toggle?.addEventListener('click',()=>{
+      const open=!panel.classList.contains('is-open');
+      panel.classList.toggle('is-open',open);toggle.setAttribute('aria-expanded',String(open));
+      if(body)body.hidden=!open;
+      if(open){
+        captureDesignPanelSnapshot(panel);
+        if(panel.dataset.inlinePanel==='hero'){
+          updateHeroModeUI();updateStaticFocalPreview();renderHeroSlideshowOverview();
+        }
+        setTimeout(()=>{sizeDesignPreview();panel.scrollIntoView({behavior:'smooth',block:'start'});},40);
+      }
+    });
+    if(body&&!body.querySelector('.design-panel-actions')){
+      const actions=document.createElement('div');actions.className='design-panel-actions';
+      actions.innerHTML='<button type="button" class="btn" data-panel-discard>Descartar painel</button><button type="button" class="btn btn-accent" data-panel-save>Salvar painel</button>';
+      body.appendChild(actions);
+      actions.querySelector('[data-panel-discard]')?.addEventListener('click',()=>discardDesignPanel(panel));
+      actions.querySelector('[data-panel-save]')?.addEventListener('click',async()=>{applyDesignPreview();applyDesignContentPreview();await saveDesignDraft();captureDesignPanelSnapshot(panel,true);flash('Painel salvo. Use “Publicar alterações no site” para atualizar o site real.','sucesso')});
+    }
+  });
+
+  const publication=document.querySelector('.design-publication-panel');
+  const designView=$('view-design');
+  if(publication&&designView)designView.insertBefore(publication,designView.firstElementChild);
+  const deviceSwitch=document.querySelector('.design-device-switch');
+  if(pageSwitcher&&deviceSwitch)pageSwitcher.appendChild(deviceSwitch);
+  if($('design-preview-label'))$('design-preview-label').innerHTML='<strong>Prévia responsiva</strong><small>Computador · 1920 × 1080</small>';
+  const reorder=$('design-panels-reorder');
+  const publicationActions=document.querySelector('.design-publication-actions');
+  if(reorder&&publicationActions)publicationActions.insertBefore(reorder,publicationActions.firstChild);
+  initDesignPanelsReorder();
+  const drawer=$('design-controls-drawer');
+  if(drawer){drawer.classList.remove('is-open');drawer.hidden=true;}
+}
 
 function initDesignStudio() {
   bindDesignInlineToolbar();
   initDesignAccordions();
   initDesignSidebarNavigation();
   initDesignContentMigration();
+  initDesignInlinePanels();
   initDesignContentNavigation();
   initDesignContentOrderDnD();
+  initDesignPageSwitcher();
 
   if (designStudioReady) {
     ensureDesignPersistenceLoaded().catch(() => {});
@@ -10440,8 +9562,14 @@ function initDesignStudio() {
 
   designStudioReady = true;
 
+  let initialDesignDevice='desktop';
+  try{initialDesignDevice=localStorage.getItem('rangel-design-preview-device')==='mobile'?'mobile':'desktop'}catch(_){}
+  setDesignDevice(initialDesignDevice);
+
   $('design-device-desktop')?.addEventListener('click', () => setDesignDevice('desktop'));
   $('design-device-mobile')?.addEventListener('click', () => setDesignDevice('mobile'));
+
+  let designAnimationReplayTimer = null;
 
   [
     'design-nav-style',
@@ -10493,6 +9621,10 @@ function initDesignStudio() {
     const handler = () => {
       applyDesignPreview();
       updateDesignPublicationState();
+      if (['design-page-animation','design-section-animation','design-motion-speed'].includes(id)) {
+        clearTimeout(designAnimationReplayTimer);
+        designAnimationReplayTimer = setTimeout(replayDesignAnimations, 90);
+      }
     };
 
     $(id)?.addEventListener('input', handler);
@@ -10517,33 +9649,86 @@ function initDesignStudio() {
   $('design-client-access-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-client-access-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-client-access-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-client-image-upload',()=>uploadDesignClientImage(validos[0]));if(url?.skipped)return;$('design-client-access-image').value=url||'';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Fotografia adicionada ao rascunho.'}catch(error){$('design-client-access-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
   $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho.'});
   updateDesignClientImagePreview();
-  if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel'))return;applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
+  if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel,#design-inline-hero,.design-stack-body'))return;applyDesignPreview();applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
   loadContent().then(()=>ensureDesignPersistenceLoaded()).catch(()=>{});
 
-  $('design-preview-frame')?.addEventListener('load', () => {
+  const designPreviewFrame = $('design-preview-frame');
+  let lastDesignPreviewLoadUrl = '';
+  let lastDesignPreviewLoadAt = 0;
+
+  const handleDesignPreviewLoad = async () => {
+    let currentUrl = '';
+    try { currentUrl = designPreviewFrame?.contentWindow?.location?.href || designPreviewFrame?.src || ''; }
+    catch (_) { currentUrl = designPreviewFrame?.src || ''; }
+
+    const now = Date.now();
+    if (currentUrl === lastDesignPreviewLoadUrl && now - lastDesignPreviewLoadAt < 750) return;
+    lastDesignPreviewLoadUrl = currentUrl;
+    lastDesignPreviewLoadAt = now;
+
+    setDesignPreviewLoading(true);
+
+    const loadingFallback = setTimeout(
+      () => setDesignPreviewLoading(false),
+      4200
+    );
+
+    await waitForDesignPreviewHydration(designPreviewFrame);
+
+    /*
+      No primeiro F5 a hidratação da página costuma terminar antes da
+      consulta do rascunho. A prévia só pode ser marcada como preparada
+      depois que as duas etapas estiverem concluídas; assim ela já nasce
+      com o mesmo estado visto ao navegar e voltar para Início.
+    */
+    try {
+      await ensureDesignPersistenceLoaded();
+    } catch (error) {
+      console.warn('[admin-v2] prévia sem rascunho carregado:',error);
+    }
+
+    const hydratedDoc = designPreviewFrame?.contentDocument;
+    if (hydratedDoc?.documentElement?.dataset?.designPreviewPrepared === '1') {
+      clearTimeout(loadingFallback);
+      setDesignPreviewLoading(false);
+      return;
+    }
+    if (hydratedDoc?.documentElement) {
+      hydratedDoc.documentElement.dataset.designPreviewPrepared = '1';
+    }
+
     setTimeout(() => {
       try {
-        $('design-preview-frame')?.contentWindow?.scrollTo(0, 0);
-      } catch (_) {}
+        designPreviewFrame?.contentWindow?.scrollTo(0, 0);
+        applyDesignPreview();
+        applyDesignContentPreview();
+        setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 180);
+        setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 420);
+        sizeDesignPreview();
+        installDesignPreviewNavigationGuard();
+        runDesignPageTransition();
+      } catch (error) {
+        console.warn('[admin-v2] preview parcial:', error);
+      } finally {
+        clearTimeout(loadingFallback);
+        setTimeout(() => setDesignPreviewLoading(false), 180);
+      }
+    }, 0);
+  };
 
-      applyDesignPreview();
-      applyDesignContentPreview();
+  designPreviewFrame?.addEventListener('load', handleDesignPreviewLoad);
 
-      setTimeout(
-        applyDesignContentPreview,
-        180
-      );
+  if (designPreviewFrame?.contentDocument?.readyState === 'complete') {
+    handleDesignPreviewLoad();
+  }
 
-      setTimeout(
-        applyDesignContentPreview,
-        420
-      );
-
-      sizeDesignPreview();
-      installDesignPreviewNavigationGuard();
-      runDesignPageTransition();
-    }, 100);
-  });
+  setTimeout(() => {
+    try {
+      if (designPreviewFrame?.contentDocument?.readyState === 'complete') {
+        setDesignPreviewLoading(false);
+      }
+    } catch (_) {}
+  }, 1800);
 
   const stage = $('design-preview-stage');
   if (stage && 'ResizeObserver' in window) {
@@ -10589,7 +9774,7 @@ function initDesignStudio() {
     setTimeout(sizeDesignPreview, 120);
   });
 
-  setDesignDevice('desktop');
+  setDesignDevice(initialDesignDevice);
   setTimeout(() => {
     applyDesignPreview();
     sizeDesignPreview();

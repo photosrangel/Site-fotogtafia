@@ -52,7 +52,8 @@ import {
 } from './features/sessions/session-photos-repository.js';
 import {
   uploadToBucket,
-  getPublicUrlFromBucket
+  getPublicUrlFromBucket,
+  createSignedUrlFromBucket
 } from './core/storage-service.js';
 import { storagePathForBucket } from './core/storage-service.js';
 import { uploadGalleryPhoto } from './features/galleries/gallery-upload-service.js';
@@ -4929,9 +4930,10 @@ async function loadSessions() {
       dwarn('Não foi possível carregar as capas dos ensaios:', photosError.message);
     }
 
+    const signedPhotos = await signSessionPhotoUrls(photos || []);
     const bySession = new Map();
 
-    (photos || []).forEach(photo => {
+    signedPhotos.forEach(photo => {
       if (!bySession.has(photo.ensaio_id)) {
         bySession.set(photo.ensaio_id, []);
       }
@@ -5084,8 +5086,22 @@ async function loadSessionPhotos() {
     msg($('session-msg'), error.message, 'erro');
     return;
   }
-  currentSessionPhotos = data || [];
+  currentSessionPhotos = await signSessionPhotoUrls(data || []);
   renderSessionDetail();
+}
+
+async function signSessionPhotoUrls(photos) {
+  return Promise.all((photos || []).map(async photo => {
+    const originalUrl = photo.storage_url || photo.url || '';
+    const path = storagePathForBucket(originalUrl, SESSIONS_BUCKET);
+    if (!path) return { ...photo, storage_url: originalUrl };
+    const { data, error } = await createSignedUrlFromBucket(SESSIONS_BUCKET, path, 3600);
+    if (error || !data?.signedUrl) {
+      dwarn('Não foi possível assinar uma fotografia privada:', error?.message || path);
+      return { ...photo, storage_url: originalUrl };
+    }
+    return { ...photo, storage_url: originalUrl, url: data.signedUrl };
+  }));
 }
 
 
