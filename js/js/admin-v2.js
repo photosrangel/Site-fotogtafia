@@ -3837,9 +3837,8 @@ function focalStyle(x, y) {
 
 function resolvePreviewMediaUrl(value) {
   const url=String(value||'').trim();
-  if(!url)return url;
-  if(/^\/?images\//i.test(url))return `/legacy/${url.replace(/^\/?/,'')}`;
-  if(/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+  if(!url||/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+  if(/^images\//i.test(url))return `/${url.replace(/^\.\//,'')}`;
   return `/legacy/${url.replace(/^\.\//,'')}`;
 }
 
@@ -6278,41 +6277,6 @@ async function publishTrailDrafts(){
   }
 }
 
-async function revalidatePublishedSite() {
-  const sessionResult = await getAdminSession();
-  const accessToken = sessionResult?.data?.session?.access_token;
-  if (!accessToken) throw new Error('Sessão administrativa expirada. Entre novamente.');
-
-  const requestRevalidation = endpoint => fetch(endpoint, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: 'no-store'
-  });
-  const response = await requestRevalidation('/api/revalidate-design');
-
-  // A rota foi adicionada durante a migração para Next.js. Em uma versão
-  // de Preview que ainda não contenha o arquivo, a publicação no Supabase
-  // continua válida e o cache curto é atualizado logo depois.
-  if (response.status === 404) {
-    console.warn('[admin-v2] Rota de revalidação ainda não disponível neste deploy.');
-    return false;
-  }
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload?.error || 'Não foi possível atualizar a versão publicada.');
-  }
-
-  // O painel também pode estar aberto num Preview da Vercel. Nesse caso,
-  // invalida em segundo plano a instalação pública, que possui cache próprio.
-  if (!/(^|\.)photosrangel\.pt$/i.test(location.hostname)) {
-    requestRevalidation('https://www.photosrangel.pt/api/revalidate-design')
-      .catch(error => console.warn('[admin-v2] Produção será atualizada pelo cache curto.', error));
-  }
-
-  return true;
-}
-
 async function publishDesign() {
   if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
   if (designInlineActive) await saveDesignInline();
@@ -6348,8 +6312,6 @@ async function publishDesign() {
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
 
-    const revalidated = await revalidatePublishedSite();
-
     flash('Alterações salvas com sucesso.', 'sucesso');
     updateDesignPublicationState();
     maybeShowDesignDraftReminder();
@@ -6360,19 +6322,6 @@ async function publishDesign() {
       url.searchParams.set('_design', Date.now());
       setDesignPreviewLoading(true);
       frame.src = url.href;
-
-      // O cache público tem validade curta. Se o deploy ainda não possuir a
-      // rota de revalidação, recarrega uma segunda vez depois desse intervalo
-      // para obter a versão que acabou de ser publicada.
-      if (!revalidated) {
-        window.setTimeout(() => {
-          if (!frame.isConnected) return;
-          const retryUrl = new URL(frame.src || '/inicio', location.origin);
-          retryUrl.searchParams.set('_design_retry', Date.now());
-          setDesignPreviewLoading(true);
-          frame.src = retryUrl.href;
-        }, 1600);
-      }
     }
   } catch (error) {
     console.error('[admin-v2] publishDesign:', error);
@@ -9793,13 +9742,11 @@ function initDesignStudio() {
 
     const hydratedDoc = designPreviewFrame?.contentDocument;
     refreshDesignPreviewStylesheet(hydratedDoc);
-    /*
-      O mesmo documento pode chegar aqui duas vezes: primeiro pelo carregamento
-      inicial e depois pela hidratação/navegação do Next. Mesmo quando já foi
-      "preparado", o rascunho e o dispositivo ativo podem ter acabado de ficar
-      disponíveis. Portanto nunca saímos antes de reaplicar o conteúdo e os
-      estilos móveis salvos.
-    */
+    if (hydratedDoc?.documentElement?.dataset?.designPreviewPrepared === '1') {
+      clearTimeout(loadingFallback);
+      setDesignPreviewLoading(false);
+      return;
+    }
     if (hydratedDoc?.documentElement) {
       hydratedDoc.documentElement.dataset.designPreviewPrepared = '1';
     }
@@ -9807,29 +9754,11 @@ function initDesignStudio() {
     setTimeout(() => {
       try {
         designPreviewFrame?.contentWindow?.scrollTo(0, 0);
-        /*
-          A largura do iframe define se o rascunho desktop ou mobile será
-          aplicado. Dimensione antes de calcular os estilos; caso contrário,
-          a primeira abertura do modo Celular recebe temporariamente a escala
-          desktop e só se corrige depois de navegar para outra página.
-        */
-        sizeDesignPreview();
         applyDesignPreview();
         applyDesignContentPreview();
-        requestAnimationFrame(() => {
-          try {
-            applyDesignPreview();
-            applyDesignContentPreview();
-          } catch (_) {}
-        });
-        setTimeout(() => {
-          try {
-            applyDesignPreview();
-            applyDesignContentPreview();
-          } catch (_) {}
-        }, 80);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 180);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 420);
+        sizeDesignPreview();
         installDesignPreviewNavigationGuard();
         runDesignPageTransition();
       } catch (error) {

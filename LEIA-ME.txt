@@ -1,0 +1,17 @@
+FASE 68 — COMPONENTES AUSENTES DO NEXT.JS
+
+Na branch fase-68-seguranca-banco, envie a pasta next-app deste pacote.
+Escolha substituir os arquivos existentes quando o GitHub solicitar.
+
+O pacote contém somente:
+- next-app/components (9 arquivos)
+- next-app/lib (7 arquivos)
+- next-app/package.json
+
+Total: 17 arquivos, abaixo do limite de upload do GitHub.
+
+Mantenha na Vercel:
+- Root Directory: next-app
+
+Após o commit, aguarde o novo Preview automático.
+Não faça Redeploy manual e não publique em produção antes de aprovar o Preview.

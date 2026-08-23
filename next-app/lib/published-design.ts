@@ -1,4 +1,5 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createSupabasePublicClient } from '@/lib/supabase/public';
 
 export type VisualOverride = {
   text?: string;
@@ -30,11 +31,8 @@ export type PublishedDesignConfig = {
   whatsapp_pages?: string[];
 };
 
-export async function getPublishedDesignConfig(): Promise<PublishedDesignConfig> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return {};
-
-  try {
-    const client = await createSupabaseServerClient();
+const fetchPublishedDesignConfig = async (): Promise<PublishedDesignConfig> => {
+    const client = createSupabasePublicClient();
     const { data, error } = await client
       .from('site_content')
       .select('content')
@@ -43,12 +41,22 @@ export async function getPublishedDesignConfig(): Promise<PublishedDesignConfig>
       .limit(1)
       .maybeSingle();
 
-    if (error || !data?.content) return {};
+    if (error) throw error;
+    if (!data?.content) return {};
     const content = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
     return content && typeof content === 'object' ? content as PublishedDesignConfig : {};
-  } catch {
-    return {};
-  }
+};
+
+/*
+ * O Design é publicado pelo painel legado e precisa aparecer na próxima
+ * abertura do site/Preview. Um intervalo curto evita servir durante 30 s a
+ * versão anterior depois de o painel confirmar a publicação.
+ */
+const getCachedPublishedDesignConfig=unstable_cache(fetchPublishedDesignConfig,['published-design-v70'],{revalidate:1,tags:['published-design']});
+
+export async function getPublishedDesignConfig(): Promise<PublishedDesignConfig> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return {};
+  try{return await getCachedPublishedDesignConfig()}catch{return {}}
 }
 
 export async function getPublishedVisualOverrides(): Promise<Record<string, VisualOverride>> {

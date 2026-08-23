@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PublicCategory, PublicGallery, PublicTrail } from '@/lib/public-gallery';
 
 const normalizeName = (value?: string) => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -24,6 +24,7 @@ export function GalleryExperience({ trails, categories, galleries }: {
   const [filter, setFilter] = useState('todas');
   const [gallery, setGallery] = useState<PublicGallery | null>(null);
   const [photo, setPhoto] = useState(0);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   const selectedTrail = trails.find(item => item.id === trail);
   const semanticCategories = knownTrailCategories(selectedTrail);
@@ -41,6 +42,11 @@ export function GalleryExperience({ trails, categories, galleries }: {
   function chooseTrail(id: string | null) {
     setTrail(id);
     setFilter('todas');
+    if (id) {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }));
+    }
   }
 
   function close() {
@@ -82,7 +88,7 @@ export function GalleryExperience({ trails, categories, galleries }: {
         </button>;
       })}
     </div>}
-    <div className="filters">
+    <div ref={filtersRef} className="filters gallery-category-anchor">
       <button className={`filter-btn${filter === 'todas' ? ' active' : ''}`} onClick={() => setFilter('todas')}>Todas</button>
       {trailCategories.map(category => <button key={category.id} className={`filter-btn${filter === category.slug ? ' active' : ''}`} onClick={() => setFilter(category.slug)}>{category.name}</button>)}
     </div>
