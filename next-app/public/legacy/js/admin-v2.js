@@ -6289,10 +6289,20 @@ async function revalidatePublishedSite() {
     cache: 'no-store'
   });
 
+  // A rota foi adicionada durante a migração para Next.js. Em uma versão
+  // de Preview que ainda não contenha o arquivo, a publicação no Supabase
+  // continua válida e o cache curto é atualizado logo depois.
+  if (response.status === 404) {
+    console.warn('[admin-v2] Rota de revalidação ainda não disponível neste deploy.');
+    return false;
+  }
+
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload?.error || 'Não foi possível atualizar a versão publicada.');
   }
+
+  return true;
 }
 
 async function publishDesign() {
@@ -6330,7 +6340,7 @@ async function publishDesign() {
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
 
-    await revalidatePublishedSite();
+    const revalidated = await revalidatePublishedSite();
 
     flash('Alterações salvas com sucesso.', 'sucesso');
     updateDesignPublicationState();
@@ -6342,6 +6352,19 @@ async function publishDesign() {
       url.searchParams.set('_design', Date.now());
       setDesignPreviewLoading(true);
       frame.src = url.href;
+
+      // O cache público tem validade curta. Se o deploy ainda não possuir a
+      // rota de revalidação, recarrega uma segunda vez depois desse intervalo
+      // para obter a versão que acabou de ser publicada.
+      if (!revalidated) {
+        window.setTimeout(() => {
+          if (!frame.isConnected) return;
+          const retryUrl = new URL(frame.src || '/inicio', location.origin);
+          retryUrl.searchParams.set('_design_retry', Date.now());
+          setDesignPreviewLoading(true);
+          frame.src = retryUrl.href;
+        }, 1600);
+      }
     }
   } catch (error) {
     console.error('[admin-v2] publishDesign:', error);
