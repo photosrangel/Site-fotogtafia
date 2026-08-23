@@ -1805,6 +1805,109 @@ html, body {
   .footer .footer-layout{grid-template-columns:1fr;min-height:590px}.footer-bottom{bottom:0;flex-direction:column;align-items:flex-start}.footer-watermark{bottom:72px}
 }
 
+/* Visualizador público — fotografia principal ampla e sempre proporcional */
+#lightbox .lightbox-stage{
+  height:calc(100dvh - 82px);
+  min-height:0;
+  padding:2px 0 8px;
+}
+#lightbox .lightbox-carousel{
+  grid-template-columns:minmax(72px,13vw) minmax(0,1fr) minmax(72px,13vw);
+  gap:clamp(6px,1.2vw,20px);
+}
+#lightbox .lightbox-slide{
+  height:min(86dvh,1100px);
+}
+#lightbox .lightbox-slide-current img{
+  width:auto;
+  height:auto;
+  max-width:min(74vw,1500px);
+  max-height:86dvh;
+  object-fit:contain;
+}
+#lightbox .lightbox-slide-prev img,
+#lightbox .lightbox-slide-next img{
+  max-width:100%;
+  max-height:68dvh;
+  object-fit:contain;
+}
+
+@media(max-width:760px){
+  #lightbox{
+    padding:8px 0 max(8px,env(safe-area-inset-bottom));
+  }
+  #lightbox .lightbox-top{
+    padding:0 12px;
+  }
+  #lightbox .lightbox-stage{
+    height:calc(100dvh - 78px);
+    padding:0;
+  }
+  #lightbox .lightbox-carousel{
+    grid-template-columns:7vw minmax(0,86vw) 7vw;
+    gap:0;
+  }
+  #lightbox .lightbox-slide{
+    height:calc(100dvh - 92px);
+  }
+  #lightbox .lightbox-slide-current img{
+    max-width:86vw;
+    max-height:calc(100dvh - 92px);
+  }
+  #lightbox .lightbox-slide-prev img,
+  #lightbox .lightbox-slide-next img{
+    max-height:54dvh;
+  }
+
+  .gallery-trails{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .gallery-trail-card{
+    min-height:148px;
+    padding:14px;
+    border-radius:5px;
+  }
+  .gallery-trail-card span{
+    gap:5px;
+  }
+  .gallery-trail-card strong{
+    font-size:clamp(.98rem,4.5vw,1.22rem);
+  }
+  .gallery-trail-card small{
+    display:-webkit-box;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    font-size:.58rem;
+    line-height:1.35;
+  }
+  #gallery-filters{
+    scroll-margin-block:24vh;
+  }
+}
+
+@media(max-width:380px){
+  .gallery-trail-card{
+    min-height:132px;
+    padding:11px;
+  }
+}
+
+@media(min-width:1800px){
+  #lightbox .lightbox-carousel{
+    grid-template-columns:minmax(180px,16vw) minmax(0,1fr) minmax(180px,16vw);
+  }
+  #lightbox .lightbox-slide-current img{
+    max-width:66vw;
+    max-height:88dvh;
+  }
+  #lightbox .lightbox-slide{
+    height:min(88dvh,1320px);
+  }
+}
+
 /* Fase 26 — rodapé alinhado integralmente à composição de referência */
 .footer{
   min-height:500px;

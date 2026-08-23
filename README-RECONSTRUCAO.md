@@ -425,3 +425,20 @@ Validar primeiro numa URL de prévia independente. O domínio e o projeto atual 
 - as políticas de upload, leitura e exclusão do bucket privado ficam limitadas ao UID administrativo;
 - `site-gallery` permanece público e não é alterado;
 - a mudança definitiva do bucket `fotos` para privado foi isolada em uma migration final, executada somente após preview e testes.
+
+### Checkpoint consolidado da Fase 67
+
+- o site público, o painel administrativo, a aplicação Next.js e os arquivos legados usados pela prévia foram novamente sincronizados;
+- os rodapés públicos, as trilhas da galeria e suas capas foram incorporados à base completa;
+- a fotografia principal da prévia usa o caminho público estável `/images/...`, com cópias equivalentes no legado;
+- o carregamento inicial do Design deixa de falhar quando o documento interno da prévia ainda está sendo montado;
+- o Preview e a produção foram aprovados após a publicação das correções;
+- este checkpoint substitui o ZIP da Fase 65 como base oficial para as próximas etapas.
+
+### Ajuste responsivo do visualizador público
+
+- a fotografia aberta pelo ensaio completo passa a ocupar quase toda a área útil da tela;
+- `object-fit: contain` preserva integralmente a proporção, sem corte ou distorção;
+- celular, desktop e ultrawide possuem limites próprios baseados na largura e na altura disponíveis;
+- as fotografias anterior e seguinte permanecem visíveis nas laterais como apoio à navegação;
+- a mesma folha visual é utilizada pelo site publicado e pela prévia do painel.

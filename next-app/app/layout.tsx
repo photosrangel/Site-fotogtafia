@@ -16,7 +16,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="pt" data-scroll-behavior="smooth">
       <head>
-        <link rel="stylesheet" href="/legacy/css/style.css" />
+        <link rel="stylesheet" href="/legacy/css/style.css?v=67-gallery-mobile-2" />
       </head>
       <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
     </html>

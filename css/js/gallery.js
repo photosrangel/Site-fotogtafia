@@ -307,12 +307,6 @@ function renderTrilhas() {
       renderTrilhas();
       renderFiltros();
       renderGrid();
-      window.setTimeout(() => {
-        filtersContainer?.scrollIntoView({
-          behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-          block: 'center'
-        });
-      }, 40);
     });
   });
 }
