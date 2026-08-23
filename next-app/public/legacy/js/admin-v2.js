@@ -9743,11 +9743,13 @@ function initDesignStudio() {
 
     const hydratedDoc = designPreviewFrame?.contentDocument;
     refreshDesignPreviewStylesheet(hydratedDoc);
-    if (hydratedDoc?.documentElement?.dataset?.designPreviewPrepared === '1') {
-      clearTimeout(loadingFallback);
-      setDesignPreviewLoading(false);
-      return;
-    }
+    /*
+      O mesmo documento pode chegar aqui duas vezes: primeiro pelo carregamento
+      inicial e depois pela hidratação/navegação do Next. Mesmo quando já foi
+      "preparado", o rascunho e o dispositivo ativo podem ter acabado de ficar
+      disponíveis. Portanto nunca saímos antes de reaplicar o conteúdo e os
+      estilos móveis salvos.
+    */
     if (hydratedDoc?.documentElement) {
       hydratedDoc.documentElement.dataset.designPreviewPrepared = '1';
     }
@@ -9757,6 +9759,18 @@ function initDesignStudio() {
         designPreviewFrame?.contentWindow?.scrollTo(0, 0);
         applyDesignPreview();
         applyDesignContentPreview();
+        requestAnimationFrame(() => {
+          try {
+            applyDesignPreview();
+            applyDesignContentPreview();
+          } catch (_) {}
+        });
+        setTimeout(() => {
+          try {
+            applyDesignPreview();
+            applyDesignContentPreview();
+          } catch (_) {}
+        }, 80);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 180);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 420);
         sizeDesignPreview();
