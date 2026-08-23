@@ -5,6 +5,36 @@ import type { VisualOverride } from '@/lib/published-design';
 
 type VisualElement = HTMLElement & { __publishedBaseFontSizes?: Record<string, number> };
 
+function scaleFor(override: VisualOverride, mobile = false) {
+  const applied = mobile ? { ...override, ...(override.mobile || {}) } : override;
+  const legacyScale = applied.size === 'small' ? 86 : applied.size === 'large' ? 114 : 100;
+  const rawScale = Number(applied.size_scale ?? legacyScale);
+  const maximumScale = mobile ? 160 : 250;
+  return Number.isFinite(rawScale) ? Math.max(50, Math.min(maximumScale, rawScale)) : 100;
+}
+
+/*
+ * O efeito abaixo também é renderizado pelo servidor. Assim, o navegador já
+ * recebe o tamanho móvel do título no primeiro quadro e não mostra por alguns
+ * instantes o tamanho padrão antes de o JavaScript iniciar.
+ */
+function initialVisualCss(overrides: Record<string, VisualOverride>) {
+  const title = overrides['hero-title'];
+  if (!title) return '';
+  const scale = scaleFor(title, true) / 100;
+  const mobile = { ...title, ...(title.mobile || {}) };
+  const declarations = [
+    `font-size:clamp(${(2.4 * scale).toFixed(4)}rem,${(11.4 * scale).toFixed(4)}vw,${(3 * scale).toFixed(4)}rem)!important`,
+    mobile.bold ? 'font-weight:700!important' : '',
+    mobile.italic ? 'font-style:italic!important' : '',
+    mobile.align ? `text-align:${mobile.align}!important` : '',
+    Number(mobile.x || 0) || Number(mobile.y || 0)
+      ? `translate:${Number(mobile.x || 0)}px ${Number(mobile.y || 0)}px!important`
+      : '',
+  ].filter(Boolean).join(';');
+  return `@media(max-width:520px){#hero-title{${declarations}}}`;
+}
+
 function getBaseFontSize(element: VisualElement, mobile: boolean) {
   const key = mobile ? 'mobile' : 'desktop';
   element.__publishedBaseFontSizes ||= {};
@@ -24,14 +54,15 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
     if (!element) continue;
     const mobile = doc.defaultView?.matchMedia?.('(max-width: 520px)').matches;
     const applied = mobile ? { ...override, ...(override.mobile || {}) } : override;
-    if (typeof override.text === 'string' && element.textContent !== override.text) element.textContent = override.text;
+    if (
+      typeof override.text === 'string' &&
+      element.dataset.publishedText !== override.text &&
+      element.textContent !== override.text
+    ) element.textContent = override.text;
     element.style.fontWeight = applied.bold ? '700' : '';
     element.style.fontStyle = applied.italic ? 'italic' : '';
     element.style.textAlign = applied.align || '';
-    const legacyScale = applied.size === 'small' ? 86 : applied.size === 'large' ? 114 : 100;
-    const rawScale = Number(applied.size_scale ?? legacyScale);
-    const maximumScale = mobile && id === 'hero-title' ? 160 : 250;
-    const sizeScale = Number.isFinite(rawScale) ? Math.max(50, Math.min(maximumScale, rawScale)) : 100;
+    const sizeScale = scaleFor(override, Boolean(mobile));
     element.style.fontSize = sizeScale === 100 ? '' : `${getBaseFontSize(element, Boolean(mobile)) * sizeScale / 100}px`;
     const x = Number(applied.x || 0);
     const y = Number(applied.y || 0);
@@ -76,5 +107,5 @@ export function PublishedVisualDesign({ overrides }: { overrides: Record<string,
     };
   }, [overrides]);
 
-  return null;
+  return <style data-published-visual-initial dangerouslySetInnerHTML={{ __html: initialVisualCss(overrides) }} />;
 }
