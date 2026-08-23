@@ -5,4 +5,13 @@ import { HomeHero } from '@/components/home-hero';
 import { getNativePageData } from '@/lib/site-content';
 import { getRecentPhotos } from '@/lib/public-gallery';
 import { getPublishedVisualOverrides } from '@/lib/published-design';
+/*
+ * Rede de segurança: mesmo que a revalidação sob demanda (chamada pelo
+ * botão "Publicar alterações no site" do painel) falhe por qualquer
+ * motivo (sessão expirada, falha de rede, domínio de preview), esta
+ * página nunca fica desatualizada por mais de 30 segundos. Sem isto, a
+ * página é gerada uma única vez em build e só muda se a revalidação sob
+ * demanda funcionar — foi o que causava publicações "sem efeito".
+ */
+export const revalidate = 30;
 export default async function HomePage(){const [{settings,content},visual]=await Promise.all([getNativePageData('inicio'),getPublishedVisualOverrides()]);const originalHero=content.hero||{};const hero={...originalHero,title:visual['hero-title']?.text??originalHero.title,eyebrow:visual['hero-eyebrow']?.text??originalHero.eyebrow,description:visual['hero-description']?.text??originalHero.description,primary_button:{...(originalHero.primary_button||{}),text:visual['hero-primary-button']?.text??originalHero.primary_button?.text},secondary_button:{...(originalHero.secondary_button||{}),text:visual['hero-secondary-button']?.text??originalHero.secondary_button?.text}};const recent=content.recent_work||{};const photos=await getRecentPhotos(Number(recent.gallery_limit)||6);return <div className="native-page"><PublicNav active="/" siteName={settings.site_name}/><HomeHero hero={hero}/><section className="section recent-work-section"><div className="container"><div className="section-head"><div><p id="recent-work-eyebrow" className="section-eyebrow">{recent.eyebrow||''}</p><h2 id="recent-work-title" className="section-title">{recent.title||''}</h2></div><Link id="recent-work-button" href={recent.button?.url||'/galeria'} className="btn">{recent.button?.text||'Galeria completa →'}</Link></div><div className="grid gallery-adaptive-grid recent-work-grid">{photos.map((photo,index)=><div className="frame" data-category={photo.gallery_id} key={photo.id}><img src={photo.image_url} alt={photo.alt_text||'Fotografia de retrato feminino'} loading={index<3?'eager':'lazy'}/><span className="frame-num">{String(index+1).padStart(2,'0')}</span><div className="frame-caption"><span>{photo.alt_text||''}</span></div></div>)}</div></div></section><PublicFooter footerText={settings.footer_text} instagram={settings.instagram_url} whatsapp={settings.whatsapp}/></div>}
