@@ -1,17 +1,15 @@
-CORREÇÃO DA GALERIA — FASE 68 V4
+CORREÇÃO DO BUILD DA VERCEL — FASE 68
 
-1. Abra a branch fase-68-seguranca-banco no GitHub.
-2. Envie a pasta next-app deste pacote, escolhendo substituir o arquivo existente.
-3. Aguarde o novo Preview da Vercel.
-4. Abra o Preview primeiro no computador e depois no celular.
-5. Entre em Início e clique em Galeria.
+Substitua na branch fase-68-seguranca-banco:
 
-Resultado esperado:
-- as trilhas e fotografias aparecem já na primeira abertura;
-- não aparece temporariamente "Nenhum ensaio encontrado";
-- Retratos e Corporativo, Autoestima e Sensual e Masculino aparecem no HTML inicial.
+next-app/package.json
 
-Arquivo alterado:
-- next-app/lib/public-gallery.ts
-
+Depois aguarde o Preview automático da Vercel.
+Não altere o Root Directory: ele deve continuar como next-app.
 Não publique em produção antes de aprovar o Preview.
+
+Validações executadas:
+- TypeScript aprovado.
+- Build Next.js 16.3.2 com Webpack aprovado.
+- Galeria gerada com as trilhas Retratos e Corporativo, Autoestima e Sensual e Masculino.
+- A mensagem "Nenhum ensaio encontrado" não está no HTML inicial.
