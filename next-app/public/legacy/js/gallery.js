@@ -5,9 +5,13 @@
 
 const grid = document.getElementById('gallery-grid');
 const filtersContainer = document.getElementById('gallery-filters');
+const trailsContainer = document.getElementById('gallery-trails');
+const allTrailsButton = document.getElementById('gallery-all-trails');
 
 let currentEnsaio = null;
 let currentPhoto = 0;
+let currentTrailId = null;
+let currentFilter = 'todas';
 
 
 // ============================================
@@ -40,6 +44,33 @@ let ENSAIOS_SITE = [...ENSAIOS_ANTIGOS];
 // ============================================
 
 let CATEGORIAS_SITE = [];
+let TRILHAS_SITE = [];
+
+const normalizeName = value => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
+const PORTRAIT_CATEGORIES = ['estudio', 'externo', 'corporativo', 'retratos', 'retrato'];
+const SELF_ESTEEM_CATEGORIES = ['autoestima', 'sensual', 'boudoir'];
+
+function knownTrailCategories(trail) {
+  if (!trail) return null;
+  const identity = normalizeName(`${trail.slug || ''} ${trail.name || ''}`);
+  if (identity.includes('autoestima') && (identity.includes('sensual') || identity.includes('boudoir'))) return SELF_ESTEEM_CATEGORIES;
+  if (identity.includes('retrato') && identity.includes('corporativo')) return PORTRAIT_CATEGORIES;
+  return null;
+}
+
+function belongsToTrail(categorySlug, trailId) {
+  if (!currentTrailId) return true;
+  const selected = TRILHAS_SITE.find(item => item.id === currentTrailId);
+  const semantic = knownTrailCategories(selected);
+  if (semantic) return semantic.includes(normalizeName(categorySlug));
+  return trailId === currentTrailId;
+}
 
 
 // ============================================
@@ -120,6 +151,7 @@ function frameHTML(ensaio, index) {
           src="${esc(capa)}"
           alt="Capa do ensaio: ${esc(ensaio.titulo)}"
           loading="lazy"
+          style="object-position:${Number(ensaio.coverFocusX ?? 50)}% ${Number(ensaio.coverFocusY ?? 50)}%"
         >
       `
 
@@ -182,7 +214,9 @@ function renderFiltros() {
   }
 
 
-  const categorias = [...CATEGORIAS_SITE];
+  const categorias = CATEGORIAS_SITE.filter(category =>
+    belongsToTrail(category.slug, category.trail_id)
+  );
 
 
   filtersContainer.innerHTML = `
@@ -241,12 +275,56 @@ function renderFiltros() {
 
 }
 
+function renderTrilhas() {
+  if (!trailsContainer) return;
+
+  allTrailsButton?.classList.toggle('active', currentTrailId === null);
+
+  trailsContainer.innerHTML = TRILHAS_SITE.map(trail => {
+    const semantic = knownTrailCategories(trail);
+    const first = ENSAIOS_SITE.find(ensaio => ensaio.trailId === trail.id) ||
+      ENSAIOS_SITE.find(ensaio => semantic?.includes(normalizeName(ensaio.categoria)));
+    const cover = trail.cover_url || first?.cover || first?.photos?.[0]?.src || '';
+    const x = Number(trail.cover_focus_x ?? 50);
+    const y = Number(trail.cover_focus_y ?? 50);
+
+    return `
+      <button
+        type="button"
+        class="gallery-trail-card${currentTrailId === trail.id ? ' active' : ''}"
+        data-gallery-trail-id="${esc(trail.id)}"
+        style="background-image:linear-gradient(180deg,transparent,rgba(8,8,7,.92)),url('${esc(cover)}');background-position:${x}% ${y}%"
+      >
+        <span><strong>${esc(trail.name)}</strong><small>${esc(trail.description || 'Ver ensaios →')}</small></span>
+      </button>
+    `;
+  }).join('');
+
+  trailsContainer.querySelectorAll('[data-gallery-trail-id]').forEach(button => {
+    button.addEventListener('click', () => {
+      currentTrailId = button.dataset.galleryTrailId;
+      currentFilter = 'todas';
+      renderTrilhas();
+      renderFiltros();
+      renderGrid();
+    });
+  });
+}
+
+allTrailsButton?.addEventListener('click', () => {
+  currentTrailId = null;
+  currentFilter = 'todas';
+  renderTrilhas();
+  renderFiltros();
+  renderGrid();
+});
+
 
 // ============================================
 // RENDERIZA GALERIA
 // ============================================
 
-function renderGrid(filter = 'todas') {
+function renderGrid(filter = currentFilter) {
 
   if (!grid) {
     return;
@@ -256,6 +334,9 @@ function renderGrid(filter = 'todas') {
   const filtro =
     String(filter || 'todas')
       .toLowerCase();
+
+  currentFilter = filtro;
+  grid.classList.toggle('gallery-all-selected-grid', currentTrailId === null && filtro === 'todas');
 
 
   const visiveis =
@@ -267,6 +348,10 @@ function renderGrid(filter = 'todas') {
       .filter(({ ensaio }) => {
 
         if (!temFotoReal(ensaio)) {
+          return false;
+        }
+
+        if (!belongsToTrail(ensaio.categoria, ensaio.trailId)) {
           return false;
         }
 
@@ -388,9 +473,8 @@ function configurarFiltros() {
           );
 
 
-          renderGrid(
-            button.dataset.filter
-          );
+          currentFilter = button.dataset.filter;
+          renderGrid(currentFilter);
 
         }
       );
@@ -802,7 +886,10 @@ async function carregarGaleriasCMS() {
           slug,
           description,
           category_id,
+          trail_id,
           cover_url,
+          cover_focus_x,
+          cover_focus_y,
           published,
           sort_order,
           created_at
@@ -845,6 +932,7 @@ async function carregarGaleriasCMS() {
           id,
           name,
           slug,
+          trail_id,
           published,
           sort_order
         `)
@@ -885,6 +973,55 @@ async function carregarGaleriasCMS() {
             .trim()
             .toLowerCase()
       }));
+
+
+    // ========================================
+    // TRILHAS
+    // ========================================
+
+    let trailsResult = await supabase
+      .from('gallery_trails')
+      .select('id,name,slug,description,cover_url,cover_focus_x,cover_focus_y,sort_order,published')
+      .eq('published', true)
+      .order('sort_order', { ascending: true });
+
+    if (trailsResult.error?.message?.includes('cover_focus_')) {
+      trailsResult = await supabase
+        .from('gallery_trails')
+        .select('id,name,slug,description,cover_url,sort_order,published')
+        .eq('published', true)
+        .order('sort_order', { ascending: true });
+    }
+
+    if (trailsResult.error) throw trailsResult.error;
+    TRILHAS_SITE = trailsResult.data || [];
+
+    const portraitTrail = TRILHAS_SITE.find(trail => {
+      const identity = normalizeName(`${trail.slug || ''} ${trail.name || ''}`);
+      return identity.includes('retrato') && identity.includes('corporativo');
+    })?.id;
+
+    const selfEsteemTrail = TRILHAS_SITE.find(trail => {
+      const identity = normalizeName(`${trail.slug || ''} ${trail.name || ''}`);
+      return identity.includes('autoestima') && (identity.includes('sensual') || identity.includes('boudoir'));
+    })?.id;
+
+    CATEGORIAS_SITE = CATEGORIAS_SITE.map(category => {
+      const identity = normalizeName(`${category.slug || ''} ${category.name || ''}`);
+      if (portraitTrail && PORTRAIT_CATEGORIES.some(value => identity.includes(value))) return { ...category, trail_id: portraitTrail };
+      if (selfEsteemTrail && SELF_ESTEEM_CATEGORIES.some(value => identity.includes(value))) return { ...category, trail_id: selfEsteemTrail };
+      return category;
+    });
+
+    if (portraitTrail && !CATEGORIAS_SITE.some(category => normalizeName(category.slug) === 'corporativo')) {
+      CATEGORIAS_SITE.push({
+        id: 'virtual-corporativo',
+        name: 'Corporativo',
+        slug: 'corporativo',
+        sort_order: 30,
+        trail_id: portraitTrail
+      });
+    }
 
 
     // ========================================
@@ -1010,6 +1147,8 @@ async function carregarGaleriasCMS() {
               gallery.category_id
             );
 
+          const inferredCorporate = !category && /corporativ/i.test(`${gallery.slug || ''} ${gallery.title || ''}`);
+
 
           const fotos =
             photosMap.get(
@@ -1040,14 +1179,26 @@ async function carregarGaleriasCMS() {
 
             categoria:
               String(
-                category?.slug ||
+                category?.slug || (inferredCorporate ? 'corporativo' : null) ||
                 'sem-categoria'
               )
                 .toLowerCase(),
 
             categoriaNome:
-              category?.name ||
+              category?.name || (inferredCorporate ? 'Corporativo' : null) ||
               'Sem categoria',
+
+            trailId:
+              category?.trail_id ||
+              (inferredCorporate ? portraitTrail : null) ||
+              gallery.trail_id ||
+              null,
+
+            coverFocusX:
+              gallery.cover_focus_x ?? 50,
+
+            coverFocusY:
+              gallery.cover_focus_y ?? 50,
 
             lente:
               '',
@@ -1131,11 +1282,15 @@ async function carregarGaleriasCMS() {
     window.CATEGORIAS_SITE =
       CATEGORIAS_SITE;
 
+    window.TRILHAS_SITE =
+      TRILHAS_SITE;
+
 
     // ========================================
     // ATUALIZA FILTROS
     // ========================================
 
+    renderTrilhas();
     renderFiltros();
 
 

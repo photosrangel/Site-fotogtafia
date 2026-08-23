@@ -3838,6 +3838,7 @@ function focalStyle(x, y) {
 function resolvePreviewMediaUrl(value) {
   const url=String(value||'').trim();
   if(!url||/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+  if(/^images\//i.test(url))return `/${url.replace(/^\.\//,'')}`;
   return `/legacy/${url.replace(/^\.\//,'')}`;
 }
 
@@ -6107,7 +6108,25 @@ async function fetchDesignPersistence() {
     }
   );
 
-  applyDesignConfigToControls(initial);
+  try {
+    applyDesignConfigToControls(initial);
+  } catch (error) {
+    /*
+      No primeiro F5 o iframe pode ainda estar sem <head>/<body>. O rascunho
+      continua carregado e a aplicação visual é repetida assim que a prévia
+      terminar de montar, sem transformar essa condição transitória em erro.
+    */
+    console.warn('[admin-v2] Design aguardando a prévia ficar pronta:', error);
+    setTimeout(() => {
+      try {
+        applyDesignConfigToControls(initial);
+        applyDesignPreview();
+        applyDesignContentPreview();
+      } catch (retryError) {
+        console.warn('[admin-v2] Prévia ainda indisponível:', retryError);
+      }
+    }, 350);
+  }
   updateDesignPublicationState();
   maybeShowDesignDraftReminder();
 }
@@ -6326,6 +6345,38 @@ function setDesignPreviewLoading(loading = true) {
   document
     .querySelector('#design-preview-stage .design-browser-frame')
     ?.classList.toggle('is-loading', Boolean(loading));
+}
+
+function refreshDesignPreviewStylesheet(doc) {
+  if (!doc?.head) return;
+
+  const refresh = targetDoc => {
+    if (!targetDoc?.head) return;
+
+    targetDoc
+      .querySelectorAll('link[rel="stylesheet"]')
+      .forEach(link => {
+        let url;
+
+        try {
+          url = new URL(link.href, targetDoc.location.href);
+        } catch (_) {
+          return;
+        }
+
+        if (!/\/(?:legacy\/)?css\/style\.css$/i.test(url.pathname)) return;
+        if (link.dataset.designPreviewCssFresh === '1') return;
+
+        link.dataset.designPreviewCssFresh = '1';
+        url.searchParams.set('_preview_css', String(Date.now()));
+        link.href = url.href;
+      });
+  };
+
+  refresh(doc);
+
+  const nestedFrame = doc.querySelector('iframe.legacy-frame');
+  try { refresh(nestedFrame?.contentDocument); } catch (_) {}
 }
 
 async function waitForDesignPreviewHydration(frame, timeout = 1200) {
@@ -9690,6 +9741,7 @@ function initDesignStudio() {
     }
 
     const hydratedDoc = designPreviewFrame?.contentDocument;
+    refreshDesignPreviewStylesheet(hydratedDoc);
     if (hydratedDoc?.documentElement?.dataset?.designPreviewPrepared === '1') {
       clearTimeout(loadingFallback);
       setDesignPreviewLoading(false);
