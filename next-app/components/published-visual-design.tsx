@@ -58,7 +58,22 @@ export function PublishedVisualDesign({ overrides }: { overrides: Record<string,
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['id'] });
     const media = window.matchMedia('(max-width: 520px)');
     media.addEventListener('change', apply);
-    return () => { observer.disconnect(); media.removeEventListener('change', apply); };
+    /*
+      A prévia administrativa muda a largura do iframe depois que o documento
+      já hidratou. O ResizeObserver garante que a variante móvel seja
+      reaplicada mesmo quando o navegador não entrega o evento de media query
+      a tempo.
+    */
+    const resizeObserver = new ResizeObserver(apply);
+    resizeObserver.observe(document.documentElement);
+    requestAnimationFrame(apply);
+    const firstLayoutRetry = window.setTimeout(apply, 80);
+    return () => {
+      observer.disconnect();
+      resizeObserver.disconnect();
+      media.removeEventListener('change', apply);
+      window.clearTimeout(firstLayoutRetry);
+    };
   }, [overrides]);
 
   return null;
