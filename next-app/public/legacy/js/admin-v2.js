@@ -6278,6 +6278,23 @@ async function publishTrailDrafts(){
   }
 }
 
+async function revalidatePublishedSite() {
+  const sessionResult = await getAdminSession();
+  const accessToken = sessionResult?.data?.session?.access_token;
+  if (!accessToken) throw new Error('Sessão administrativa expirada. Entre novamente.');
+
+  const response = await fetch('/api/revalidate-design', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: 'no-store'
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.error || 'Não foi possível atualizar a versão publicada.');
+  }
+}
+
 async function publishDesign() {
   if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
   if (designInlineActive) await saveDesignInline();
@@ -6312,6 +6329,8 @@ async function publishDesign() {
 
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
+
+    await revalidatePublishedSite();
 
     flash('Alterações salvas com sucesso.', 'sucesso');
     updateDesignPublicationState();
@@ -9757,6 +9776,13 @@ function initDesignStudio() {
     setTimeout(() => {
       try {
         designPreviewFrame?.contentWindow?.scrollTo(0, 0);
+        /*
+          A largura do iframe define se o rascunho desktop ou mobile será
+          aplicado. Dimensione antes de calcular os estilos; caso contrário,
+          a primeira abertura do modo Celular recebe temporariamente a escala
+          desktop e só se corrige depois de navegar para outra página.
+        */
+        sizeDesignPreview();
         applyDesignPreview();
         applyDesignContentPreview();
         requestAnimationFrame(() => {
@@ -9773,7 +9799,6 @@ function initDesignStudio() {
         }, 80);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 180);
         setTimeout(() => { try { applyDesignContentPreview(); } catch (_) {} }, 420);
-        sizeDesignPreview();
         installDesignPreviewNavigationGuard();
         runDesignPageTransition();
       } catch (error) {
