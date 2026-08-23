@@ -1858,6 +1858,41 @@ html, body {
   #lightbox .lightbox-slide-next img{
     max-height:54dvh;
   }
+
+  .gallery-trails{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .gallery-trail-card{
+    min-height:148px;
+    padding:14px;
+    border-radius:5px;
+  }
+  .gallery-trail-card span{
+    gap:5px;
+  }
+  .gallery-trail-card strong{
+    font-size:clamp(.98rem,4.5vw,1.22rem);
+  }
+  .gallery-trail-card small{
+    display:-webkit-box;
+    overflow:hidden;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    font-size:.58rem;
+    line-height:1.35;
+  }
+  #gallery-filters{
+    scroll-margin-block:24vh;
+  }
+}
+
+@media(max-width:380px){
+  .gallery-trail-card{
+    min-height:132px;
+    padding:11px;
+  }
 }
 
 @media(min-width:1800px){
