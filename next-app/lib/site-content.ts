@@ -13,7 +13,8 @@ const fetchNativePageData=async(slug:string):Promise<{settings:SiteSettings;cont
   return {settings:(s.data||{}) as SiteSettings,content:Object.fromEntries((c.data||[]).map(row=>[row.section_key,typeof row.content==='string'?JSON.parse(row.content):row.content]))};
 };
 
-const getCachedNativePageData=unstable_cache(fetchNativePageData,['public-site-content-v69'],{revalidate:30,tags:['public-site-content']});
+/* Mantém textos publicados pelo painel sincronizados já na próxima abertura. */
+const getCachedNativePageData=unstable_cache(fetchNativePageData,['public-site-content-v70'],{revalidate:1,tags:['public-site-content']});
 
 export async function getNativePageData(slug:string):Promise<{settings:SiteSettings;content:Record<string,any>}>{
   if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)return {settings:{},content:{}};

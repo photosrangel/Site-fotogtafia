@@ -47,7 +47,12 @@ const fetchPublishedDesignConfig = async (): Promise<PublishedDesignConfig> => {
     return content && typeof content === 'object' ? content as PublishedDesignConfig : {};
 };
 
-const getCachedPublishedDesignConfig=unstable_cache(fetchPublishedDesignConfig,['published-design-v69'],{revalidate:30,tags:['published-design']});
+/*
+ * O Design é publicado pelo painel legado e precisa aparecer na próxima
+ * abertura do site/Preview. Um intervalo curto evita servir durante 30 s a
+ * versão anterior depois de o painel confirmar a publicação.
+ */
+const getCachedPublishedDesignConfig=unstable_cache(fetchPublishedDesignConfig,['published-design-v70'],{revalidate:1,tags:['published-design']});
 
 export async function getPublishedDesignConfig(): Promise<PublishedDesignConfig> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return {};
