@@ -6283,11 +6283,12 @@ async function revalidatePublishedSite() {
   const accessToken = sessionResult?.data?.session?.access_token;
   if (!accessToken) throw new Error('Sessão administrativa expirada. Entre novamente.');
 
-  const response = await fetch('/api/revalidate-design', {
+  const requestRevalidation = endpoint => fetch(endpoint, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     cache: 'no-store'
   });
+  const response = await requestRevalidation('/api/revalidate-design');
 
   // A rota foi adicionada durante a migração para Next.js. Em uma versão
   // de Preview que ainda não contenha o arquivo, a publicação no Supabase
@@ -6300,6 +6301,13 @@ async function revalidatePublishedSite() {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     throw new Error(payload?.error || 'Não foi possível atualizar a versão publicada.');
+  }
+
+  // O painel também pode estar aberto num Preview da Vercel. Nesse caso,
+  // invalida em segundo plano a instalação pública, que possui cache próprio.
+  if (!/(^|\.)photosrangel\.pt$/i.test(location.hostname)) {
+    requestRevalidation('https://www.photosrangel.pt/api/revalidate-design')
+      .catch(error => console.warn('[admin-v2] Produção será atualizada pelo cache curto.', error));
   }
 
   return true;
