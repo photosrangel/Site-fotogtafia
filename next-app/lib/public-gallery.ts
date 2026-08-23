@@ -6,7 +6,6 @@ export type PublicTrail={id:string;name:string;slug:string;description?:string;c
 export type PublicCategory={id:string;name:string;slug:string;sort_order:number;trail_id?:string};
 export type PublicGallery={id:string;title:string;slug:string;category_id?:string;cover_url?:string;cover_focus_x?:number;cover_focus_y?:number;sort_order:number;categorySlug:string;categoryName:string;trailId?:string;photos:PublicPhoto[]};
 
-const emptyGalleryData={trails:[] as PublicTrail[],categories:[] as PublicCategory[],galleries:[] as PublicGallery[]};
 const normalizeName=(value?:string)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 async function fetchPublicGalleryData():Promise<{trails:PublicTrail[];categories:PublicCategory[];galleries:PublicGallery[]}>{
@@ -56,15 +55,29 @@ async function fetchPublicGalleryData():Promise<{trails:PublicTrail[];categories
     };
 }
 
+async function fetchPublicGalleryDataWithRetry(){
+  let lastError:unknown;
+  for(let attempt=0;attempt<3;attempt+=1){
+    try{return await fetchPublicGalleryData()}
+    catch(error){
+      lastError=error;
+      if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+    }
+  }
+  throw lastError;
+}
+
 const getCachedPublicGalleryData=unstable_cache(
-  fetchPublicGalleryData,
-  ['public-gallery-data-v69'],
+  fetchPublicGalleryDataWithRetry,
+  ['public-gallery-data-v70'],
   {revalidate:30,tags:['public-gallery']}
 );
 
 export async function getPublicGalleryData():Promise<{trails:PublicTrail[];categories:PublicCategory[];galleries:PublicGallery[]}>{
-  if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)return emptyGalleryData;
-  try{return await getCachedPublicGalleryData()}catch{return emptyGalleryData}
+  if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY){
+    throw new Error('As variáveis públicas do Supabase não estão configuradas.');
+  }
+  return getCachedPublicGalleryData();
 }
 
 export async function getRecentPhotos(limit=6){
