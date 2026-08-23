@@ -1,15 +1,17 @@
-CORREÇÃO DO BUILD DA VERCEL — FASE 68
+FASE 68 — COMPONENTES AUSENTES DO NEXT.JS
 
-Substitua na branch fase-68-seguranca-banco:
+Na branch fase-68-seguranca-banco, envie a pasta next-app deste pacote.
+Escolha substituir os arquivos existentes quando o GitHub solicitar.
 
-next-app/package.json
+O pacote contém somente:
+- next-app/components (9 arquivos)
+- next-app/lib (7 arquivos)
+- next-app/package.json
 
-Depois aguarde o Preview automático da Vercel.
-Não altere o Root Directory: ele deve continuar como next-app.
-Não publique em produção antes de aprovar o Preview.
+Total: 17 arquivos, abaixo do limite de upload do GitHub.
 
-Validações executadas:
-- TypeScript aprovado.
-- Build Next.js 16.3.2 com Webpack aprovado.
-- Galeria gerada com as trilhas Retratos e Corporativo, Autoestima e Sensual e Masculino.
-- A mensagem "Nenhum ensaio encontrado" não está no HTML inicial.
+Mantenha na Vercel:
+- Root Directory: next-app
+
+Após o commit, aguarde o novo Preview automático.
+Não faça Redeploy manual e não publique em produção antes de aprovar o Preview.
