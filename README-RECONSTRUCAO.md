@@ -442,3 +442,31 @@ Validar primeiro numa URL de prévia independente. O domínio e o projeto atual 
 - celular, desktop e ultrawide possuem limites próprios baseados na largura e na altura disponíveis;
 - as fotografias anterior e seguinte permanecem visíveis nas laterais como apoio à navegação;
 - a mesma folha visual é utilizada pelo site publicado e pela prévia do painel.
+
+### Checkpoint final da Fase 67
+
+- o visualizador ampliado foi validado no Preview da Vercel e publicado em produção;
+- no celular, as trilhas ficaram mais compactas e levam automaticamente até as categorias;
+- a galeria Tamyris Santana foi associada à categoria Corporativo da trilha Retratos e Corporativo;
+- a grade e os filtros preservam o comportamento responsivo no site público e na prévia administrativa;
+- este ZIP completo é o backup oficial e consolidado para iniciar a Fase 68.
+
+## Fase 68 — permissões mínimas e RLS administrativo
+
+- operações administrativas passam a aceitar somente o UID proprietário do painel;
+- contas autenticadas diferentes deixam de acessar ensaios, fotografias, mensagens e configurações;
+- visitantes mantêm apenas as leituras públicas e o envio do formulário de contato necessários;
+- privilégios automáticos de tabela são substituídos por permissões específicas por operação;
+- a RPC de atividade administrativa valida o UID antes de executar com privilégios elevados;
+- funções privilegiadas passam a usar `search_path` vazio e controlado;
+- a migration aborta se o UID administrativo esperado não existir;
+- consultas de verificação e uma reversão de emergência acompanham a atualização.
+
+### Validação concluída
+
+- o site público continuou carregando Início, Galeria, Sobre e Contato sem erros;
+- o formulário público criou a mensagem e o painel conseguiu ler, atualizar e excluir o teste;
+- criação e exclusão de categoria e ensaio foram aprovadas com a conta administrativa;
+- upload da prova, acesso privado, seleção da cliente e confirmação no painel funcionaram;
+- as consultas finais confirmaram grants mínimos, políticas vinculadas ao UID administrativo e funções protegidas;
+- a Fase 68 foi aprovada para consolidação e publicação do histórico no GitHub.
