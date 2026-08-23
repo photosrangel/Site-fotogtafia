@@ -6328,6 +6328,38 @@ function setDesignPreviewLoading(loading = true) {
     ?.classList.toggle('is-loading', Boolean(loading));
 }
 
+function refreshDesignPreviewStylesheet(doc) {
+  if (!doc?.head) return;
+
+  const refresh = targetDoc => {
+    if (!targetDoc?.head) return;
+
+    targetDoc
+      .querySelectorAll('link[rel="stylesheet"]')
+      .forEach(link => {
+        let url;
+
+        try {
+          url = new URL(link.href, targetDoc.location.href);
+        } catch (_) {
+          return;
+        }
+
+        if (!/\/(?:legacy\/)?css\/style\.css$/i.test(url.pathname)) return;
+        if (link.dataset.designPreviewCssFresh === '1') return;
+
+        link.dataset.designPreviewCssFresh = '1';
+        url.searchParams.set('_preview_css', String(Date.now()));
+        link.href = url.href;
+      });
+  };
+
+  refresh(doc);
+
+  const nestedFrame = doc.querySelector('iframe.legacy-frame');
+  try { refresh(nestedFrame?.contentDocument); } catch (_) {}
+}
+
 async function waitForDesignPreviewHydration(frame, timeout = 1200) {
   const startedAt = Date.now();
 
@@ -9690,6 +9722,7 @@ function initDesignStudio() {
     }
 
     const hydratedDoc = designPreviewFrame?.contentDocument;
+    refreshDesignPreviewStylesheet(hydratedDoc);
     if (hydratedDoc?.documentElement?.dataset?.designPreviewPrepared === '1') {
       clearTimeout(loadingFallback);
       setDesignPreviewLoading(false);
