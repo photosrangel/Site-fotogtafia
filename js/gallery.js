@@ -282,9 +282,8 @@ function renderTrilhas() {
 
   trailsContainer.innerHTML = TRILHAS_SITE.map(trail => {
     const semantic = knownTrailCategories(trail);
-    const first = ENSAIOS_SITE.find(ensaio => semantic
-      ? semantic.includes(normalizeName(ensaio.categoria))
-      : ensaio.trailId === trail.id);
+    const first = ENSAIOS_SITE.find(ensaio => ensaio.trailId === trail.id) ||
+      ENSAIOS_SITE.find(ensaio => semantic?.includes(normalizeName(ensaio.categoria)));
     const cover = trail.cover_url || first?.cover || first?.photos?.[0]?.src || '';
     const x = Number(trail.cover_focus_x ?? 50);
     const y = Number(trail.cover_focus_y ?? 50);

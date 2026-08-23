@@ -3838,6 +3838,7 @@ function focalStyle(x, y) {
 function resolvePreviewMediaUrl(value) {
   const url=String(value||'').trim();
   if(!url||/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
+  if(/^images\//i.test(url))return `/${url.replace(/^\.\//,'')}`;
   return `/legacy/${url.replace(/^\.\//,'')}`;
 }
 
@@ -6107,7 +6108,25 @@ async function fetchDesignPersistence() {
     }
   );
 
-  applyDesignConfigToControls(initial);
+  try {
+    applyDesignConfigToControls(initial);
+  } catch (error) {
+    /*
+      No primeiro F5 o iframe pode ainda estar sem <head>/<body>. O rascunho
+      continua carregado e a aplicação visual é repetida assim que a prévia
+      terminar de montar, sem transformar essa condição transitória em erro.
+    */
+    console.warn('[admin-v2] Design aguardando a prévia ficar pronta:', error);
+    setTimeout(() => {
+      try {
+        applyDesignConfigToControls(initial);
+        applyDesignPreview();
+        applyDesignContentPreview();
+      } catch (retryError) {
+        console.warn('[admin-v2] Prévia ainda indisponível:', retryError);
+      }
+    }, 350);
+  }
   updateDesignPublicationState();
   maybeShowDesignDraftReminder();
 }
