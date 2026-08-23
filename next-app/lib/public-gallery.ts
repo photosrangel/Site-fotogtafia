@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabasePublicClient } from '@/lib/supabase/public';
 
 export type PublicPhoto={id:string;gallery_id:string;image_url:string;alt_text?:string;sort_order:number};
 export type PublicTrail={id:string;name:string;slug:string;description?:string;cover_url?:string;cover_focus_x?:number;cover_focus_y?:number;sort_order:number};
@@ -10,11 +10,7 @@ const emptyGalleryData={trails:[] as PublicTrail[],categories:[] as PublicCatego
 const normalizeName=(value?:string)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 async function fetchPublicGalleryData():Promise<{trails:PublicTrail[];categories:PublicCategory[];galleries:PublicGallery[]}>{
-    const client=createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}
-    );
+    const client=createSupabasePublicClient();
     const initial=await Promise.all([
       client.from('galleries').select('id,title,slug,category_id,trail_id,cover_url,cover_focus_x,cover_focus_y,sort_order,created_at').eq('published',true).order('sort_order').order('created_at',{ascending:false}),
       client.from('categories').select('id,name,slug,sort_order,trail_id').order('sort_order').order('name'),
