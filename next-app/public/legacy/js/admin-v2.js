@@ -3837,8 +3837,9 @@ function focalStyle(x, y) {
 
 function resolvePreviewMediaUrl(value) {
   const url=String(value||'').trim();
-  if(!url||/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
-  if(/^images\//i.test(url))return `/legacy/${url.replace(/^\.\//,'')}`;
+  if(!url)return url;
+  if(/^\/?images\//i.test(url))return `/legacy/${url.replace(/^\/?/,'')}`;
+  if(/^https?:\/\//i.test(url)||url.startsWith('/'))return url;
   return `/legacy/${url.replace(/^\.\//,'')}`;
 }
 
