@@ -47,6 +47,28 @@ function getBaseFontSize(element: VisualElement, mobile: boolean) {
   return element.__publishedBaseFontSizes[key];
 }
 
+/*
+ * Estes ids têm um campo de conteúdo dedicado (content.hero.*) que já é
+ * a fonte da verdade — são publicados diretamente pelo botão "Publicar
+ * alterações no site" via publishDesignContent(). Para eles, NUNCA
+ * aplicamos o texto vindo de inline_styles aqui: esse texto pode ser
+ * uma sobra antiga de uma publicação passada, e sempre priorizá-lo
+ * travava o título (e outros campos do hero) mesmo depois de o texto
+ * novo já estar salvo corretamente no banco. inline_styles continua
+ * controlando o ESTILO desses campos (negrito/itálico/tamanho/
+ * alinhamento/posição) normalmente — só o texto é ignorado aqui.
+ */
+const CONTENT_MANAGED_TEXT_IDS = new Set([
+  'hero-title',
+  'hero-eyebrow',
+  'hero-description',
+  'hero-primary-button',
+  'hero-secondary-button',
+  'recent-work-eyebrow',
+  'recent-work-title',
+  'recent-work-button',
+]);
+
 function applyToDocument(doc: Document, overrides: Record<string, VisualOverride>) {
   if (doc.documentElement?.dataset.designPreviewActive === '1') return;
   for (const [id, override] of Object.entries(overrides)) {
@@ -55,6 +77,7 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
     const mobile = doc.defaultView?.matchMedia?.('(max-width: 520px)').matches;
     const applied = mobile ? { ...override, ...(override.mobile || {}) } : override;
     if (
+      !CONTENT_MANAGED_TEXT_IDS.has(id) &&
       typeof override.text === 'string' &&
       element.dataset.publishedText !== override.text &&
       element.textContent !== override.text
