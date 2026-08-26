@@ -470,3 +470,18 @@ Validar primeiro numa URL de prévia independente. O domínio e o projeto atual 
 - upload da prova, acesso privado, seleção da cliente e confirmação no painel funcionaram;
 - as consultas finais confirmaram grants mínimos, políticas vinculadas ao UID administrativo e funções protegidas;
 - a Fase 68 foi aprovada para consolidação e publicação do histórico no GitHub.
+# Consolidação da Fase 68 — correção móvel da página inicial
+
+- O tamanho móvel publicado do título principal agora é incluído no HTML inicial, antes da primeira pintura da página.
+- A estrutura tipográfica do título (`quebra de linha` e `itálico`) não é mais substituída pelo aplicador visual após a hidratação.
+- Isso elimina a troca momentânea entre a formatação padrão e a formatação móvel salva ao atualizar `/inicio`.
+- Validações finais executadas: TypeScript sem erros e build de produção concluído.
+
+## Fase 69 — consolidação segura do título e da publicação visual
+
+- A Fase 68 consolidada permanece como base completa do projeto.
+- O `admin-v2.js` permanece único e integral, sem aplicar a divisão experimental incompleta.
+- Foram incorporadas somente as correções seguras do Next.js para o título principal, quebras de linha, estilos publicados e atualização periódica do conteúdo.
+- Foram preservados todos os controllers, repositories e services de Galerias, Mensagens e Dashboard existentes na Fase 68.
+- O arquivo gerado `tsconfig.tsbuildinfo` não faz parte deste checkpoint.
+- Este pacote substitui os ZIPs 68 e 69 isolados como checkpoint recomendado para continuidade.

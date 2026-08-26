@@ -6279,9 +6279,21 @@ async function publishTrailDrafts(){
 }
 
 async function revalidatePublishedSite() {
+  /*
+    Este passo só invalida o cache do Next.js para que a alteração
+    apareça IMEDIATAMENTE. Se ele falhar por qualquer motivo, o
+    conteúdo já foi gravado no banco nos passos anteriores e o site
+    público se autoatualiza sozinho em até 30s (ver "export const
+    revalidate = 30" nas páginas). Por isso nunca lançamos erro aqui —
+    isso evitava que o painel dissesse "falha ao publicar" quando na
+    verdade a publicação em si tinha funcionado.
+  */
   const sessionResult = await getAdminSession();
   const accessToken = sessionResult?.data?.session?.access_token;
-  if (!accessToken) throw new Error('Sessão administrativa expirada. Entre novamente.');
+  if (!accessToken) {
+    console.warn('[admin-v2] Sessão ausente ao tentar revalidar; o site se autoatualiza em até 30s.');
+    return false;
+  }
 
   const requestRevalidation = endpoint => fetch(endpoint, {
     method: 'POST',
@@ -6300,7 +6312,8 @@ async function revalidatePublishedSite() {
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload?.error || 'Não foi possível atualizar a versão publicada.');
+    console.warn('[admin-v2] Falha ao revalidar (o conteúdo já foi salvo no banco):', payload?.error);
+    return false;
   }
 
   // O painel também pode estar aberto num Preview da Vercel. Nesse caso,
@@ -6350,7 +6363,12 @@ async function publishDesign() {
 
     const revalidated = await revalidatePublishedSite();
 
-    flash('Alterações salvas com sucesso.', 'sucesso');
+    flash(
+      revalidated
+        ? 'Alterações publicadas — o site já está atualizado.'
+        : 'Alterações publicadas. Pode levar até 30 segundos para aparecer no site público.',
+      'sucesso'
+    );
     updateDesignPublicationState();
     maybeShowDesignDraftReminder();
 

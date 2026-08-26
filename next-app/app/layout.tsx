@@ -10,6 +10,15 @@ export const metadata: Metadata = {
   description: 'Fotografia autoral, retratos e experiências personalizadas.'
 };
 
+/*
+ * Rede de segurança (ver o mesmo comentário em app/page.tsx): o layout
+ * raiz é quem busca os overrides visuais (design.published.inline_styles)
+ * usados pelos textos editados diretamente na prévia — rodapé, Área do
+ * Cliente, etc. Sem isto, esses textos também dependiam 100% da
+ * revalidação sob demanda funcionar.
+ */
+export const revalidate = 30;
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const publishedDesign = await getPublishedDesignConfig();
   const visualOverrides = publishedDesign.inline_styles || {};
