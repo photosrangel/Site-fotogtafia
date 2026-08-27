@@ -96,7 +96,10 @@ export function renderSessionDetailUI({
   });
 
   const storedNumbers = Array.isArray(session.selected_photo_numbers) ? session.selected_photo_numbers : [];
-  const numberList = selecionadas.length ? selecionadas.map(photo => numero(provas.indexOf(photo))) : storedNumbers;
+  const liveNumbers = selecionadas.map(photo => numero(provas.indexOf(photo)));
+  // A seleção persistida não pode ser substituída por uma leitura parcial das
+  // provas durante ou depois da limpeza do armazenamento.
+  const numberList = storedNumbers.length >= liveNumbers.length ? storedNumbers : liveNumbers;
   const selectedNumbers = numberList.join(', ');
   $('selecionadas-box').innerHTML = numberList.length
     ? `<div class="session-select-box"><p class="footer-mono" style="margin-bottom:4px;">Fotos que a cliente escolheu (${numberList.length}):</p><p style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent);">${esc(selectedNumbers.replaceAll(', ', '.cr3, ') + '.cr3')}</p></div>`
