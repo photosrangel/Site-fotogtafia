@@ -64,6 +64,7 @@ import {
 } from './features/galleries/gallery-deletion-service.js';
 import {
   deleteSessionPhotoWithAsset,
+  deleteSessionProofsWithAssets,
   deleteSessionWithAssets
 } from './features/sessions/session-deletion-service.js';
 import { getDashboardSnapshot, logAdminActivity } from './features/dashboard/dashboard-repository.js';
@@ -4920,9 +4921,12 @@ async function loadSessions() {
   }
 
   sessionsCache = data || [];
-
-
-  await refreshCompletedSelectionsCount();
+  // Mostra os ensaios imediatamente. Capas e contador são enriquecimentos e
+  // não devem bloquear a navegação até o Storage terminar de responder.
+  renderSessions();
+  refreshCompletedSelectionsCount().catch(error => {
+    dwarn('Não foi possível atualizar o contador de seleções:', error?.message || error);
+  });
   // Busca as fotografias apenas para obter a capa de cada ensaio.
   // Não altera a estrutura da tabela ensaios nem a lógica das sessões.
   if (sessionsCache.length) {
@@ -4934,17 +4938,16 @@ async function loadSessions() {
       dwarn('Não foi possível carregar as capas dos ensaios:', photosError.message);
     }
 
-    const signedPhotos = await signSessionPhotoUrls(photos || []);
     const bySession = new Map();
 
-    signedPhotos.forEach(photo => {
+    (photos || []).forEach(photo => {
       if (!bySession.has(photo.ensaio_id)) {
         bySession.set(photo.ensaio_id, []);
       }
       bySession.get(photo.ensaio_id).push(photo);
     });
 
-    sessionsCache = sessionsCache.map(s => {
+    const covers = sessionsCache.map(s => {
       const photosForSession = bySession.get(s.id) || [];
 
       const explicitlySelectedCover =
@@ -4964,12 +4967,18 @@ async function loadSessions() {
         photosForSession[0] ||
         null;
 
-      const coverPhoto = explicitlySelectedCover || fallbackCover;
+      return explicitlySelectedCover || fallbackCover;
+    });
 
-      return {
-        ...s,
-        cover_url: coverPhoto?.url || null
-      };
+    // Antes eram assinadas todas as fotos de todos os ensaios. Agora somente
+    // uma capa por ensaio recebe URL temporária.
+    const signedCovers = await signSessionPhotoUrls(covers.filter(Boolean));
+    const signedCoverById = new Map(signedCovers.map(photo => [photo.id, photo]));
+
+    sessionsCache = sessionsCache.map((s, index) => {
+      const cover = covers[index];
+      const signedCover = cover ? signedCoverById.get(cover.id) : null;
+      return { ...s, cover_url: signedCover?.url || null };
     });
   }
 
@@ -5210,22 +5219,67 @@ async function invocarNotificacaoEnsaio(action, extra = {}) {
 
 async function iniciarEdicao() {
   if (!currentSession) return;
-  const provas=currentSessionPhotos.filter(photo=>photo.tipo==='prova');
-  const selecionadas=provas.filter(photo=>photo.selecionada);
-  const numbers=selecionadas.map(photo=>numero(provas.indexOf(photo)));
-  if(!confirm(`Iniciar edição e liberar armazenamento?\n\nOs números selecionados serão guardados (${numbers.join(', ')||'nenhum'}), mas ${provas.length} provas serão apagadas definitivamente.`))return;
-  const { data, error } = await updateSessionAndReturn(currentSession.id, { status: 'em_edicao',selected_photo_numbers:numbers,selection_completed_at:currentSession.selection_completed_at||new Date().toISOString() });
+  const provas = currentSessionPhotos.filter(photo => photo.tipo === 'prova');
+  const selecionadas = provas.filter(photo => photo.selecionada);
+  const liveNumbers = selecionadas.map(photo => numero(provas.indexOf(photo)));
+  const storedNumbers = Array.isArray(currentSession.selected_photo_numbers)
+    ? currentSession.selected_photo_numbers.map(value => String(value).padStart(4, '0'))
+    : [];
+  // A lista já gravada no momento da seleção é o histórico definitivo. Uma
+  // leitura parcial das provas jamais pode encurtá-la.
+  const numbers = storedNumbers.length >= liveNumbers.length ? storedNumbers : liveNumbers;
 
-  if (error) {
-    flash(`Erro ao iniciar edição: ${error.message}`, 'erro');
+  if (!numbers.length) {
+    flash('Não foi possível iniciar a edição porque nenhuma seleção guardada foi encontrada.', 'erro');
     return;
   }
 
-  currentSession = data || { ...currentSession, status: 'em_edicao',selected_photo_numbers:numbers };
-  for(const photo of provas){const result=await deleteSessionPhotoWithAsset({photo,session:currentSession,bucket:SESSIONS_BUCKET});if(result.error){flash(`Edição iniciada, mas uma prova não pôde ser removida: ${result.error.message}`,'erro');break}}
-  await updateSession(currentSession.id,{selection_cleaned_at:new Date().toISOString()});
+  const divergence = storedNumbers.length && liveNumbers.length !== storedNumbers.length
+    ? `\n\nA lista histórica possui ${storedNumbers.length} fotos e será preservada; ${liveNumbers.length} ainda aparecem marcadas entre as provas atuais.`
+    : '';
+  if (!confirm(`Iniciar edição e liberar armazenamento?\n\nOs ${numbers.length} números selecionados serão guardados, e ${provas.length} provas serão apagadas definitivamente.${divergence}`)) return;
+
+  // Primeiro protege a lista histórica, sem mudar o estado do ensaio nem
+  // afirmar que a limpeza terminou.
+  const snapshot = await updateSessionAndReturn(currentSession.id, {
+    selected_photo_numbers: numbers,
+    selection_completed_at: currentSession.selection_completed_at || new Date().toISOString()
+  });
+
+  if (snapshot.error) {
+    flash(`Erro ao guardar a seleção antes da limpeza: ${snapshot.error.message}`, 'erro');
+    return;
+  }
+
+  currentSession = snapshot.data || { ...currentSession, selected_photo_numbers: numbers };
+  flash(`Seleção protegida (${numbers.length} números). Removendo ${provas.length} provas...`, 'sucesso');
+
+  const cleanup = await deleteSessionProofsWithAssets({
+    photos: provas,
+    session: currentSession,
+    bucket: SESSIONS_BUCKET
+  });
+  if (cleanup.error) {
+    flash(`A lista com ${numbers.length} fotos foi preservada, mas a limpeza não terminou (${cleanup.stage}): ${cleanup.error.message}. Você pode tentar novamente sem perder os números.`, 'erro');
+    await loadSessionPhotos();
+    renderSessionDetail();
+    return;
+  }
+
+  const finalPayload = {
+    status: 'em_edicao',
+    selected_photo_numbers: numbers,
+    selection_cleaned_at: new Date().toISOString()
+  };
+  if (cleanup.data.coverCleared) finalPayload.capa_foto_id = null;
+  const finalized = await updateSessionAndReturn(currentSession.id, finalPayload);
+  if (finalized.error) {
+    flash(`As provas foram removidas e os ${numbers.length} números continuam guardados, mas o estado “Em edição” não pôde ser salvo: ${finalized.error.message}`, 'erro');
+    return;
+  }
+  currentSession = finalized.data || { ...currentSession, ...finalPayload };
   await logAdminActivity('session_editing_started', `Edição iniciada para “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}”`, { detail: `${numbers.length} foto(s) escolhida(s); provas removidas do armazenamento.`, entityType: 'session', entityId: currentSession.id }).catch(() => {});
-  flash('Edição iniciada. As provas foram removidas e os números escolhidos ficaram guardados.','sucesso');
+  flash(`Edição iniciada. ${cleanup.data.removedRecords} provas foram removidas e os ${numbers.length} números escolhidos ficaram guardados.`, 'sucesso');
   await loadSessionPhotos();
   await loadSessions();
   renderSessionDetail();
