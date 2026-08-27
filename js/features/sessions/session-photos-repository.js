@@ -41,3 +41,13 @@ export async function removeSessionPhoto(id) {
     .delete()
     .eq('id', id);
 }
+
+export async function removeSessionPhotos(ids, sessionId = null) {
+  if (!ids?.length) return { data: [], error: null };
+  let query = supabase
+    .from('fotos')
+    .delete()
+    .in('id', ids);
+  if (sessionId) query = query.eq('ensaio_id', sessionId);
+  return query.select('id');
+}
