@@ -1,17 +1,28 @@
-FASE 68 — COMPONENTES AUSENTES DO NEXT.JS
+PRIMEIRA ETAPA DA MIGRACAO NATIVA PARA NEXT.JS
 
-Na branch fase-68-seguranca-banco, envie a pasta next-app deste pacote.
-Escolha substituir os arquivos existentes quando o GitHub solicitar.
+Este pacote contem somente os arquivos novos ou alterados desta etapa.
 
-O pacote contém somente:
-- next-app/components (9 arquivos)
-- next-app/lib (7 arquivos)
-- next-app/package.json
+COMO USAR
 
-Total: 17 arquivos, abaixo do limite de upload do GitHub.
+1. Abra a branch de teste no GitHub.
+2. Envie a pasta next-app deste pacote para a raiz do repositorio.
+3. Confirme a substituicao dos arquivos que ja existem.
+4. Preserve todos os outros arquivos do projeto.
+5. Aguarde o Preview da Vercel e teste Inicio, Galeria, Sobre e Contato.
 
-Mantenha na Vercel:
-- Root Directory: next-app
+IMPORTANTE
 
-Após o commit, aguarde o novo Preview automático.
-Não faça Redeploy manual e não publique em produção antes de aprovar o Preview.
+- Nao apague a pasta legacy nesta etapa.
+- Admin e Area de Cliente ainda continuam usando a ponte legada.
+- Nao envie node_modules, .next ou .npm-cache.
+- A pasta next-app/public/images deve ser enviada inteira.
+
+ARQUIVOS DESTA ENTREGA
+
+next-app/app/layout.tsx
+next-app/app/public-site.css
+next-app/app/sobre/page.tsx
+next-app/components/home-hero.tsx
+next-app/lib/public-media.ts
+next-app/lib/site-content.ts
+next-app/public/images/

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './public-site.css';
 import { HydrationMarker } from '@/components/hydration-marker';
 import { PublishedVisualDesign } from '@/components/published-visual-design';
 import { FloatingWhatsApp } from '@/components/floating-whatsapp';
@@ -24,9 +25,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const visualOverrides = publishedDesign.inline_styles || {};
   return (
     <html lang="pt" data-scroll-behavior="smooth">
-      <head>
-        <link rel="stylesheet" href="/legacy/css/style.css?v=67-gallery-mobile-2" />
-      </head>
       <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
     </html>
   );
