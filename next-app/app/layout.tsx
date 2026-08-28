@@ -24,8 +24,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const publishedDesign = await getPublishedDesignConfig();
   const visualOverrides = publishedDesign.inline_styles || {};
   return (
-    <html lang="pt" data-scroll-behavior="smooth">
-      <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
+    <html lang="pt" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
     </html>
   );
 }
