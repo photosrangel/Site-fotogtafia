@@ -7795,3 +7795,5 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .admin-native-legacy-note{margin:18px 0;padding:14px;border:1px solid var(--hairline);color:var(--text-muted);font-size:.82rem;line-height:1.55}
 .admin-native-refresh{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 @media (max-width:860px){.admin-sidebar-backdrop.is-open{opacity:1}}
+.admin-photo-order-actions{position:absolute;left:6px;bottom:6px;z-index:6;display:flex;gap:4px}
+.admin-photo-order-actions .small-btn{padding:5px 8px;background:rgba(0,0,0,.78)}
