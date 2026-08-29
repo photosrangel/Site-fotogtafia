@@ -1,1 +1,1 @@
-import '../admin.css';import {AdminDesign} from '@/components/admin-design';export const dynamic='force-dynamic';export default function Page(){return <AdminDesign/>}
+import {redirect} from 'next/navigation';export default function Page(){redirect('/legacy/admin-v2.html')}

@@ -1,5 +1,2 @@
-import type { Metadata } from 'next';
-import { AdminDashboard } from '@/components/admin-dashboard';
-import './admin.css';
-export const metadata: Metadata={title:'Admin',robots:{index:false,follow:false}};
-export default function AdminPage(){return <AdminDashboard/>}
+import {redirect} from 'next/navigation';
+export default function AdminPage(){redirect('/legacy/admin-v2.html')}

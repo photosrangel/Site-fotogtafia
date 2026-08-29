@@ -1,1 +1,1 @@
-import '../admin.css';import {AdminSessions} from '@/components/admin-sessions';export const dynamic='force-dynamic';export default function Page(){return <AdminSessions/>}
+import {redirect} from 'next/navigation';export default function Page(){redirect('/legacy/admin-v2.html')}
