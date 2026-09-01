@@ -6415,7 +6415,7 @@ function refreshDesignPreviewStylesheet(doc) {
           return;
         }
 
-        if (!/\/(?:legacy\/)?css\/style\.css$/i.test(url.pathname)) return;
+        if (!/\/css\/style\.css$/i.test(url.pathname)) return;
         if (link.dataset.designPreviewCssFresh === '1') return;
 
         link.dataset.designPreviewCssFresh = '1';
@@ -6425,9 +6425,6 @@ function refreshDesignPreviewStylesheet(doc) {
   };
 
   refresh(doc);
-
-  const nestedFrame = doc.querySelector('iframe.legacy-frame');
-  try { refresh(nestedFrame?.contentDocument); } catch (_) {}
 }
 
 async function waitForDesignPreviewHydration(frame, timeout = 1200) {
@@ -6990,26 +6987,6 @@ function installDesignPreviewNavigationGuard() {
     });
   }
 
-  const nestedFrame = doc.querySelector('iframe.legacy-frame');
-  const bindNestedNavigation = () => {
-    let nestedDoc;
-    try { nestedDoc = nestedFrame?.contentDocument; } catch (_) { return; }
-    if (!nestedDoc || nestedDoc.__designOuterNavigationInstalled) return;
-    decorateDesignInlinePreview(nestedDoc);
-    nestedDoc.__designOuterNavigationInstalled = true;
-    nestedDoc.addEventListener('click', event => {
-      const link = event.target.closest?.('a[href]');
-      if (!link || link.target || link.hasAttribute('download')) return;
-      let url;
-      try { url = new URL(link.href, nestedDoc.location.href); } catch (_) { return; }
-      if (url.origin !== nestedDoc.location.origin) return;
-      event.preventDefault();
-      setDesignPreviewLoading(true);
-      frame.src = url.href;
-    });
-  };
-  nestedFrame?.addEventListener('load', bindNestedNavigation);
-  bindNestedNavigation();
 }
 
 function setDesignDevice(device) {
@@ -8898,8 +8875,6 @@ function applyDesignContentPreview(){
   if(path==='/contato'||path.endsWith('/contato.html'))applyContatoDesignPreview(doc,s);
   if(path==='/galeria'||path.endsWith('/galeria.html'))applyTrailDraftPreview(doc);
   decorateDesignInlinePreview(doc);applyTrailDraftPreview(doc);
-  const nested=doc.querySelector('iframe.legacy-frame');
-  try{if(nested?.contentDocument){ensureDesignPreviewRenderObserver(nested.contentDocument);decorateDesignInlinePreview(nested.contentDocument);applyTrailDraftPreview(nested.contentDocument)}}catch(_){}
   applyDesignWhatsappPreview(doc);
 }
 function openDesignContentSection(page, trigger) {
