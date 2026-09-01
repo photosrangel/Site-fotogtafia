@@ -92,16 +92,6 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
     element.style.translate = x || y ? `${x}px ${y}px` : '';
   }
 
-  doc.querySelectorAll<HTMLIFrameElement>('iframe.legacy-frame').forEach(frame => {
-    const applyFrame = () => {
-      try { if (frame.contentDocument) applyToDocument(frame.contentDocument, overrides); } catch {}
-    };
-    if (frame.dataset.visualDesignBound !== '1') {
-      frame.dataset.visualDesignBound = '1';
-      frame.addEventListener('load', applyFrame);
-    }
-    applyFrame();
-  });
 }
 
 export function PublishedVisualDesign({ overrides }: { overrides: Record<string, VisualOverride> }) {
