@@ -1,8 +1,0 @@
-'use client';
-
-import type { ReactNode } from 'react';
-
-const sections=[['Dashboard','/admin'],['Design','/admin/design'],['Galerias','/admin/galerias'],['Categorias','/admin/categorias'],['Ensaios','/admin/ensaios'],['Mensagens','/admin/mensagens'],['Configurações','/admin/configuracoes']] as const;
-export function AdminSectionShell({active,email,eyebrow,title,menuOpen,setMenuOpen,onLogout,children}:{active:string;email:string;eyebrow:string;title:string;menuOpen:boolean;setMenuOpen:(value:boolean)=>void;onLogout:()=>void;children:ReactNode}){
- return <div className="admin-v2-app"><button className="admin-mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(!menuOpen)}><span></span><span></span><span></span></button>{menuOpen&&<button className="admin-sidebar-backdrop is-open" aria-label="Fechar menu" onClick={()=>setMenuOpen(false)}/>}<aside className={`admin-sidebar ${menuOpen?'is-open':''}`}><div className="sidebar-brand"><a href="/" className="nav-logo">Rangel <em>Santos</em></a><span>CMS NEXT</span></div><nav className="sidebar-nav">{sections.map(([label,path])=><a key={path} className={`sidebar-link sidebar-link-anchor ${active===path?'active':''}`} href={path}>{label}</a>)}</nav><div className="sidebar-bottom"><a href="/" className="sidebar-link sidebar-link-anchor">Ver site</a><button className="sidebar-link" onClick={onLogout}>Sair</button></div></aside><main className="admin-main"><header className="admin-topbar"><div><p className="section-eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="admin-user">{email}</div></header>{children}</main></div>
-}
