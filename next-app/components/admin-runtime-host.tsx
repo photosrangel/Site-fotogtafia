@@ -10,7 +10,7 @@ const publicRoutes:Record<string,string>={
 
 /**
  * Hospeda o painel administrativo integral dentro da rota Next /admin.
- * O runtime foi isolado em /admin-runtime para não depender de /legacy.
+ * O runtime administrativo integral fica isolado em /admin-runtime.
  * Toda navegação destinada ao site público sai do quadro e usa as rotas Next.
  */
 export function AdminRuntimeHost(){
