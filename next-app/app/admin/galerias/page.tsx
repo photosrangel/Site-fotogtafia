@@ -1,2 +1,2 @@
 import {redirect} from 'next/navigation';
-export default function Page(){redirect('/legacy/admin-v2.html')}
+export default function Page(){redirect('/admin')}

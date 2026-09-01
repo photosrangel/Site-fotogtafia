@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin V2 — Rangel Santos Fotografia</title><meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/admin-v2.css">
+<style>
+.link-box{font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted);background:var(--bg);padding:9px 12px;word-break:break-all;margin:8px 0;border:1px solid var(--hairline)}
+.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px;margin-top:10px}
+.session-photo{position:relative;aspect-ratio:1;overflow:hidden;background:#0e0d0c}
+.session-photo img{width:100%;height:100%;object-fit:cover}
+.session-photo.selecionada::after{content:'★';position:absolute;top:4px;right:4px;color:var(--accent);font-size:1rem;text-shadow:0 0 4px #000}
+.session-photo .photo-order{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);color:var(--text);font-family:var(--font-mono);font-size:.6rem;padding:2px 5px}
+.session-select-box{margin-top:14px;padding:12px 14px;border:1px solid var(--hairline);background:var(--bg)}
+.session-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div id="login-screen" class="admin-v2-login"><div class="login-box-v2">
+<p class="section-eyebrow">Acesso restrito</p><h1>Administração</h1><p class="admin-lead">Entre para gerenciar o conteúdo do novo site.</p><p id="build-version" style="font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);margin:10px 0 0;letter-spacing:.12em;text-transform:uppercase;">Build v8 · tela cheia</p>
+<form id="login-form"><div class="field"><label for="login-email">E-mail</label><input type="email" id="login-email" autocomplete="username" required></div><div class="field"><label for="login-password">Senha</label><input type="password" id="login-password" autocomplete="current-password" required></div><button class="btn btn-accent" type="submit">Entrar</button><p id="login-msg" class="msg"></p></form>
+</div></div>
+<div id="app" class="admin-v2-app" hidden>
+<button id="admin-mobile-menu-toggle" class="admin-mobile-menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="admin-sidebar">
+  <span></span><span></span><span></span>
+</button>
+<div id="admin-sidebar-backdrop" class="admin-sidebar-backdrop" hidden></div>
+<aside class="admin-sidebar" id="admin-sidebar"><div class="sidebar-brand"><a href="/inicio" class="nav-logo">Rangel <em>Santos</em></a><span>CMS V2</span></div>
+<nav class="sidebar-nav" id="admin-main-menu"><button class="sidebar-link active" data-view="dashboard" data-admin-menu-key="dashboard" data-admin-ui-text="nav_dashboard">Dashboard</button><div class="admin-nav-group design-nav-group" data-admin-menu-key="design">
+  <button
+    class="sidebar-link admin-nav-item admin-nav-item-parent"
+    id="design-nav-toggle"
+    type="button"
+    aria-expanded="false"
+    aria-controls="design-nav-submenu"
+  >
+    <span>Design</span>
+  </button>
+
+  <div class="admin-nav-submenu" id="design-nav-submenu" hidden>
+    <div class="admin-nav-subgroup design-content-nav-group" hidden aria-hidden="true">
+      <button class="admin-nav-subitem admin-nav-subgroup-toggle" id="design-content-toggle" type="button" aria-expanded="false" aria-controls="design-content-submenu">
+        Conteúdo <span class="admin-nav-chevron" aria-hidden="true">⌄</span>
+      </button>
+      <div class="admin-nav-nested" id="design-content-submenu" hidden>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="inicio">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Início"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="inicio"
+          >
+            Início <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="sobre">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Sobre"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="sobre"
+          >
+            Sobre <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="contato">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Contato"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="contato"
+          >
+            Contato <span>⌄</span>
+          </button>
+        </div>
+
+        <div class="design-content-order-item" draggable="true" data-design-content-order="client_area">
+          <button
+            class="design-content-drag-handle"
+            type="button"
+            aria-label="Mover Área do Cliente"
+            title="Arraste para mudar a posição"
+          >⋮⋮</button>
+
+          <button
+            class="admin-nav-subitem admin-nav-nested-item"
+            type="button"
+            data-design-content="client_area"
+          >
+            Área do Cliente <span>⌄</span>
+          </button>
+        </div>
+</div>
+    </div>
+
+    <button class="admin-nav-subitem" type="button" data-design-jump="menu">
+      Cabeçalho
+      <span>⌄</span>
+    </button>
+
+    <button class="admin-nav-subitem" type="button" data-design-jump="animations">
+      Animações
+      <span>⌄</span>
+    </button>
+
+    <button class="admin-nav-subitem" type="button" data-design-jump="general">
+      Estilo geral
+      <span>⌄</span>
+    </button>
+
+    <button class="admin-nav-subitem" type="button" data-design-jump="whatsapp">
+      WhatsApp
+      <span>⌄</span>
+    </button>
+
+    <button class="admin-nav-subitem" type="button" data-design-jump="galleries">
+      Galerias
+      <span>⌄</span>
+    </button>
+  </div>
+</div><button class="sidebar-link" data-view="galleries" data-admin-menu-key="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-menu-key="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-menu-key="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="messages" data-admin-menu-key="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-menu-key="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
+<button id="admin-menu-reorder" class="admin-menu-reorder" type="button" aria-pressed="false">Reordenar menu</button>
+<div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor" data-admin-ui-text="nav_view_site">Ver site</a><button id="logout-btn" class="sidebar-link" data-admin-ui-text="nav_logout">Sair</button></div></aside>
+<main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
+<section id="view-dashboard" class="admin-view"><div class="dashboard-quick-actions"><button class="btn btn-accent" data-view="galleries" id="dashboard-new-gallery" type="button">+ Nova galeria</button><button class="btn" data-view="sessions" type="button">+ Novo ensaio</button><button class="btn" data-view="messages" type="button">Ver mensagens</button><button class="btn" data-view="design" type="button">Editar site</button></div><div class="stats-grid"><article class="stat-card"><span>Galerias</span><strong id="stat-galleries">—</strong></article><article class="stat-card"><span>Publicadas</span><strong id="stat-published">—</strong></article><article class="stat-card"><span>Categorias</span><strong id="stat-categories">—</strong></article><article class="stat-card"><span>Fotos públicas</span><strong id="stat-photos">—</strong></article><article class="stat-card"><span>Mensagens</span><strong id="stat-messages">—</strong></article></div><article class="panel dashboard-activity-panel"><div class="panel-head"><h2>Atividade recente</h2></div><div id="dashboard-activity-list" class="dashboard-activity-list"><p class="panel-copy">Carregando atividades…</p></div></article></section>
+
+<section id="view-design" class="admin-view" hidden>
+  <div id="design-draft-reminder" class="design-draft-reminder" hidden role="status">
+    <div class="design-draft-reminder-icon" aria-hidden="true">●</div>
+    <div class="design-draft-reminder-body">
+      <strong id="design-draft-reminder-title">Você tem um rascunho não publicado</strong>
+      <p id="design-draft-reminder-copy">Última alteração salva em <span id="design-draft-reminder-time">—</span>. O que você está vendo aqui embaixo é esse rascunho — o site ainda mostra a versão publicada anteriormente.</p>
+    </div>
+    <div class="design-draft-reminder-actions">
+      <button type="button" class="btn btn-accent" id="design-draft-reminder-publish">Publicar agora</button>
+      <button type="button" class="btn" id="design-draft-reminder-dismiss">Continuar editando</button>
+    </div>
+  </div>
+
+  <div class="design-studio-head">
+    <div>
+      <p class="section-eyebrow">Laboratório visual</p>
+      <h2>Prévia responsiva</h2>
+      <p class="panel-copy">Compare o site em viewports reais de 1920×1080 e 390×844. Teste as alterações na prévia, salve como rascunho e publique somente quando estiver satisfeito.</p>
+    </div>
+    <div class="design-device-switch" role="group" aria-label="Dispositivo da prévia">
+      <button class="small-btn active" id="design-device-desktop" type="button" aria-pressed="true">▣ Computador</button>
+      <button class="small-btn" id="design-device-mobile" type="button" aria-pressed="false">▯ Celular</button>
+    </div>
+  </div>
+
+  <nav class="design-page-switcher" aria-label="Página em edição">
+    <button type="button" class="active" data-design-page="/inicio">Início</button>
+    <button type="button" data-design-page="/galeria">Galeria</button>
+    <button type="button" data-design-page="/sobre">Sobre</button>
+    <button type="button" data-design-page="/contato">Contato</button>
+    <button type="button" data-design-page="/area-cliente">Área do Cliente</button>
+  </nav>
+
+  <div class="design-studio-grid design-studio-grid-full">
+    
+
+    <div class="panel design-preview-panel">
+      <div class="design-preview-toolbar">
+        <span id="design-preview-label"><strong>Prévia responsiva</strong><small>Computador · 1920 × 1080</small></span>
+        <div class="design-preview-toolbar-actions"><a class="small-btn" href="/inicio" target="_blank" rel="noopener">Abrir site ↗</a><button class="design-panel-chevron" id="design-preview-collapse" type="button" aria-expanded="true" aria-label="Recolher prévia">⌃</button></div>
+      </div>
+      <div id="design-preview-stage" class="design-preview-stage is-desktop">
+        <div class="design-browser-frame is-loading">
+          <div class="design-browser-bar"><i></i><i></i><i></i><span>photosrangel.pt/inicio</span></div>
+          <iframe id="design-preview-frame" src="/inicio" title="Prévia do site" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div id="design-inline-editor" class="design-inline-editor" hidden>
+      <div class="design-inline-editor-head"><strong id="design-inline-editor-label">Editar texto</strong><span>Alteração no rascunho</span></div>
+      <div class="design-inline-toolbar" role="toolbar" aria-label="Formatação do texto">
+        <details class="design-inline-tool-panel" open><summary>Tamanho e posição</summary><div class="design-inline-tool-panel-body">
+          <label class="design-inline-size-control">Tamanho <input id="design-inline-size" type="range" min="50" max="250" step="1" value="100"><output id="design-inline-size-out">100%</output></label>
+          <label class="design-inline-position">Horizontal <input id="design-inline-x" type="range" min="-200" max="200" value="0"></label>
+          <label class="design-inline-position">Vertical <input id="design-inline-y" type="range" min="-200" max="200" value="0"></label>
+        </div></details>
+        <details class="design-inline-tool-panel"><summary>Estilo e alinhamento</summary><div class="design-inline-tool-panel-body design-inline-button-row">
+          <button type="button" data-inline-command="bold" title="Negrito"><b>B</b></button>
+          <button type="button" data-inline-command="italic" title="Itálico"><i>I</i></button>
+          <span class="design-inline-separator"></span>
+          <button type="button" data-inline-align="left" title="Alinhar à esquerda">≡</button>
+          <button type="button" data-inline-align="center" title="Centralizar">≣</button>
+          <button type="button" data-inline-align="right" title="Alinhar à direita">≡</button>
+        </div></details>
+        <span class="design-inline-spacer"></span>
+        <button type="button" class="design-inline-discard" id="design-inline-discard">Descartar</button>
+        <button type="button" class="design-inline-save" id="design-inline-save">Aplicar</button>
+      </div>
+    </div>
+
+    <section class="panel design-publication-panel design-actions-simple" aria-label="Ações das alterações">
+      <div class="design-publication-actions">
+        <button class="btn" id="design-restore-published" type="button" disabled>Descartar todas</button>
+        <button class="btn btn-accent" id="design-publish" type="button" disabled>Publicar alterações no site</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="design-inline-panels" id="design-inline-panels">
+    <button class="admin-menu-reorder design-panels-reorder" id="design-panels-reorder" type="button" aria-pressed="false">Reordenar painéis</button>
+    <section class="design-stack-panel" data-inline-panel="hero">
+      <button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Imagem principal</strong><small>Escolha entre uma foto estática ou um slideshow para o topo da página inicial.</small></span><i>›</i></button>
+      <div class="design-stack-body" id="design-inline-hero" hidden></div>
+    </section>
+    <section class="design-stack-panel" data-inline-panel="menu"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Cabeçalho</strong><small>Aparência, posição e comportamento do menu público.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-menu" hidden></div></section>
+    <section class="design-stack-panel" data-inline-panel="animations"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Animações de transição</strong><small>Movimento ao abrir ou trocar de página no computador e no celular.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-animations" hidden></div></section>
+    <section class="design-stack-panel" data-inline-panel="general"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Estilo geral</strong><small>Escala dos títulos, largura, espaçamento e intensidade da imagem.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-general" hidden></div></section>
+    <section class="design-stack-panel" data-inline-panel="whatsapp"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>WhatsApp — botão flutuante</strong><small>Configure o contacto direto apresentado no site público.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-whatsapp" hidden></div></section>
+    <section class="design-stack-panel" data-inline-panel="galleries"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Galerias</strong><small>Espaçamento e cantos das fotografias.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-galleries" hidden></div></section>
+    <section class="design-stack-panel" data-inline-panel="client_area"><button class="design-stack-toggle" type="button" aria-expanded="false"><span><strong>Área do Cliente</strong><small>Layout de acesso, galeria privada, imagem e textos.</small></span><i>›</i></button><div class="design-stack-body" id="design-inline-client_area" hidden></div></section>
+  </div>
+</section>
+
+
+<div class="design-controls-drawer" id="design-controls-drawer" hidden>
+  <div class="design-controls-drawer-head">
+    <div>
+      <p class="section-eyebrow">Design</p>
+      <h3 id="design-controls-drawer-title">Configurações</h3>
+    </div>
+
+    <button
+      class="icon-btn"
+      id="design-controls-close"
+      type="button"
+      aria-label="Fechar configurações"
+    >×</button>
+  </div>
+
+  <div class="design-content-host" id="design-content-host" hidden></div>
+
+  <aside class="panel design-controls">
+      <section class="design-accordion is-open" data-design-section="menu">
+        <button class="design-accordion-toggle" type="button" aria-expanded="true">
+          <span>Menu</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body">
+          <label class="design-control-row">Aparência do menu
+            <select id="design-nav-style">
+              <option value="auto" selected>Automático do site</option>
+              <option value="transparent">Transparente</option>
+              <option value="solid">Sólido</option>
+            </select>
+          </label>
+          <label class="design-control-row">Comportamento
+            <select id="design-nav-position">
+              <option value="fixed" selected>Fixo no topo</option>
+              <option value="static">Acompanha a página</option>
+            </select>
+          </label>
+          <label class="design-control-row">Densidade do menu
+            <select id="design-nav-density">
+              <option value="compact">Compacto</option>
+              <option value="normal" selected>Normal</option>
+              <option value="airy">Espaçado</option>
+            </select>
+          </label>
+          <label class="design-control-row">Escala da marca
+            <output id="design-logo-scale-out">100%</output>
+            <input id="design-logo-scale" type="range" min="85" max="120" value="100">
+          </label>
+          <label class="design-control-row">Área do Cliente
+            <select id="design-nav-cta">
+              <option value="outline" selected>Contorno</option>
+              <option value="filled">Preenchido</option>
+              <option value="hidden">Ocultar</option>
+            </select>
+          </label>
+          <label class="design-control-row">Desfoque do menu
+            <output id="design-nav-blur-out">0 px</output>
+            <input id="design-nav-blur" type="range" min="0" max="18" value="0">
+          </label>
+        </div>
+      </section>
+
+      <section class="design-accordion" data-design-section="animations">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>Animações</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body" hidden>
+          <label class="design-control-row">Entrada da página
+            <select id="design-page-animation">
+              <option value="none" selected>Nenhuma</option>
+              <option value="fade">Esmaecer</option>
+              <option value="fade-up">Subir suavemente</option>
+              <option value="soft">Suave premium</option>
+            </select>
+          </label>
+          <label class="design-control-row">Entrada das seções
+            <select id="design-section-animation">
+              <option value="none" selected>Nenhuma</option>
+              <option value="fade">Esmaecer</option>
+              <option value="fade-up">Subir suavemente</option>
+            </select>
+          </label>
+          <label class="design-control-row">Movimento nas fotos
+            <select id="design-image-hover">
+              <option value="site" selected>Padrão do site</option>
+              <option value="none">Sem movimento</option>
+              <option value="zoom">Zoom suave</option>
+              <option value="lift">Elevar</option>
+            </select>
+          </label>
+          <label class="design-control-row">Velocidade
+            <select id="design-motion-speed">
+              <option value="fast">Rápida</option>
+              <option value="normal" selected>Normal</option>
+              <option value="slow">Lenta</option>
+            </select>
+          </label>
+          <button class="small-btn design-replay-btn" id="design-replay-animation" type="button">Repetir animações</button>
+        </div>
+      </section>
+
+      <section class="design-accordion" data-design-section="general">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>Estilo geral</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body" hidden>
+          <label class="design-control-row">Escala dos títulos
+            <output id="design-type-scale-out">100%</output>
+            <input id="design-type-scale" type="range" min="90" max="115" value="100">
+          </label>
+          <label class="design-control-row">Largura do conteúdo
+            <output id="design-content-width-out">Padrão do site</output>
+            <input id="design-content-width" type="range" min="1040" max="1500" step="20" value="1200">
+          </label>
+          <label class="design-control-row">Espaço entre seções
+            <output id="design-section-space-out">120 px</output>
+            <input id="design-section-space" type="range" min="72" max="160" step="4" value="120">
+          </label>
+          <label class="design-control-row">Intensidade do Hero
+            <output id="design-hero-overlay-out">Padrão</output>
+            <input id="design-hero-overlay" type="range" min="0" max="70" value="40">
+          </label>
+        </div>
+      </section>
+
+      <section class="design-accordion" data-design-section="whatsapp">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>WhatsApp</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body" hidden>
+          <p class="design-control-kicker">Botão flutuante</p>
+          <p class="design-control-help">Configure o contacto direto que aparece no site público. As alterações são mostradas primeiro na prévia e só chegam ao site depois de publicar.</p>
+          <label class="design-control-row design-control-check"><span>Exibir botão</span><input id="design-whatsapp-enabled" type="checkbox" checked data-cms-field="design.whatsapp.enabled"></label>
+          <label class="design-control-row">Número com indicativo do país<input id="design-whatsapp-number" type="tel" inputmode="tel" maxlength="20" placeholder="351912345678" data-cms-field="design.whatsapp.number"></label>
+          <label class="design-control-row">Mensagem inicial<textarea id="design-whatsapp-message" rows="3" maxlength="500" data-cms-field="design.whatsapp.message">Olá, Rangel. Vim pelo seu site e gostaria de saber mais sobre uma sessão fotográfica.</textarea></label>
+          <label class="design-control-row">Posição<select id="design-whatsapp-position" data-cms-field="design.whatsapp.position"><option value="right" selected>Direita</option><option value="left">Esquerda</option></select></label>
+          <label class="design-control-row">Estilo do botão<select id="design-whatsapp-style" data-cms-field="design.whatsapp.style"><option value="editorial" selected>Editorial — recomendado</option><option value="minimal">Minimalista</option><option value="classic">WhatsApp clássico</option></select></label>
+          <div class="design-control-row"><span>Mostrar nas páginas</span><div class="design-page-checks"><label><input type="checkbox" id="design-whatsapp-page-inicio" checked> Início</label><label><input type="checkbox" id="design-whatsapp-page-galeria" checked> Galeria</label><label><input type="checkbox" id="design-whatsapp-page-sobre" checked> Sobre</label><label><input type="checkbox" id="design-whatsapp-page-contato" checked> Contato</label></div></div>
+        </div>
+      </section>
+
+      <section class="design-accordion" data-design-section="galleries">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>Galerias</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+        <div class="design-accordion-body" hidden>
+          <label class="design-control-row">Espaço entre fotos
+            <output id="design-gallery-gap-out">2 px</output>
+            <input id="design-gallery-gap" type="range" min="0" max="16" value="2">
+          </label>
+          <label class="design-control-row">Cantos das imagens
+            <output id="design-image-radius-out">0 px</output>
+            <input id="design-image-radius" type="range" min="0" max="18" value="0">
+          </label>
+        </div>
+      </section>
+
+      <section class="design-accordion" data-design-section="client_area">
+        <button class="design-accordion-toggle" type="button" aria-expanded="false">
+          <span>Área do Cliente</span><span class="design-accordion-icon" aria-hidden="true">⌄</span>
+        </button>
+
+        <div class="design-accordion-body" hidden>
+          <label class="design-control-row">
+            Layout de acesso
+            <select id="design-client-layout">
+              <option value="editorial-split" selected>Editorial dividido</option>
+              <option value="centered">Minimalista central</option>
+              <option value="fullscreen">Imagem em tela cheia</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Estilo da galeria
+            <select id="design-client-gallery-style">
+              <option value="editorial" selected>Grade editorial</option>
+              <option value="clean">Grade limpa</option>
+              <option value="masonry">Masonry</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Tamanho das fotografias
+            <select id="design-client-photo-size">
+              <option value="compact">Compacto</option>
+              <option value="medium">Médio</option>
+              <option value="large" selected>Grande</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Tipografia
+            <select id="design-client-typography">
+              <option value="classic" selected>Clássica</option>
+              <option value="editorial">Editorial</option>
+              <option value="minimal">Minimalista</option>
+            </select>
+          </label>
+
+          <label class="design-control-row">
+            Bordas
+            <select id="design-client-border">
+              <option value="fine" selected>Fina</option>
+              <option value="none">Sem borda</option>
+              <option value="soft">Suave</option>
+            </select>
+          </label>
+
+          <div class="design-client-image-control">
+  <div class="design-control-row">
+    <span>Imagem da tela de acesso</span>
+  </div>
+
+  <input id="design-client-access-image" type="hidden" value="">
+  <input id="design-client-focus-x" type="hidden" value="50">
+  <input id="design-client-focus-y" type="hidden" value="50">
+
+  <div
+    class="design-client-image-preview focal-preview empty"
+    id="design-client-access-image-preview"
+    title="Clique na fotografia para alterar o ponto focal"
+  >
+    <span class="design-client-image-empty">Nenhuma imagem adicionada</span>
+    <span
+      class="focal-marker"
+      id="design-client-focal-marker"
+      style="left:50%;top:50%"
+      aria-hidden="true"
+    ></span>
+  </div>
+
+  <div class="design-client-image-actions">
+    <label class="small-btn design-client-upload-label">
+      Adicionar foto
+      <input
+        id="design-client-access-image-file"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+      >
+    </label>
+
+    <button
+      class="small-btn"
+      id="design-client-access-image-remove"
+      type="button"
+    >
+      Remover
+    </button>
+  </div>
+
+  <p class="field-help design-client-focal-help" id="design-client-focal-summary">
+    Ponto focal: 50% × 50% — clique na foto para alterar.
+  </p>
+
+  <p class="design-control-help" id="design-client-access-image-msg">
+    JPG, PNG ou WebP. A fotografia será enviada para o storage do site.
+  </p>
+
+  <details class="design-client-texts-section">
+    <summary>Textos da Área do Cliente</summary>
+
+    <div class="design-client-texts-body">
+      <label class="design-control-row">
+        Texto sobre a fotografia
+        <textarea id="design-client-text-visual" rows="3" maxlength="240">Retratos guardados com cuidado.
+Um espaço reservado só para você.</textarea>
+      </label>
+
+      <label class="design-control-row">
+        Identificação
+        <input id="design-client-text-eyebrow" type="text" maxlength="80" value="Área privada">
+      </label>
+
+      <label class="design-control-row">
+        Título principal
+        <input id="design-client-text-title" type="text" maxlength="120" value="Sua sessão,">
+      </label>
+
+      <label class="design-control-row">
+        Título em destaque
+        <input id="design-client-text-title-emphasis" type="text" maxlength="120" value="em um espaço só seu.">
+      </label>
+
+      <label class="design-control-row">
+        Texto de apoio
+        <textarea id="design-client-text-description" rows="4" maxlength="600">Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.</textarea>
+      </label>
+
+      <label class="design-control-row">
+        Nome do campo Login
+        <input id="design-client-text-login" type="text" maxlength="60" value="Login">
+      </label>
+
+      <label class="design-control-row">
+        Nome do campo Senha
+        <input id="design-client-text-password" type="text" maxlength="60" value="Senha">
+      </label>
+
+      <label class="design-control-row">
+        Texto do botão
+        <input id="design-client-text-button" type="text" maxlength="80" value="Acessar minha galeria">
+      </label>
+
+      <label class="design-control-row">
+        Texto de segurança
+        <input id="design-client-text-secure" type="text" maxlength="120" value="Acesso privado e protegido">
+      </label>
+
+      <label class="design-control-row">
+        Título da área após o login
+        <input id="design-client-text-gallery-eyebrow" type="text" maxlength="100" value="Sua experiência">
+      </label>
+
+      <div class="design-client-stage-text-grid">
+        <label class="design-control-row">
+          Etapa 01
+          <input id="design-client-stage-selection" type="text" maxlength="60" value="Seleção">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 01
+          <input id="design-client-stage-selection-sub" type="text" maxlength="60" value="Escolha">
+        </label>
+
+        <label class="design-control-row">
+          Etapa 02
+          <input id="design-client-stage-editing" type="text" maxlength="60" value="Edição">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 02
+          <input id="design-client-stage-editing-sub" type="text" maxlength="60" value="Tratamento">
+        </label>
+
+        <label class="design-control-row">
+          Etapa 03
+          <input id="design-client-stage-delivery" type="text" maxlength="60" value="Entrega">
+        </label>
+
+        <label class="design-control-row">
+          Subtexto 03
+          <input id="design-client-stage-delivery-sub" type="text" maxlength="60" value="Final">
+        </label>
+      </div>
+
+      <div class="design-client-status-texts">
+        <p class="design-control-help">Mensagens automáticas do ensaio</p>
+
+        <label class="design-control-row">
+          Preparando
+          <input id="design-client-status-preparing" type="text" maxlength="140" value="Suas fotos estão sendo preparadas">
+        </label>
+
+        <label class="design-control-row">
+          Aguardando seleção
+          <input id="design-client-status-awaiting" type="text" maxlength="140" value="Escolha suas fotos favoritas">
+        </label>
+
+        <label class="design-control-row">
+          Seleção enviada
+          <input id="design-client-status-selected" type="text" maxlength="160" value="Seleção enviada — aguardando edição">
+        </label>
+
+        <label class="design-control-row">
+          Em edição
+          <input id="design-client-status-editing" type="text" maxlength="140" value="Suas fotografias estão em edição">
+        </label>
+
+        <label class="design-control-row">
+          Fotos prontas
+          <input id="design-client-status-ready" type="text" maxlength="140" value="Suas fotos estão prontas!">
+        </label>
+      </div>
+    </div>
+  </details>
+</div>
+        </div>
+      </section>
+
+    </aside>
+</div>
+<section id="view-galleries" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Gerencie as galerias que futuramente alimentarão a área pública do site.</p><button id="new-gallery-btn" type="button" class="btn btn-accent">Nova galeria</button></div>
+<div id="gallery-form-wrap" class="panel" hidden><div class="panel-head"><div><p class="section-eyebrow">Galeria</p><h2 id="gallery-form-title">Nova galeria</h2></div><button class="icon-btn" id="close-gallery-form" type="button">×</button></div>
+<form id="gallery-form"><input type="hidden" id="gallery-id"><div class="form-grid"><div class="field"><label for="gallery-title">Título</label><input id="gallery-title" required maxlength="120" placeholder="Ex.: Retratos — Ana"></div><div class="field"><label for="gallery-slug">Slug</label><input id="gallery-slug" required maxlength="120" placeholder="retratos-ana"></div><div class="field"><label for="gallery-trail">Trilha</label><select id="gallery-trail"><option value="">Todas / sem trilha</option></select></div><div class="field"><label for="gallery-category">Categoria</label><select id="gallery-category"><option value="">Sem categoria</option></select></div><div class="field"><label for="gallery-order">Ordem</label><input id="gallery-order" type="number" min="0" max="9999" value="0"></div><div class="field field-full"><label for="gallery-description">Descrição</label><textarea id="gallery-description" rows="4" maxlength="2000"></textarea></div><div class="field field-full"><label for="gallery-cover">URL da capa</label><input id="gallery-cover" type="url" maxlength="2048" placeholder="Será preenchida ao escolher uma foto"></div><div class="field field-full gallery-cover-focus-wrap"><label>Ponto central da capa</label><div id="gallery-cover-focus-preview" class="cover-focus-preview"><span class="cover-focus-marker"></span></div><div class="cover-focus-ranges"><label>Horizontal <input id="gallery-cover-focus-x" type="range" min="0" max="100" value="50"><output id="gallery-cover-focus-x-out">50%</output></label><label>Vertical <input id="gallery-cover-focus-y" type="range" min="0" max="100" value="50"><output id="gallery-cover-focus-y-out">50%</output></label></div></div></div><div class="form-actions"><button class="btn btn-accent" type="submit">Salvar galeria</button><button class="btn" type="button" id="cancel-gallery-form">Cancelar</button><span id="gallery-form-msg" class="msg"></span></div></form></div><div id="galleries-list" class="gallery-admin-list"></div></section>
+<section id="view-categories" class="admin-view" hidden><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Organização</p><h2>Trilhas</h2></div></div><form id="trail-form" class="inline-form"><input id="trail-name" maxlength="100" placeholder="Nome da nova trilha" required><input id="trail-description" maxlength="240" placeholder="Descrição"><button class="btn btn-accent" type="submit">+ Adicionar trilha</button></form><p id="trail-msg" class="msg"></p><div id="trails-list" class="category-list"></div></div><div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Conteúdo</p><h2>Categorias</h2></div></div><form id="category-form" class="inline-form"><input type="hidden" id="category-id"><input id="category-name" maxlength="80" placeholder="Nome da categoria" required><input id="category-slug" maxlength="120" placeholder="slug" required><select id="category-trail"><option value="">Sem trilha</option></select><input id="category-order" type="number" min="0" max="9999" value="0"><button class="btn btn-accent" type="submit">Salvar</button><button class="btn" id="cancel-category" type="button" hidden>Cancelar</button></form><p id="category-msg" class="msg"></p><div id="categories-list" class="category-list"></div></div></section>
+<section id="view-settings" class="admin-view" hidden>
+  <div class="settings-hub-head">
+    <div>
+      <p class="section-eyebrow">Central</p>
+      <h2>Configurações</h2>
+      <p class="panel-copy">
+        Ajuste dados do site e a interface interna do painel em um único lugar.
+        As opções de “Interface do painel” afetam apenas o Admin V2 e nunca aparecem no site público.
+      </p>
+    </div>
+  </div>
+
+  <div class="settings-hub-grid">
+    <details class="panel settings-section" open>
+      <summary class="settings-section-summary">
+        <div>
+          <p class="section-eyebrow">Site público</p>
+          <h3>Configurações gerais</h3>
+        </div>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+
+      <div class="settings-section-body">
+        <form id="settings-form">
+          <div class="form-grid">
+            <div class="field">
+              <label for="settings-site-name">Nome do site</label>
+              <input id="settings-site-name" maxlength="120">
+            </div>
+
+            <div class="field">
+              <label for="settings-email">E-mail</label>
+              <input id="settings-email" type="email" maxlength="254">
+            </div>
+
+            <div class="field">
+              <label for="settings-whatsapp">WhatsApp</label>
+              <input id="settings-whatsapp" inputmode="tel" maxlength="20">
+            </div>
+
+            <div class="field">
+              <label for="settings-instagram">Instagram</label>
+              <input id="settings-instagram" maxlength="2048">
+            </div>
+
+            <div class="field">
+              <label for="settings-location">Localização</label>
+              <input id="settings-location" maxlength="160">
+            </div>
+
+            <div class="field">
+              <label for="settings-specialty">Especialidade</label>
+              <input id="settings-specialty" maxlength="160">
+            </div>
+
+            <div class="field">
+              <label for="settings-availability">Disponibilidade</label>
+              <input id="settings-availability" maxlength="160">
+            </div>
+
+            <div class="field field-full">
+              <label for="settings-footer">Texto do rodapé</label>
+              <textarea id="settings-footer" rows="3" maxlength="1000"></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-accent" type="submit">Salvar configurações</button>
+            <span id="settings-msg" class="msg"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+
+    <details class="panel settings-section admin-interface-settings">
+      <summary class="settings-section-summary">
+        <div>
+          <p class="section-eyebrow">Somente Admin</p>
+          <h3>Interface do painel</h3>
+        </div>
+        <span aria-hidden="true">⌄</span>
+      </summary>
+
+      <div class="settings-section-body">
+        <p class="panel-copy admin-interface-intro">
+          Personalize nomes, títulos e textos internos do CMS. Essas alterações são privadas
+          e servem apenas para organizar a sua experiência dentro do painel.
+        </p>
+
+        <form id="admin-interface-form">
+          <div class="admin-interface-groups">
+            <fieldset class="admin-settings-group">
+              <legend>Identidade do painel</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-brand">Nome no canto esquerdo</label>
+                  <input id="admin-ui-brand" maxlength="80" value="Rangel Santos">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-version">Subtítulo</label>
+                  <input id="admin-ui-version" maxlength="40" value="CMS V2">
+                </div>
+              </div>
+            </fieldset>
+
+
+            <fieldset class="admin-settings-group">
+              <legend>Ordem do Conteúdo no Designer</legend>
+
+              <p class="panel-copy">
+                Arraste os itens abaixo para definir a ordem em que aparecem dentro de
+                Design → Conteúdo. A alteração afeta somente o painel administrativo.
+              </p>
+
+              <div class="admin-content-order-list" id="admin-content-order-list">
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="inicio">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Início">⋮⋮</button>
+                  <span>Início</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="sobre">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Sobre">⋮⋮</button>
+                  <span>Sobre</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="contato">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Contato">⋮⋮</button>
+                  <span>Contato</span>
+                </div>
+
+                <div class="admin-content-order-row" draggable="true" data-admin-content-order="client_area">
+                  <button class="admin-content-order-handle" type="button" aria-label="Mover Área do Cliente">⋮⋮</button>
+                  <span>Área do Cliente</span>
+                </div>
+              </div>
+
+              <p class="design-control-help">
+                A ordem é salva junto com as configurações internas do painel.
+              </p>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Navegação lateral</legend>
+
+              <div class="form-grid admin-ui-nav-grid">
+                <div class="field"><label for="admin-ui-nav-dashboard">Dashboard</label><input id="admin-ui-nav-dashboard" maxlength="40" value="Dashboard"></div>
+                <div class="field"><label for="admin-ui-nav-design">Design</label><input id="admin-ui-nav-design" maxlength="40" value="Design"></div>
+                <div class="field"><label for="admin-ui-nav-galleries">Galerias</label><input id="admin-ui-nav-galleries" maxlength="40" value="Galerias"></div>
+                <div class="field"><label for="admin-ui-nav-categories">Categorias</label><input id="admin-ui-nav-categories" maxlength="40" value="Categorias"></div>
+                <div class="field"><label for="admin-ui-nav-sessions">Ensaios</label><input id="admin-ui-nav-sessions" maxlength="40" value="Ensaios"></div>
+                <div class="field"><label for="admin-ui-nav-messages">Mensagens</label><input id="admin-ui-nav-messages" maxlength="40" value="Mensagens"></div>
+                <div class="field"><label for="admin-ui-nav-settings">Configurações</label><input id="admin-ui-nav-settings" maxlength="40" value="Configurações"></div>
+                <div class="field"><label for="admin-ui-nav-view-site">Ver site</label><input id="admin-ui-nav-view-site" maxlength="40" value="Ver site"></div>
+                <div class="field"><label for="admin-ui-nav-logout">Sair</label><input id="admin-ui-nav-logout" maxlength="40" value="Sair"></div>
+              </div>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Dashboard</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-dashboard-eyebrow">Identificação superior</label>
+                  <input id="admin-ui-dashboard-eyebrow" maxlength="60" value="Painel">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-dashboard-title">Título</label>
+                  <input id="admin-ui-dashboard-title" maxlength="80" value="Dashboard">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-gallery-card-title">Título do atalho</label>
+                  <input id="admin-ui-gallery-card-title" maxlength="80" value="Galeria">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-gallery-card-button">Botão do atalho</label>
+                  <input id="admin-ui-gallery-card-button" maxlength="60" value="Nova galeria">
+                </div>
+
+                <div class="field field-full">
+                  <label for="admin-ui-gallery-card-copy">Texto do atalho</label>
+                  <textarea id="admin-ui-gallery-card-copy" rows="3" maxlength="300">Crie uma galeria, envie as fotografias, escolha a capa e publique quando estiver pronta.</textarea>
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset class="admin-settings-group">
+              <legend>Estado do painel</legend>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label for="admin-ui-safe-title">Título</label>
+                  <input id="admin-ui-safe-title" maxlength="80" value="Ambiente seguro">
+                </div>
+
+                <div class="field">
+                  <label for="admin-ui-safe-status">Selo</label>
+                  <input id="admin-ui-safe-status" maxlength="40" value="PROTEGIDO">
+                </div>
+
+                <div class="field field-full">
+                  <label for="admin-ui-safe-copy">Descrição</label>
+                  <textarea id="admin-ui-safe-copy" rows="3" maxlength="300">Este painel usa o seu usuário autenticado e as políticas RLS do novo CMS.</textarea>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-accent" type="submit">Salvar interface do painel</button>
+            <button class="btn" id="admin-ui-reset" type="button">Restaurar textos padrão</button>
+            <span id="admin-interface-msg" class="msg"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+  </div>
+</section>
+<section id="view-sessions" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Gerencie as sessões de clientes. As provas aparecem na Área do Cliente para a cliente escolher; as fotos finais só aparecem após a entrega.</p><button id="new-session-btn" type="button" class="btn btn-accent">Novo ensaio</button></div>
+<div id="session-form-wrap" class="panel" hidden>
+<div class="panel-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="session-form-title">Novo ensaio</h2></div><button class="icon-btn" id="close-session-form" type="button">×</button></div>
+<form id="session-form">
+<div class="form-grid">
+<div class="field"><label for="session-titulo">Título (ex: Sessão Autoestima — Maria)</label><input id="session-titulo" required maxlength="160"></div>
+<div class="field"><label for="session-cliente">Nome do cliente</label><input id="session-cliente" maxlength="160"></div>
+<div class="field"><label for="session-telefone">WhatsApp do cliente (com código do país — ex: 351912345678)</label><input id="session-telefone" inputmode="tel" maxlength="20"></div>
+<div class="field"><label for="session-email">E-mail da cliente</label><input id="session-email" type="email" required maxlength="254" placeholder="cliente@email.com"></div>
+<div class="field"><label for="session-categoria">Categoria</label><select id="session-categoria"><option value="autoestima">Autoestima</option><option value="estudio">Estúdio</option><option value="externo">Externo</option></select></div>
+<div class="field"><label for="session-login">Login do cliente</label><input id="session-login" required maxlength="80"><button type="button" class="small-btn" id="btn-gerar-login">Gerar login aleatório</button></div>
+<div class="field"><label for="session-codigo">Senha do cliente</label><input id="session-codigo" required maxlength="64"><button type="button" class="small-btn" id="btn-gerar-codigo">Gerar senha aleatória</button></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Criar ensaio</button><button class="btn" type="button" id="cancel-session-form">Cancelar</button><span id="session-form-msg" class="msg"></span></div>
+</form>
+</div>
+<div id="sessions-list"></div>
+</section>
+<section id="view-content" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Edite os textos, títulos e imagens de cada página. As mudanças aparecem no site imediatamente, sem precisar mexer em código.</p></div>
+
+
+<div id="content-panel-inicio" class="content-panel">
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Herói</h2></div></div>
+<form id="form-hero">
+<div class="form-grid">
+<div class="field"><label for="hero-eyebrow">Texto acima do título</label><input id="hero-eyebrow" maxlength="120" data-cms-field="inicio.hero.eyebrow"></div>
+<div class="field">
+  <label for="hero-title">Título</label>
+  <textarea id="hero-title" rows="3" maxlength="180" spellcheck="true" data-cms-field="inicio.hero.title"></textarea>
+</div>
+<div class="field field-full"><label for="hero-description">Descrição</label><textarea id="hero-description" rows="3" maxlength="1000" data-cms-field="inicio.hero.description"></textarea></div>
+<div class="field field-full hero-mode-field">
+<label>Modo da imagem principal</label>
+<div class="hero-mode-switch" role="radiogroup" aria-label="Modo do herói">
+<label><input type="radio" name="hero-mode" value="static" id="hero-mode-static"> Foto estática</label>
+<label><input type="radio" name="hero-mode" value="slideshow" id="hero-mode-slideshow"> Slideshow</label>
+</div>
+<p class="field-help">Você pode deixar o slideshow configurado e alternar para uma foto estática quando quiser. A foto estática também funciona como proteção/fallback do slideshow.</p>
+</div>
+
+<div id="hero-static-editor" class="field field-full hero-media-editor">
+<div class="panel-head compact">
+  <div>
+    <p class="section-eyebrow">Imagem de segurança</p>
+    <h3>Foto estática / fallback</h3>
+  </div>
+</div>
+<div class="form-grid">
+<div class="field field-full hero-upload-field"><label>Imagem principal</label><label class="hero-upload-drop">Clique para fazer upload da foto principal<input id="hero-static-upload" type="file" accept="image/*" hidden></label><input id="hero-desktop-image" type="hidden" maxlength="2048"></div>
+<div class="field field-full hero-upload-field"><label>Imagem alternativa para celular (opcional)</label><label class="hero-upload-drop">Clique para fazer upload da foto para celular<input id="hero-static-mobile-upload" type="file" accept="image/*" hidden></label><input id="hero-mobile-image" type="hidden" maxlength="2048"></div>
+<div class="field field-full"><label for="hero-image-alt">Texto alternativo da imagem</label><input id="hero-image-alt" maxlength="240"></div>
+</div>
+<div class="hero-static-preview-row">
+  <div class="hero-static-desktop-column">
+    <p class="section-eyebrow hero-preview-label">Prévia principal</p>
+    <div id="hero-static-preview" class="focal-preview" title="Clique no ponto que deve permanecer em destaque">
+      <span class="focal-marker"></span>
+    </div>
+  </div>
+
+  <div class="focal-controls hero-static-focal-column">
+    <div class="field">
+      <label for="hero-static-focus-x">Ponto focal horizontal</label>
+      <input id="hero-static-focus-x" type="range" min="0" max="100" value="50">
+      <output id="hero-static-focus-x-out">50%</output>
+    </div>
+
+    <div class="field">
+      <label for="hero-static-focus-y">Ponto focal vertical</label>
+      <input id="hero-static-focus-y" type="range" min="0" max="100" value="50">
+      <output id="hero-static-focus-y-out">50%</output>
+    </div>
+
+    <p class="field-help">
+      Clique diretamente na foto principal para marcar o ponto que deve permanecer visível quando a imagem for recortada.
+    </p>
+  </div>
+
+  <div class="hero-static-mobile-column">
+    <p class="section-eyebrow hero-preview-label">Prévia celular</p>
+    <div id="hero-static-mobile-preview" class="hero-static-mobile-preview empty" title="Clique no ponto que deve permanecer em destaque no celular" aria-label="Prévia da foto estática no celular"><span class="focal-marker"></span></div>
+    <div class="focal-controls hero-static-mobile-focal-controls">
+      <div class="field"><label for="hero-static-mobile-focus-x">Ponto focal horizontal no celular</label><input id="hero-static-mobile-focus-x" type="range" min="0" max="100" value="50"><output id="hero-static-mobile-focus-x-out">50%</output></div>
+      <div class="field"><label for="hero-static-mobile-focus-y">Ponto focal vertical no celular</label><input id="hero-static-mobile-focus-y" type="range" min="0" max="100" value="50"><output id="hero-static-mobile-focus-y-out">50%</output></div>
+    </div>
+    <p class="field-help hero-mobile-preview-help">
+      Clique diretamente na prévia celular para escolher o enquadramento. Se nenhuma foto de celular for escolhida, o site usa automaticamente a foto principal.
+    </p>
+  </div>
+</div>
+</div>
+
+<div id="hero-slideshow-editor" class="field field-full hero-media-editor">
+  <div class="panel-head compact hero-slideshow-simple-head">
+    <div>
+      <p class="section-eyebrow">Slideshow</p>
+      <h3>Slideshow</h3>
+    </div>
+  </div>
+
+  <button
+    id="hero-slideshow-config-card"
+    class="hero-slideshow-config-card"
+    type="button"
+    aria-label="Abrir configurações do slideshow"
+  >
+    <div id="hero-slideshow-admin-preview" class="hero-slideshow-admin-preview">
+      <div class="hero-slideshow-admin-empty">Nenhuma imagem no slideshow.</div>
+    </div>
+
+    <div class="hero-slideshow-overview-bar">
+      <div>
+        <strong id="hero-slideshow-summary">0 imagens</strong>
+        <span id="hero-slideshow-config-summary">Clique na prévia para configurar o slideshow.</span>
+      </div>
+      <span class="hero-slideshow-config-indicator">Configurar ↗</span>
+    </div>
+  </button>
+
+  <div class="hero-slideshow-card-actions">
+    <button class="btn small-btn" id="btn-manage-hero-slides" type="button">Gerenciar imagens</button>
+  </div>
+</div>
+
+<div id="hero-slideshow-settings-modal" class="modal hero-slideshow-settings-modal" hidden>
+  <div class="modal-backdrop" data-close-hero-settings></div>
+  <div class="modal-dialog hero-slideshow-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="hero-slideshow-settings-title">
+    <div class="modal-head">
+      <div>
+        <p class="section-eyebrow">Slideshow</p>
+        <h2 id="hero-slideshow-settings-title">Configurações do slideshow</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-hero-settings aria-label="Fechar">×</button>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Exibição</p>
+        <p class="panel-copy">Controle o formato e o enquadramento do banner.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-width">Largura</label>
+          <select id="hero-slide-width">
+            <option value="extended">Estendida</option>
+            <option value="standard">Padrão</option>
+          </select>
+          <p class="field-help">Estendida ocupa toda a largura; Padrão acompanha a largura do conteúdo.</p>
+        </div>
+        <div class="field">
+          <label for="hero-slide-fit">Encaixe</label>
+          <select id="hero-slide-fit">
+            <option value="cover">Preencher</option>
+            <option value="contain">Não cortar</option>
+          </select>
+          <p class="field-help">Preencher pode recortar; Não cortar preserva toda a fotografia.</p>
+        </div>
+        <div class="field">
+          <label for="hero-slide-ratio">Proporção</label>
+          <select id="hero-slide-ratio">
+            <option value="fullscreen">Tela cheia</option>
+            <option value="16-9">16:9 (widescreen)</option>
+            <option value="2.4-1">2,4:1 (cinema)</option>
+            <option value="4-1">4:1 (faixa)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hero-slide-behind-menu">Atrás do menu</label>
+          <select id="hero-slide-behind-menu">
+            <option value="yes">Sim</option>
+            <option value="no">Não</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Movimento</p>
+        <p class="panel-copy">Defina como uma fotografia passa para a próxima.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-animation">Animação</label>
+          <select id="hero-slide-animation">
+            <option value="fade">Esmaecer</option>
+            <option value="slide-horizontal">Deslizar horizontal</option>
+            <option value="slide-vertical">Deslizar do topo</option>
+            <option value="kenburns">Movimentação suave</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="hero-slide-interval">Tempo de cada foto</label>
+          <div class="hero-setting-number">
+            <input id="hero-slide-interval" type="number" min="2" max="30" step="0.5" value="5">
+            <span>segundos</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="hero-slide-transition">Duração da transição</label>
+          <div class="hero-setting-number">
+            <input id="hero-slide-transition" type="number" min="0.3" max="5" step="0.1" value="1.2">
+            <span>segundos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-settings-group">
+      <div class="hero-settings-group-head">
+        <p class="section-eyebrow">Comportamento</p>
+        <p class="panel-copy">Controle a ordem em que as fotografias aparecem.</p>
+      </div>
+      <div class="hero-settings-grid">
+        <div class="field">
+          <label for="hero-slide-order">Ordem</label>
+          <select id="hero-slide-order">
+            <option value="sequential">Sequencial</option>
+            <option value="random">Randômica</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions hero-settings-actions">
+      <button class="btn btn-accent" id="btn-save-hero-settings" type="button">Aplicar configurações</button>
+      <button class="btn" type="button" data-close-hero-settings>Cancelar</button>
+      <span class="msg" id="hero-settings-msg"></span>
+    </div>
+  </div>
+</div>
+
+<div id="hero-slides-manager-modal" class="modal hero-slides-manager-modal" hidden>
+  <div class="modal-backdrop" data-close-hero-slides></div>
+  <div class="modal-dialog hero-slides-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="hero-slides-manager-title">
+    <div class="modal-head">
+      <div>
+        <p class="section-eyebrow">Slideshow</p>
+        <h2 id="hero-slides-manager-title">Gerenciar imagens</h2>
+      </div>
+      <button class="icon-btn" type="button" data-close-hero-slides aria-label="Fechar">×</button>
+    </div>
+
+    <div class="hero-slides-manager-toolbar">
+      <p class="panel-copy">Adicione, ordene, publique, oculte ou remova as imagens. Clique na miniatura para ajustar o ponto focal.</p>
+      <label class="btn small-btn hero-upload-label">
+        Adicionar nova imagem
+        <input id="hero-slides-upload" type="file" accept="image/*" multiple hidden>
+      </label>
+    </div>
+
+    <div id="hero-slides-list" class="hero-slides-admin hero-slides-admin-manager"></div>
+  </div>
+</div>
+
+<div class="field"><label for="hero-primary-text">Botão principal — texto</label><input id="hero-primary-text" maxlength="80"></div>
+<div class="field"><label for="hero-primary-url">Botão principal — link</label><input id="hero-primary-url" maxlength="2048"></div>
+<div class="field"><label for="hero-secondary-text">Botão secundário — texto</label><input id="hero-secondary-text" maxlength="80"></div>
+<div class="field"><label for="hero-secondary-url">Botão secundário — link</label><input id="hero-secondary-url" maxlength="2048"></div>
+<div class="field field-full"><label for="hero-meta">Informações do rodapé do herói (uma por linha, formato: Rótulo | Valor)</label><textarea id="hero-meta" rows="3" maxlength="1000" placeholder="Baseado em | Vale de Cambra, Portugal"></textarea></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar herói</button><span id="hero-msg" class="msg"></span></div>
+</form>
+</div>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página inicial</p><h2>Trabalhos recentes</h2></div></div>
+<form id="form-recent">
+<div class="form-grid">
+<div class="field"><label for="recent-eyebrow">Texto acima do título</label><input id="recent-eyebrow" maxlength="120"></div>
+<div class="field"><label for="recent-title">Título da seção</label><input id="recent-title" maxlength="180"></div>
+<div class="field"><label for="recent-limit">Quantidade de fotos</label><input id="recent-limit" type="number" min="1" max="24"></div>
+<div class="field"><label for="recent-btn-text">Botão — texto</label><input id="recent-btn-text" maxlength="80"></div>
+<div class="field"><label for="recent-btn-url">Botão — link</label><input id="recent-btn-url" maxlength="2048"></div>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar seção</button><span id="recent-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+
+<div id="content-panel-sobre" class="content-panel" hidden>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Sobre</p><h2>Conteúdo</h2></div></div>
+<form id="form-sobre">
+<div class="form-grid">
+<div class="field"><label for="sobre-eyebrow">Texto acima do título</label><input id="sobre-eyebrow" maxlength="120"></div>
+<div class="field field-full"><label for="sobre-paragraphs">Parágrafos (um por linha)</label><textarea id="sobre-paragraphs" rows="6" maxlength="5000"></textarea></div>
+<div class="field"><label for="sobre-portrait-url">Retrato — URL da imagem</label><input id="sobre-portrait-url" maxlength="2048"></div>
+<div class="field"><label for="sobre-portrait-alt">Retrato — texto alternativo</label><input id="sobre-portrait-alt" maxlength="240"></div>
+<div class="field"><label for="sobre-cta-text">Botão — texto</label><input id="sobre-cta-text" maxlength="80"></div>
+<div class="field"><label for="sobre-cta-url">Botão — link</label><input id="sobre-cta-url" maxlength="2048"></div>
+</div>
+<div class="panel" style="border:none;padding:0;margin:0;">
+<p class="panel-copy">Itens da lista de detalhes (Ex.: Prazo de entrega). "Baseado em", "Especialidade" e "Atende" são preenchidos pelas Configurações do site.</p>
+<div id="sobre-specs-editor"></div>
+<button type="button" class="small-btn" id="btn-add-spec">+ Adicionar item</button>
+</div>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar página</button><span id="sobre-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+
+<div id="content-panel-contato" class="content-panel" hidden>
+<div class="panel"><div class="panel-head"><div><p class="section-eyebrow">Página Contato</p><h2>Conteúdo</h2></div></div>
+<form id="form-contato">
+<div class="form-grid">
+<div class="field"><label for="contato-eyebrow">Texto acima do título</label><input id="contato-eyebrow" maxlength="120"></div>
+<div class="field"><label for="contato-title">Título</label><input id="contato-title" maxlength="180"></div>
+<div class="field"><label for="contato-submit-label">Botão do formulário</label><input id="contato-submit-label" maxlength="80"></div>
+<div class="field field-full"><label for="contato-tipos">Tipos de sessão (um por linha)</label><textarea id="contato-tipos" rows="5" maxlength="2000"></textarea></div>
+<div class="field field-full"><label for="contato-atendimento">Texto de atendimento</label><textarea id="contato-atendimento" rows="2" maxlength="1000"></textarea></div>
+</div>
+<p class="panel-copy">E-mail, WhatsApp e Instagram desta página vêm das Configurações do site.</p>
+<div class="form-actions"><button class="btn btn-accent" type="submit">Salvar página</button><span id="contato-msg" class="msg"></span></div>
+</form>
+</div>
+</div>
+</section>
+<section id="view-messages" class="admin-view" hidden>
+<div class="toolbar"><p class="panel-copy">Mensagens recebidas pelo formulário da página de contato.</p></div>
+<div id="messages-list"></div>
+</section>
+</main></div>
+<div id="gallery-editor-modal" class="modal" hidden><div class="modal-backdrop" data-close-modal></div><div class="modal-dialog"><div class="modal-head"><div><p class="section-eyebrow">Fotografias</p><h2 id="modal-gallery-title">Galeria</h2></div><button class="icon-btn" data-close-modal type="button">×</button></div><div class="upload-drop"><input id="photo-upload" type="file" multiple accept="image/jpeg,image/png,image/webp"><label for="photo-upload"><strong>Adicionar fotografias</strong><span>JPG, PNG ou WebP</span></label></div><p id="upload-msg" class="msg"></p><div class="photo-toolbar"><span id="photo-count">0 fotografias</span><span class="footer-mono">Clique em uma foto para defini-la como capa</span></div><div id="photo-grid" class="admin-photo-grid"></div></div></div>
+<div id="session-editor-modal" class="modal" hidden>
+<div class="modal-backdrop" data-close-session-modal></div>
+<div class="modal-dialog">
+<div class="modal-head"><div><p class="section-eyebrow">Ensaio</p><h2 id="modal-session-title">Ensaio</h2></div><button class="icon-btn" data-close-session-modal type="button">×</button></div>
+
+<div class="session-progress-panel">
+  <div class="session-progress-copy">
+    <p class="section-eyebrow">Fluxo do ensaio</p>
+    <p class="panel-copy">Acompanhe a cliente da seleção até a entrega final.</p>
+  </div>
+  <div class="session-progress" id="session-progress" aria-label="Progresso do ensaio"></div>
+</div>
+
+<div class="panel session-client-panel">
+  <div class="session-client-panel-copy">
+    <div>
+      <p class="section-eyebrow">Cliente e notificações</p>
+      <p class="panel-copy">O e-mail abaixo será usado nas confirmações automáticas.</p>
+    </div>
+    <div class="session-email-state" id="session-email-state"></div>
+  </div>
+  <div class="session-client-email-row">
+    <div class="field">
+      <label for="session-client-email">E-mail da cliente</label>
+      <input id="session-client-email" type="email" maxlength="254" placeholder="cliente@email.com">
+    </div>
+    <button class="small-btn" id="btn-save-session-email" type="button">Salvar e-mail</button>
+  </div>
+</div>
+
+<div class="panel session-access-panel">
+  <div class="session-access-head">
+    <div>
+      <p class="section-eyebrow">Acesso da cliente</p>
+      <p class="panel-copy">Dados privados usados para entrar na Área do Cliente.</p>
+    </div>
+    <button class="small-btn" id="btn-copy-session" type="button">Copiar tudo</button>
+  </div>
+  <div class="session-credentials">
+    <div class="session-credential">
+      <p class="footer-mono">Link da Área do Cliente</p>
+      <div class="link-box" id="session-link"></div>
+    </div>
+    <div class="session-credential">
+      <p class="footer-mono">Login</p>
+      <div class="link-box" id="session-login-box"></div>
+    </div>
+    <div class="session-credential">
+      <p class="footer-mono">Senha</p>
+      <div class="link-box" id="session-senha"></div>
+    </div>
+  </div>
+</div>
+
+<div class="session-workflow session-workflow-accordion">
+  <section class="session-stage-card session-stage-accordion" data-session-stage="provas">
+    <button
+      class="session-stage-head session-stage-toggle"
+      id="toggle-session-provas"
+      type="button"
+      aria-expanded="false"
+      aria-controls="session-provas-body"
+    >
+      <div>
+        <p class="section-eyebrow">Seleção</p>
+        <h3>Provas para a cliente</h3>
+      </div>
+      <div class="session-stage-head-meta">
+        <span class="session-stage-count"><span id="prova-count">0</span> enviadas</span>
+        <span class="session-stage-chevron" aria-hidden="true">⌄</span>
+      </div>
+    </button>
+
+    <div class="session-stage-body" id="session-provas-body" hidden>
+      <div class="upload-drop">
+        <input id="upload-prova" type="file" multiple accept="image/*">
+        <label for="upload-prova">
+          <strong>Adicionar provas</strong>
+          <span>Qualquer nome de arquivo será exibido automaticamente como 0001, 0002, 0003...</span>
+        </label>
+      </div>
+      <div id="prova-grid" class="session-grid"></div>
+      <div id="selecionadas-box"></div>
+      <div class="session-actions" id="selecao-actions"></div>
+    </div>
+  </section>
+
+  <section class="session-stage-card session-stage-accordion is-final" data-session-stage="finais">
+    <button
+      class="session-stage-head session-stage-toggle"
+      id="toggle-session-finais"
+      type="button"
+      aria-expanded="false"
+      aria-controls="session-finais-body"
+    >
+      <div>
+        <p class="section-eyebrow">Entrega</p>
+        <h3>Fotos finais tratadas</h3>
+      </div>
+      <div class="session-stage-head-meta">
+        <span class="session-stage-count"><span id="final-count">0</span> enviadas</span>
+        <span class="session-stage-chevron" aria-hidden="true">⌄</span>
+      </div>
+    </button>
+
+    <div class="session-stage-body" id="session-finais-body" hidden>
+      <div class="upload-drop">
+        <input id="upload-final" type="file" multiple accept="image/*">
+        <label for="upload-final">
+          <strong>Adicionar fotos finais</strong>
+          <span>A cliente só vê depois de “Publicar fotos finais”</span>
+        </label>
+      </div>
+      <div id="final-grid" class="session-grid"></div>
+      <div class="session-actions">
+        <button class="btn btn-accent" id="btn-entregar" type="button">Publicar fotos finais</button>
+        <a id="link-whats-entrega" target="_blank" rel="noopener" class="small-btn" style="display:none;">Notificar por WhatsApp</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="session-footer-actions">
+  <p class="msg" id="session-msg"></p>
+  <button class="btn" id="btn-excluir-session" type="button" style="border-color:#8c877e;">Excluir permanentemente</button>
+</div>
+</div>
+</div>
+<script type="module" src="js/admin-v2.js"></script>
+</body></html>
