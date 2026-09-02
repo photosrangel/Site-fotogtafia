@@ -5,6 +5,7 @@ import { HydrationMarker } from '@/components/hydration-marker';
 import { PublishedVisualDesign } from '@/components/published-visual-design';
 import { FloatingWhatsApp } from '@/components/floating-whatsapp';
 import { getPublishedDesignConfig } from '@/lib/published-design';
+import { DesignPreviewReceiver } from '@/components/design-preview-receiver';
 
 export const metadata: Metadata = {
   title: { default: 'Rangel Santos — Fotografia', template: '%s — Rangel Santos' },
@@ -25,7 +26,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const visualOverrides = publishedDesign.inline_styles || {};
   return (
     <html lang="pt" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
+      <body suppressHydrationWarning><HydrationMarker /><DesignPreviewReceiver/><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
     </html>
   );
 }

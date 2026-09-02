@@ -1,2 +1,2 @@
-import {redirect} from 'next/navigation';
-export default function Page(){redirect('/admin')}
+import { AdminCategoriesNative } from '@/components/admin-categories-native';
+export default function Page() { return <AdminCategoriesNative />; }

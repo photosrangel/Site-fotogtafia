@@ -1,1 +1,2 @@
-import {redirect} from 'next/navigation';export default function Page(){redirect('/admin')}
+import { AdminMessages } from '@/components/admin-messages';
+export default function Page() { return <AdminMessages />; }

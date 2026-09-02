@@ -6,9 +6,8 @@ export function publicMediaUrl(value: unknown, fallback: string): string {
 
   const normalized = raw.replace(/^\/+/, '');
 
-  if (/^legacy\/images\//i.test(normalized)) {
-    return `/${normalized.replace(/^legacy\//i, '')}`;
-  }
+  const imageFolder = normalized.toLowerCase().indexOf('images/');
+  if (imageFolder >= 0) return `/${normalized.slice(imageFolder)}`;
 
   return `/${normalized}`;
 }

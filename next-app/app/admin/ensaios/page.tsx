@@ -1,1 +1,2 @@
-import {redirect} from 'next/navigation';export default function Page(){redirect('/admin')}
+import { AdminSessions } from '@/components/admin-sessions';
+export default function Page() { return <AdminSessions />; }
