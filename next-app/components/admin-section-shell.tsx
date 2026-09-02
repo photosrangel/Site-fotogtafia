@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { adminUiDefaults, normalizeAdminUi } from '@/lib/admin-ui';
 
-const sectionData={dashboard:['nav_dashboard','/admin-react'],design:['nav_design','/admin-react/design'],galleries:['nav_galleries','/admin-react/galerias'],categories:['nav_categories','/admin-react/categorias'],sessions:['nav_sessions','/admin-react/ensaios'],messages:['nav_messages','/admin-react/mensagens'],settings:['nav_settings','/admin-react/configuracoes']} as const;
+const sectionData={dashboard:['nav_dashboard','/admin'],design:['nav_design','/admin/design'],galleries:['nav_galleries','/admin/galerias'],categories:['nav_categories','/admin/categorias'],sessions:['nav_sessions','/admin/ensaios'],messages:['nav_messages','/admin/mensagens'],settings:['nav_settings','/admin/configuracoes']} as const;
 export function AdminSectionShell({active,email,eyebrow,title,menuOpen,setMenuOpen,onLogout,children}:{active:string;email:string;eyebrow:string;title:string;menuOpen:boolean;setMenuOpen:(value:boolean)=>void;onLogout:()=>void;children:ReactNode}){
  const [ui,setUi]=useState(adminUiDefaults);
  useEffect(()=>{createSupabaseBrowserClient().from('site_content').select('content').eq('slug','admin').eq('section_key','interface').maybeSingle().then(({data})=>{if(data?.content)setUi(normalizeAdminUi(data.content))})},[]);
