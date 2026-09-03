@@ -1,4 +1,4 @@
-import '../admin-react/admin.css';
+import './admin.css';
 
 export const dynamic = 'force-dynamic';
 
