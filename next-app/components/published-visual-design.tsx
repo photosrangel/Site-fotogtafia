@@ -94,9 +94,58 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
 
 }
 
-export function PublishedVisualDesign({ overrides }: { overrides: Record<string, VisualOverride> }) {
+export function applyPublishedDesign(doc: Document, config: Record<string, any>) {
+  const root = doc.documentElement;
+  const px = (key: string, fallback: number) => `${Number(config[key] ?? fallback)}px`;
+  root.style.setProperty('--content-max', px('content_width', 1200));
+  root.style.setProperty('--section-space', px('section_space', 120));
+  root.style.setProperty('--gallery-gap', px('gallery_gap', 2));
+  root.style.setProperty('--image-radius', px('image_radius', 0));
+  root.style.setProperty('--design-type-scale', String((Number(config.type_scale ?? 100)) / 100));
+  root.style.setProperty('--design-motion-speed', config.motion_speed === 'fast' ? '.18s' : config.motion_speed === 'slow' ? '.7s' : '.35s');
+  root.dataset.designNavStyle = config.nav_style || 'auto';
+  root.dataset.designNavPosition = config.nav_position || 'fixed';
+  root.dataset.designNavDensity = config.nav_density || 'normal';
+  root.dataset.designNavCta = config.nav_cta || 'outline';
+  root.dataset.designPageAnimation = config.page_animation || 'none';
+  root.dataset.designSectionAnimation = config.section_animation || 'none';
+  root.dataset.designImageHover = config.image_hover || 'site';
+  root.dataset.designClientLayout = config.client_layout || 'editorial-split';
+  root.dataset.designClientGallery = config.client_gallery_style || 'editorial';
+  root.dataset.designClientPhotoSize = config.client_photo_size || 'large';
+  root.dataset.designClientTypography = config.client_typography || 'classic';
+  root.dataset.designClientBorder = config.client_border || 'fine';
+  root.style.setProperty('--design-logo-scale', String((Number(config.logo_scale ?? 100)) / 100));
+  root.style.setProperty('--design-nav-blur', px('nav_blur', 0));
+  root.style.setProperty('--design-hero-overlay', String(Math.max(0, Math.min(100, Number(config.hero_overlay ?? 40))) / 100));
+
+  const values: Record<string, unknown> = {
+    'client-visual-text': config.client_text_visual,
+    'client-access-eyebrow': config.client_text_eyebrow,
+    'client-access-title-main': config.client_text_title,
+    'client-access-title-emphasis': config.client_text_title_emphasis,
+    'client-access-description': config.client_text_description,
+    'client-login-label': config.client_text_login,
+    'client-password-label': config.client_text_password,
+    'client-access-submit': config.client_text_button,
+    'client-access-secure-text': config.client_text_secure,
+    'client-gallery-eyebrow': config.client_text_gallery_eyebrow,
+  };
+  Object.entries(values).forEach(([id, value]) => {
+    const element = doc.getElementById(id);
+    if (element && typeof value === 'string') element.textContent = value;
+  });
+  const visual = doc.querySelector<HTMLElement>('.client-access-visual');
+  if (visual && config.client_access_image) {
+    visual.style.backgroundImage = `url("${String(config.client_access_image).replace(/["\\]/g, '')}")`;
+    visual.style.backgroundPosition = `${Number(config.client_focus_x ?? 50)}% ${Number(config.client_focus_y ?? 50)}%`;
+  }
+}
+
+export function PublishedVisualDesign({ config }: { config: Record<string, any> }) {
+  const overrides = config.inline_styles || {};
   useEffect(() => {
-    const apply = () => applyToDocument(document, overrides);
+    const apply = () => { applyPublishedDesign(document, config); applyToDocument(document, overrides); };
     apply();
     const observer = new MutationObserver(apply);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['id'] });
@@ -118,7 +167,7 @@ export function PublishedVisualDesign({ overrides }: { overrides: Record<string,
       media.removeEventListener('change', apply);
       window.clearTimeout(firstLayoutRetry);
     };
-  }, [overrides]);
+  }, [config, overrides]);
 
   return <style data-published-visual-initial dangerouslySetInnerHTML={{ __html: initialVisualCss(overrides) }} />;
 }
