@@ -199,6 +199,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   max-width: 14ch;
 }
 .hero-title em { font-style: italic; color: var(--accent); font-weight: 300; }
+html[data-design-preview-active="1"] .hero-title em{font-style:italic!important;color:#f4f1e9!important}
 .hero-sub {
   font-size: 1.05rem;
   color: var(--text-muted);

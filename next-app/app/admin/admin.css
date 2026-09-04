@@ -7836,9 +7836,24 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .admin-native-preview-stage .admin-native-preview{position:absolute;z-index:1;left:0;top:42px;width:var(--preview-width,1920px)!important;max-width:none!important;height:var(--preview-height,1080px)!important;transform:scale(var(--preview-scale,.7));transform-origin:top left;border:0}
 .admin-native-preview-stage.is-mobile{width:100%!important;max-width:none!important;margin:0!important}
 .admin-native-preview-stage.is-mobile .admin-native-preview{width:var(--preview-width,390px)!important;max-width:none!important;height:var(--preview-height,844px)!important}
+.admin-native-preview-stage.is-mobile .admin-native-preview{left:50%;transform:translateX(-50%) scale(var(--preview-scale,.7));transform-origin:top center}
 .admin-design-grid>div:first-child{padding:0!important;overflow:hidden}
 .design-preview-toolbar{min-height:78px!important;padding:0 20px!important;border:0!important;border-bottom:1px solid var(--admin-line-soft)!important;background:rgba(255,255,255,.018)!important}
 .design-preview-toolbar>span{display:grid;gap:7px!important}
 .design-preview-toolbar>span>strong{font-family:var(--font-display)!important;font-size:1.05rem!important;font-weight:600!important;color:var(--text)!important}
 .design-preview-toolbar>span>small{color:var(--text-muted)!important;font:400 .62rem/1.5 var(--font-mono)!important}
 .design-native-tabs{padding:16px 20px;margin:0;border-bottom:1px solid var(--admin-line-soft)}
+
+/* O painel acompanha desde celular até monitor ultrawide. */
+.admin-main{min-width:0}.admin-main .admin-view,.admin-main .panel{width:100%;max-width:none}.admin-design-grid,.admin-design-grid>div{min-width:0;width:100%}
+@media(min-width:1900px){.admin-main{padding-inline:clamp(28px,2vw,64px)}.admin-native-preview-stage{border-radius:10px}.design-stack-body>.admin-native-form{grid-template-columns:repeat(3,minmax(0,1fr))}.design-stack-body>.admin-native-form>.field-full{grid-column:1/-1}}
+@media(min-width:700px) and (max-width:1100px){.admin-main{padding-inline:18px}.design-stack-body>.admin-native-form{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-static-preview-row{grid-template-columns:1fr 1fr!important}.hero-static-preview-row>div:first-child{grid-column:1/-1}}
+@media(max-width:699px){.admin-main{padding-inline:10px}.design-preview-toolbar{padding-inline:14px!important}.design-preview-toolbar-actions{gap:5px}.design-preview-toolbar-actions .small-btn{padding-inline:10px}.admin-native-preview-stage:after{display:none}.hero-slides-admin{grid-template-columns:1fr!important}}
+
+/* Editor completo da imagem principal e do slideshow. */
+.hero-slideshow-overview-native{display:grid!important;grid-template-columns:minmax(320px,1.4fr) minmax(240px,.6fr);gap:18px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:10px;background:#0c0c0b}
+.hero-slideshow-live-preview{min-height:330px;display:grid;place-items:center;background-color:#070707;background-repeat:no-repeat;border:1px solid var(--line);border-radius:8px}.hero-slideshow-live-preview span{color:var(--text-muted);font-family:var(--font-mono);font-size:.65rem;text-transform:uppercase}
+.hero-slideshow-overview-native>div:last-child{display:grid;gap:12px;align-content:center}.hero-slideshow-overview-native strong{font:600 1.2rem var(--font-display)}.hero-slideshow-overview-native small{color:var(--text-muted);line-height:1.6}.hero-slideshow-overview-native .btn{justify-self:start}
+.hero-slideshow-settings-native{padding:18px;border:1px solid rgba(215,197,164,.3);border-radius:10px;background:#10100f}.hero-slideshow-settings-native .panel-head{margin-bottom:18px}.hero-slideshow-settings-native .admin-native-form{display:grid!important}
+.hero-slide-preview-button{position:relative;width:100%;padding:0;border:1px solid transparent;background:none;color:var(--text);cursor:pointer}.hero-slide-preview-button img{display:block}.hero-slide-preview-button span{position:absolute;right:7px;bottom:7px;padding:5px 7px;border-radius:5px;background:rgba(0,0,0,.78);font:600 .55rem var(--font-mono);text-transform:uppercase}.hero-slides-focus-editor article.is-previewing{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.hero-slides-focus-editor .design-range{grid-template-columns:1fr 48px}.hero-slides-focus-editor .field{gap:5px}
+@media(max-width:900px){.hero-slideshow-overview-native{grid-template-columns:1fr}.hero-slideshow-live-preview{min-height:240px}}
