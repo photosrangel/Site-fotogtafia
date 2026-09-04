@@ -1,5 +1,2 @@
-import { AdminDashboard } from '@/components/admin-dashboard';
-
-export default function Page() {
-  return <AdminDashboard />;
-}
+import {LegacyAdminPanel} from '@/components/legacy-admin-panel';
+export default function Page(){return <LegacyAdminPanel/>}

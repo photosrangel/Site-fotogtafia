@@ -1,2 +1,2 @@
-import { AdminCategoriesNative } from '@/components/admin-categories-native';
-export default function Page() { return <AdminCategoriesNative />; }
+import {LegacyAdminPanel} from '@/components/legacy-admin-panel';
+export default function Page(){return <LegacyAdminPanel initialView="categories"/>}
