@@ -1,2 +1,2 @@
-import {LegacyAdminPanel} from '@/components/legacy-admin-panel';
-export default function Page(){return <LegacyAdminPanel initialView="sessions"/>}
+import { AdminSessions } from '@/components/admin-sessions';
+export default function Page() { return <AdminSessions />; }

@@ -1563,47 +1563,6 @@ html, body {
 [data-design-inline-editable="1"]{cursor:text}
 [data-design-inline-editable="1"]:hover{outline:1px dashed rgba(255,255,255,.48);outline-offset:6px}
 
-/* Configuração visual publicada e prévia administrativa usam as mesmas regras. */
-html[data-design-nav-position="static"] .nav{position:absolute}
-html[data-design-nav-style="solid"] .nav .container{background:rgba(11,11,10,.98)!important}
-html[data-design-nav-style="transparent"] .nav .container{background:transparent!important}
-html[data-design-nav-density="compact"] .nav .container{min-height:44px;padding-inline:24px}
-html[data-design-nav-density="airy"] .nav .container{min-height:88px;padding-inline:48px}
-html .nav-logo{scale:var(--design-logo-scale,1);transform-origin:left center}
-html .nav .container{backdrop-filter:blur(var(--design-nav-blur,14px))}
-html[data-design-nav-cta="hidden"] .nav-cta{display:none!important}
-html[data-design-nav-cta="filled"] .nav-cta{padding:10px 18px!important;border-radius:999px;background:var(--text);color:var(--bg)!important}
-html .hero-overlay{background:linear-gradient(to top,rgba(11,11,10,calc(.55 + var(--design-hero-overlay,.4) * .45)) 0%,rgba(11,11,10,calc(var(--design-hero-overlay,.4) * .75)) 52%,rgba(11,11,10,calc(var(--design-hero-overlay,.4) * .85)) 100%),linear-gradient(to right,rgba(11,11,10,calc(var(--design-hero-overlay,.4) * .9)),transparent 70%)}
-html .section-title,html .hero-title,html .inner-title{zoom:var(--design-type-scale,1)}
-html[data-design-page-animation="fade"] body,html[data-design-page-animation="soft"] body{animation:designFade var(--design-motion-speed,.35s) ease both}
-html[data-design-page-animation="fade-up"] body{animation:designUp var(--design-motion-speed,.35s) ease both}
-html[data-design-section-animation="fade"] .section{animation:designFade var(--design-motion-speed,.35s) ease both}
-html[data-design-section-animation="fade-up"] .section{animation:designUp var(--design-motion-speed,.35s) ease both}
-html[data-design-image-hover="none"] .frame img{transition:none!important;transform:none!important}
-html[data-design-image-hover="zoom"] .frame:hover img{transform:scale(1.045)}
-html[data-design-image-hover="lift"] .frame:hover{transform:translateY(-7px)}
-html .frame{border-radius:var(--image-radius,0);transition:transform var(--design-motion-speed,.35s) ease;overflow:hidden}
-html .grid,html .gallery-adaptive-grid{gap:var(--gallery-gap,2px)}
-html .section{padding-block:var(--section-space,120px)}
-html .hero>.container,html .section>.container,html main>.container{max-width:var(--content-max,1200px)}
-@keyframes designFade{from{opacity:0}to{opacity:1}}
-@keyframes designUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-html[data-design-client-layout="centered"] .client-access-shell{grid-template-columns:minmax(300px,720px);justify-content:center}
-html[data-design-client-layout="centered"] .client-access-visual{display:none}
-html[data-design-client-layout="fullscreen"] .client-access-shell{grid-template-columns:1fr;position:relative}
-html[data-design-client-layout="fullscreen"] .client-access-visual{position:absolute;inset:0}
-html[data-design-client-layout="fullscreen"] .client-access-panel{position:relative;z-index:2;max-width:620px;margin:auto;background:rgba(11,11,10,.88);backdrop-filter:blur(12px)}
-html[data-design-client-gallery="clean"] .client-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-html[data-design-client-gallery="masonry"] .client-gallery-grid{display:block;columns:3;column-gap:var(--gallery-gap,8px)}
-html[data-design-client-gallery="masonry"] .client-gallery-grid .frame{break-inside:avoid;margin-bottom:var(--gallery-gap,8px)}
-html[data-design-client-photo-size="compact"] .client-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
-html[data-design-client-photo-size="medium"] .client-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
-html[data-design-client-photo-size="large"] .client-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
-html[data-design-client-typography="minimal"] .cliente-wrap{--font-display:var(--font-sans)}
-html[data-design-client-typography="editorial"] .cliente-wrap .client-access-title{letter-spacing:-.04em}
-html[data-design-client-border="none"] .cliente-wrap .frame,html[data-design-client-border="none"] .client-access-panel{border:0!important}
-html[data-design-client-border="soft"] .cliente-wrap .frame,html[data-design-client-border="soft"] .client-access-panel{border-radius:18px}
-
 /* Fase 23 — acabamento editorial global (mantém a paleta configurável do site) */
 .nav{padding:24px clamp(18px,5vw,72px);background:transparent;border-bottom:0}
 .nav.is-solid{padding:16px clamp(18px,5vw,72px);background:color-mix(in srgb,var(--bg) 90%,transparent);border-bottom:0}

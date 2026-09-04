@@ -23,9 +23,10 @@ export const revalidate = 30;
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const publishedDesign = await getPublishedDesignConfig();
+  const visualOverrides = publishedDesign.inline_styles || {};
   return (
     <html lang="pt" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning><HydrationMarker /><DesignPreviewReceiver/><PublishedVisualDesign config={publishedDesign}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
+      <body suppressHydrationWarning><HydrationMarker /><DesignPreviewReceiver/><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
     </html>
   );
 }

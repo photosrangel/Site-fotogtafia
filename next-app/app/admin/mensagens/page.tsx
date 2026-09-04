@@ -1,2 +1,2 @@
-import {LegacyAdminPanel} from '@/components/legacy-admin-panel';
-export default function Page(){return <LegacyAdminPanel initialView="messages"/>}
+import { AdminMessages } from '@/components/admin-messages';
+export default function Page() { return <AdminMessages />; }
