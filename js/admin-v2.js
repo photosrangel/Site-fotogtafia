@@ -1156,6 +1156,7 @@ async function requireAdmin() {
       factor = enrollment.data;
       $('mfa-enrollment').hidden = false;
       $('mfa-qr').src = enrollment.data.totp.qr_code;
+      $('mfa-secret').value = enrollment.data.totp.secret || '';
     }
     $('mfa-confirm').dataset.factorId = factor.id;
     return false;
@@ -1252,6 +1253,18 @@ $('login-google').addEventListener('click', async () => {
   msg($('login-msg'), 'Abrindo o Google...');
   const { error } = await signInAdminWithGoogle();
   if (error) msg($('login-msg'), 'Não foi possível entrar com Google.', 'erro');
+});
+
+$('mfa-copy-secret').addEventListener('click', async () => {
+  const secret = $('mfa-secret').value;
+  if (!secret) return msg($('mfa-msg'), 'A chave ainda não está disponível.', 'erro');
+  try {
+    await navigator.clipboard.writeText(secret);
+    msg($('mfa-msg'), 'Chave copiada. Não a compartilhe.');
+  } catch (_) {
+    $('mfa-secret').select();
+    msg($('mfa-msg'), 'Chave selecionada. Use Ctrl+C para copiar.');
+  }
 });
 
 $('mfa-confirm').addEventListener('click', async () => {
