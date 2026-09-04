@@ -7829,3 +7829,16 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .hero-slides-admin{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}.hero-slides-admin article{display:grid;gap:8px;padding:10px;border:1px solid var(--line);background:#0c0c0b}.hero-slides-admin img{width:100%;aspect-ratio:16/10;object-fit:cover}
 .hero-static-preview-row{display:grid!important;grid-template-columns:minmax(280px,1.4fr) minmax(220px,.7fr) minmax(180px,.55fr);gap:18px;align-items:start}.hero-static-preview-row .focal-preview{min-height:280px}.hero-static-preview-row .hero-static-mobile-preview{min-height:300px;background-size:cover;background-repeat:no-repeat;border:1px solid var(--line);position:relative}
 @media(max-width:900px){.design-stack-body>.admin-native-form,.hero-static-preview-row{grid-template-columns:1fr}.design-stack-body{padding:15px}.hero-slides-admin{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Prévia fiel: o iframe mantém um viewport real de 1920×1080 ou 390×844. */
+.admin-native-preview-stage{container-type:inline-size;position:relative;min-height:0!important;height:calc(1080px * var(--preview-scale, .7) + 42px);overflow:hidden!important;padding-top:42px;background:#080808}
+.admin-native-preview-stage .design-browser-bar{position:absolute;z-index:3;inset:0 0 auto;height:42px}
+.admin-native-preview-stage .admin-native-preview{position:absolute;z-index:1;left:0;top:42px;width:var(--preview-width,1920px)!important;max-width:none!important;height:var(--preview-height,1080px)!important;transform:scale(var(--preview-scale,.7));transform-origin:top left;border:0}
+.admin-native-preview-stage.is-mobile{width:100%!important;max-width:none!important;margin:0!important}
+.admin-native-preview-stage.is-mobile .admin-native-preview{width:var(--preview-width,390px)!important;max-width:none!important;height:var(--preview-height,844px)!important}
+.admin-design-grid>div:first-child{padding:0!important;overflow:hidden}
+.design-preview-toolbar{min-height:78px!important;padding:0 20px!important;border:0!important;border-bottom:1px solid var(--admin-line-soft)!important;background:rgba(255,255,255,.018)!important}
+.design-preview-toolbar>span{display:grid;gap:7px!important}
+.design-preview-toolbar>span>strong{font-family:var(--font-display)!important;font-size:1.05rem!important;font-weight:600!important;color:var(--text)!important}
+.design-preview-toolbar>span>small{color:var(--text-muted)!important;font:400 .62rem/1.5 var(--font-mono)!important}
+.design-native-tabs{padding:16px 20px;margin:0;border-bottom:1px solid var(--admin-line-soft)}

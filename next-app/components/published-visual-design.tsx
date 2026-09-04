@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type { VisualOverride } from '@/lib/published-design';
+import { ensureDesignEditableIds } from '@/components/design-editable-elements';
 
 type VisualElement = HTMLElement & { __publishedBaseFontSizes?: Record<string, number> };
 
@@ -71,6 +72,7 @@ const CONTENT_MANAGED_TEXT_IDS = new Set([
 
 function applyToDocument(doc: Document, overrides: Record<string, VisualOverride>) {
   if (doc.documentElement?.dataset.designPreviewActive === '1') return;
+  ensureDesignEditableIds(doc);
   for (const [id, override] of Object.entries(overrides)) {
     const element = doc.getElementById(id) as VisualElement | null;
     if (!element) continue;
@@ -82,6 +84,7 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
       element.dataset.publishedText !== override.text &&
       element.textContent !== override.text
     ) element.textContent = override.text;
+    if (!CONTENT_MANAGED_TEXT_IDS.has(id) && typeof override.text === 'string') element.style.whiteSpace = override.text.includes('\n') ? 'pre-line' : '';
     element.style.fontWeight = applied.bold ? '700' : '';
     element.style.fontStyle = applied.italic ? 'italic' : '';
     element.style.textAlign = applied.align || '';

@@ -1,0 +1,2 @@
+const selector='.native-page h1,.native-page h2,.native-page h3,.native-page p,.native-page dt,.native-page dd,.native-page a,.native-page button,.native-page label';
+export function ensureDesignEditableIds(doc:Document){const route=(doc.defaultView?.location.pathname||'/').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'inicio';doc.querySelectorAll<HTMLElement>(selector).forEach((element,index)=>{if(!element.id)element.id=`design-auto-${route}-${index}`});return Array.from(doc.querySelectorAll<HTMLElement>(selector)).filter(element=>Boolean(element.id))}
