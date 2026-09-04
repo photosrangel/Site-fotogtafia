@@ -1,4 +1,4 @@
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0b0b0b}.native-page{min-height:100dvh}.native-page .about-grid{opacity:1;visibility:visible}.native-page button.frame{border:0;padding:0;color:inherit;text-align:inherit;font:inherit}.contact-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0b0b0b}.legacy-frame{display:block;width:100%;height:100dvh;border:0;background:#0b0b0b}.native-page{min-height:100dvh}.native-page .about-grid{opacity:1;visibility:visible}.native-page button.frame{border:0;padding:0;color:inherit;text-align:inherit;font:inherit}.contact-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
 
 .gallery-category-anchor{scroll-margin-top:88px}
 @media(max-width:520px){

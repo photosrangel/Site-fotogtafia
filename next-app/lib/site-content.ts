@@ -20,3 +20,5 @@ export async function getNativePageData(slug:string):Promise<{settings:SiteSetti
   if(!process.env.NEXT_PUBLIC_SUPABASE_URL||!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)return {settings:{},content:{}};
   try{return await getCachedNativePageData(slug)}catch{return {settings:{},content:{}}}
 }
+
+export function legacyMediaUrl(value:string|undefined,fallback:string){const url=(value||fallback).trim();return /^https?:\/\//.test(url)||url.startsWith('/')?url:`/legacy/${url}`}

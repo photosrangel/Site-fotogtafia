@@ -1,8 +1,6 @@
+.env
+.env.*
+!.env.example
 node_modules/
 .next/
-out/
-tsconfig.tsbuildinfo
-.env
-.env.local
-.env.*.local
-npm-debug.log*
+*.tsbuildinfo

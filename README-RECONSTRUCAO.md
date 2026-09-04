@@ -485,3 +485,13 @@ Validar primeiro numa URL de prévia independente. O domínio e o projeto atual 
 - Foram preservados todos os controllers, repositories e services de Galerias, Mensagens e Dashboard existentes na Fase 68.
 - O arquivo gerado `tsconfig.tsbuildinfo` não faz parte deste checkpoint.
 - Este pacote substitui os ZIPs 68 e 69 isolados como checkpoint recomendado para continuidade.
+
+## Fase 70 — seleção preservada e carregamento rápido dos ensaios
+
+- A relação numérica escolhida pela cliente passa a ser tratada como histórico definitivo e não diminui quando provas já foram removidas ou deixam de ser carregadas.
+- Ao iniciar a edição, o painel protege primeiro a lista completa de números e somente confirma o estado “Em edição” depois que a limpeza das provas termina integralmente.
+- A remoção das provas deixa de ocorrer fotografia por fotografia: Storage e registros são processados em lotes, com conferência da quantidade removida e mensagem explícita para nova tentativa em caso de falha.
+- Uma limpeza interrompida não grava mais `selection_cleaned_at` nem apresenta sucesso falso; os números permanecem disponíveis para recuperação e conferência.
+- A tela de Ensaios agora mostra os cartões assim que a consulta principal termina; contador e capas são enriquecidos em segundo plano.
+- Para montar a lista, o painel assina somente uma capa por ensaio, em vez de gerar URLs temporárias para todas as fotografias de todos os ensaios.
+- O visual e os fluxos públicos não foram alterados nesta fase.
