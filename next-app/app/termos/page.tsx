@@ -1,0 +1,1 @@
+import type {Metadata} from 'next';import {LegacyPage} from '@/components/legacy-page';export const metadata:Metadata={title:'Termos de Uso',description:'Termos de utilização do site e da área privada.',alternates:{canonical:'/termos'}};export default function Page(){return <LegacyPage file="termos.html" title="Termos de Uso"/>}

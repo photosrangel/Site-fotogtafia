@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { PublicNav } from '@/components/public-nav';
 import { PublicFooter } from '@/components/public-footer';
 import { getNativePageData,legacyMediaUrl } from '@/lib/site-content';
-export const metadata:Metadata={title:'Sobre'};
+export const metadata:Metadata={title:'Sobre o fotógrafo',description:'Conheça Rangel Santos, fotógrafo de retratos femininos em Vale de Cambra.',alternates:{canonical:'/sobre'},openGraph:{url:'/sobre',images:['/legacy/images/sobre-retrato.jpg']}};
 /* Rede de segurança: ver comentário equivalente em app/page.tsx. */
 export const revalidate = 30;
 const defaults={eyebrow:'Sobre mim',paragraphs:['Meu nome é Rangel Santos, fotógrafo em Vale de Cambra, Portugal. Meu trabalho é dedicado ao retrato feminino — não o retrato que só mostra como você é por fora, mas aquele que devolve algo por dentro.','Ajudar mulheres a reconstruir a autoestima é o que me motiva a cada sessão. Muitas chegam inseguras diante da câmera, e minha função é criar o ambiente certo para que isso se dissolva — com luz, tempo, e escuta.','Cada projeto é entregue com cuidado: você recebe um link privado para escolher suas fotos favoritas, e eu trato as imagens escolhidas uma a uma antes da entrega final.'],specs:[{label:'Baseado em',value:'Vale de Cambra, Portugal'},{label:'Especialidade',value:'Retrato Feminino & Autoestima'},{label:'Prazo de entrega',value:'05–10 dias úteis'},{label:'Atende',value:'Vale de Cambra e arredores'}]};

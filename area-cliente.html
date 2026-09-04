@@ -640,6 +640,8 @@
         <button type="submit" class="btn btn-accent client-access-submit" id="client-access-submit">
           Acessar minha galeria
         </button>
+        <div id="turnstile-client"></div>
+        <button type="button" class="btn" id="forgot-access-code">Esqueci meu código</button>
 
         <p id="acesso-msg" class="msg"></p>
 
@@ -754,9 +756,11 @@
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY } from './js/supabase-config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let turnstileToken='';
+if(TURNSTILE_SITE_KEY){const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.onload=()=>turnstile.render('#turnstile-client',{sitekey:TURNSTILE_SITE_KEY,callback:token=>turnstileToken=token,'expired-callback':()=>turnstileToken='' });document.head.append(script)}
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
 // foto marcada como protegida (prova/seleção) — sem afetar o resto da página.
@@ -838,7 +842,7 @@ async function entrar(slug, codigo) {
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ slug, codigo })
+      body: JSON.stringify({ action:'login', slug, codigo, turnstileToken })
     });
     data = await response.json().catch(() => null);
   } catch (error) {
@@ -859,6 +863,15 @@ async function entrar(slug, codigo) {
   selecaoAtual = new Set((data.fotos || []).filter(f => f.selecionada).map(f => f.id));
   mostrarGaleria();
 }
+
+document.getElementById('forgot-access-code').addEventListener('click',async()=>{
+  const slug=document.getElementById('input-slug').value.trim();
+  if(!slug){acessoMsg.textContent='Informe primeiro o login do ensaio.';acessoMsg.className='msg erro';return}
+  acessoMsg.textContent='A enviar instruções...';acessoMsg.className='msg';
+  const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'forgot',slug,turnstileToken})});
+  const data=await response.json().catch(()=>({}));
+  acessoMsg.textContent=data.message||'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.';acessoMsg.className=response.ok?'msg sucesso':'msg erro';
+});
 
 function mostrarGaleria() {
   acessoScreen.style.display = 'none';

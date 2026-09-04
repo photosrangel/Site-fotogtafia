@@ -6,8 +6,12 @@ import { FloatingWhatsApp } from '@/components/floating-whatsapp';
 import { getPublishedDesignConfig } from '@/lib/published-design';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://photosrangel.pt'),
   title: { default: 'Rangel Santos — Fotografia', template: '%s — Rangel Santos' },
-  description: 'Fotografia autoral, retratos e experiências personalizadas.'
+  description: 'Fotografia de retrato feminino em Vale de Cambra, Aveiro.',
+  alternates:{canonical:'/'},
+  openGraph:{type:'website',locale:'pt_PT',siteName:'Rangel Santos Fotografia',images:['/images/hero-bg.jpg']},
+  twitter:{card:'summary_large_image'}
 };
 
 /*

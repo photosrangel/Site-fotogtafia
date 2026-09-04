@@ -1,5 +1,5 @@
 import { ADMIN_ID, SITE_GALLERY_BUCKET as BUCKET } from './core/admin-config.js';
-import { getAdminSession, signInAdmin, signOutAdmin, onAdminAuthStateChange } from './core/admin-auth-service.js';
+import { getAdminSession, signInAdmin, signInAdminWithGoogle, signOutAdmin, onAdminAuthStateChange, listAdminFactors, enrollAdminTotp, verifyAdminTotp, getAdminAssuranceLevel } from './core/admin-auth-service.js';
 import {
   listCategories,
   listPublishedCategories,
@@ -1139,6 +1139,28 @@ async function requireAdmin() {
     return false;
   }
 
+  const factors = await listAdminFactors();
+  const verified = factors.data?.totp?.find(f => f.status === 'verified');
+  const assurance = await getAdminAssuranceLevel();
+  if (!verified || assurance.data?.currentLevel !== 'aal2') {
+    $('login-screen').hidden = false;
+    $('login-form').hidden = true;
+    $('mfa-box').hidden = false;
+    let factor = verified;
+    if (!factor) {
+      const enrollment = await enrollAdminTotp();
+      if (enrollment.error) {
+        msg($('mfa-msg'), 'Não foi possível iniciar o 2FA: ' + enrollment.error.message, 'erro');
+        return false;
+      }
+      factor = enrollment.data;
+      $('mfa-enrollment').hidden = false;
+      $('mfa-qr').src = enrollment.data.totp.qr_code;
+    }
+    $('mfa-confirm').dataset.factorId = factor.id;
+    return false;
+  }
+
   $('user-email').textContent =
     session.user.email || '';
 
@@ -1225,6 +1247,23 @@ $('login-form').addEventListener(
     }
   }
 );
+
+$('login-google').addEventListener('click', async () => {
+  msg($('login-msg'), 'Abrindo o Google...');
+  const { error } = await signInAdminWithGoogle();
+  if (error) msg($('login-msg'), 'Não foi possível entrar com Google.', 'erro');
+});
+
+$('mfa-confirm').addEventListener('click', async () => {
+  const code = $('mfa-code').value.replace(/\D/g, '');
+  const factorId = $('mfa-confirm').dataset.factorId;
+  if (!factorId || code.length !== 6) return msg($('mfa-msg'), 'Digite os 6 números do aplicativo.', 'erro');
+  const result = await verifyAdminTotp(factorId, code);
+  if (result.error) return msg($('mfa-msg'), 'Código incorreto ou expirado.', 'erro');
+  $('mfa-box').hidden = true;
+  $('login-form').hidden = false;
+  await requireAdmin();
+});
 
 
 $('logout-btn').addEventListener(
@@ -5692,7 +5731,11 @@ $('close-session-form').addEventListener('click', closeSessionForm);
 $('cancel-session-form').addEventListener('click', closeSessionForm);
 $('session-form').addEventListener('submit', saveSession);
 $('btn-gerar-login').addEventListener('click', () => { $('session-login').value = 'cliente-' + Math.random().toString(36).slice(2, 8); });
-$('btn-gerar-codigo').addEventListener('click', () => { $('session-codigo').value = Math.random().toString(36).slice(2, 8).toUpperCase(); });
+$('btn-gerar-codigo').addEventListener('click', () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  $('session-codigo').value = Array.from(bytes, byte => alphabet[byte % alphabet.length]).join('');
+});
 $('btn-copy-session').addEventListener('click', copySession);
 $('btn-save-session-email').addEventListener('click', () => withOperationLock('save-session-email:' + (currentSession?.id || ''), salvarEmailClienteEnsaio));
 $('btn-entregar').addEventListener('click', () => withOperationLock('entregar:' + (currentSession?.id || ''), marcarEntregue));

@@ -3,7 +3,7 @@ import { PublicNav } from '@/components/public-nav';
 import { PublicFooter } from '@/components/public-footer';
 import { ContactForm } from '@/components/contact-form';
 import { getNativePageData } from '@/lib/site-content';
-export const metadata:Metadata={title:'Contato'};
+export const metadata:Metadata={title:'Contato e agendamento',description:'Agende a sua sessão fotográfica em Vale de Cambra e arredores.',alternates:{canonical:'/contato'},openGraph:{url:'/contato'}};
 /* Rede de segurança: ver comentário equivalente em app/page.tsx. */
 export const revalidate = 30;
 const defaults={eyebrow:'Renove sua autoestima',title:'Contato',submit_label:'Enviar mensagem',tipos:['Sessão de Autoestima','Retrato em Estúdio','Retrato Externo','Sessão Sensual','Outro'],atendimento:'Vale de Cambra e arredores — sessões sob agendamento'};

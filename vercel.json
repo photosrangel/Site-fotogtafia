@@ -23,6 +23,14 @@
     {
       "source": "/admin",
       "destination": "/admin-v2.html"
+    },
+    {
+      "source": "/privacidade",
+      "destination": "/privacidade.html"
+    },
+    {
+      "source": "/termos",
+      "destination": "/termos.html"
     }
   ],
   "redirects": [

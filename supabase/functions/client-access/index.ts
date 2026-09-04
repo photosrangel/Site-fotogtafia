@@ -27,6 +27,8 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+async function validTurnstile(token:string,ip:string){const secret=Deno.env.get('TURNSTILE_SECRET_KEY');if(!secret)return true;if(!token)return false;const form=new FormData();form.set('secret',secret);form.set('response',token);if(ip!=='unknown')form.set('remoteip',ip);const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:form});const result=await response.json();return result.success===true}
+
 function storagePath(url: string, bucket: string) {
   try {
     const parsed = new URL(url);
@@ -58,7 +60,7 @@ Deno.serve(async (req) => {
     return json({ erro: 'Não foi possível verificar o acesso agora.' }, 500);
   }
 
-  let payload: { slug?: unknown; codigo?: unknown };
+  let payload: { action?: unknown; slug?: unknown; codigo?: unknown; turnstileToken?: unknown };
   try {
     payload = await req.json();
   } catch {
@@ -67,7 +69,8 @@ Deno.serve(async (req) => {
 
   const slug = typeof payload.slug === 'string' ? payload.slug.trim() : '';
   const codigo = typeof payload.codigo === 'string' ? payload.codigo.trim() : '';
-  if (!slug || !codigo || slug.length > 160 || codigo.length > 160) {
+  const action=payload.action==='forgot'?'forgot':'login';
+  if (!slug || (action==='login'&&!codigo) || slug.length > 160 || codigo.length > 160) {
     return json({ erro: 'Acesso inválido.' }, 400);
   }
 
@@ -79,6 +82,14 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  if(!await validTurnstile(String(payload.turnstileToken||''),ip)){await supabase.from('security_events').insert({event_type:'client_access',outcome:'blocked',ip_hash:ipHash,subject_hash:pairHash,metadata:{reason:'turnstile'}});return json({erro:'Confirme que não é um robô.'},400)}
+  if(action==='forgot'){
+    const since=new Date(Date.now()-60*60e3).toISOString();const {count}=await supabase.from('security_events').select('*',{head:true,count:'exact'}).eq('event_type','client_code_resend').eq('ip_hash',ipHash).gte('created_at',since);
+    if((count||0)>=3)return json({message:'Aguarde antes de pedir um novo envio.',rate_limited:true},429);
+    const {data:session}=await supabase.from('ensaios').select('cliente_email,cliente_nome,titulo,codigo_acesso,expires_at').eq('slug',slug).maybeSingle();
+    if(session?.cliente_email&&(!session.expires_at||new Date(session.expires_at)>new Date())){const key=Deno.env.get('RESEND_API_KEY');if(key)await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({from:Deno.env.get('EMAIL_FROM')||'Rangel Santos Fotografia <onboarding@resend.dev>',to:[session.cliente_email],subject:'Código da sua galeria privada',html:`<p>Olá${session.cliente_nome?', '+session.cliente_nome:''}.</p><p>O código da galeria <strong>${session.titulo}</strong> é <strong>${session.codigo_acesso}</strong>.</p>`})})}
+    await supabase.from('security_events').insert({event_type:'client_code_resend',outcome:'success',ip_hash:ipHash,subject_hash:pairHash});return json({message:'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.'});
+  }
   const { data, error } = await supabase.rpc('client_access_login_internal', {
     p_slug: slug,
     p_codigo: codigo,
@@ -92,10 +103,12 @@ Deno.serve(async (req) => {
   }
 
   if (data?.rate_limited) {
+    await supabase.from('security_events').insert({event_type:'client_access',outcome:'blocked',ip_hash:ipHash,subject_hash:pairHash});
     const retryAfter = Math.max(1, Number(data.retry_after) || 1800);
     return json(data, 429, { 'Retry-After': String(retryAfter) });
   }
-  if (data?.erro) return json(data, 401);
+  if (data?.erro) {await supabase.from('security_events').insert({event_type:'client_access',outcome:'failure',ip_hash:ipHash,subject_hash:pairHash});return json(data, 401)}
+  await supabase.from('security_events').insert({event_type:'client_access',outcome:'success',ip_hash:ipHash,subject_hash:pairHash});
 
   const photos = Array.isArray(data?.fotos) ? data.fotos : [];
   if (photos.length) {

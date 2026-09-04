@@ -76,7 +76,7 @@ const PUBLIC_DESIGN_DEFAULTS = {
   client_photo_size:'large',
   client_typography:'classic',
   client_border:'fine',
-  client_access_image:'/legacy/images/retrato-01.jpg',
+  client_access_image:'',
   client_focus_x:50,
   client_focus_y:50,
   client_text_visual:'Retratos guardados com cuidado.\nUm espaço reservado só para você.',
@@ -108,18 +108,6 @@ function publicDesignClamp(value,min,max,fallback){
   return Math.min(max,Math.max(min,n));
 }
 
-function resolvePublishedAssetUrl(value){
-  const raw=String(value||'').trim();
-  if(!raw) return '';
-  if(/^(?:https?:)?\/\//i.test(raw)||/^(?:data|blob):/i.test(raw)) return raw;
-  if(raw.startsWith('/legacy/')) return raw;
-  if(raw.startsWith('legacy/')) return `/${raw}`;
-  if(/^\.{0,2}\/images\//i.test(raw)) return `/legacy/${raw.replace(/^\.{0,2}\//,'')}`;
-  if(raw.startsWith('/images/')) return `/legacy${raw}`;
-  if(raw.startsWith('images/')) return `/legacy/${raw}`;
-  return raw.startsWith('/')?raw:`/${raw}`;
-}
-
 function normalizePublicDesign(config={}){
   const c={...PUBLIC_DESIGN_DEFAULTS,...(config||{})};
   return {
@@ -144,7 +132,7 @@ function normalizePublicDesign(config={}){
     client_photo_size:['compact','medium','large'].includes(c.client_photo_size)?c.client_photo_size:'large',
     client_typography:['classic','editorial','minimal'].includes(c.client_typography)?c.client_typography:'classic',
     client_border:['fine','none','soft'].includes(c.client_border)?c.client_border:'fine',
-    client_access_image:resolvePublishedAssetUrl(c.client_access_image)||PUBLIC_DESIGN_DEFAULTS.client_access_image,
+    client_access_image:typeof c.client_access_image==='string'?c.client_access_image.trim():'',
     client_focus_x:publicDesignClamp(c.client_focus_x,0,100,50),
     client_focus_y:publicDesignClamp(c.client_focus_y,0,100,50),
     client_text_visual:typeof c.client_text_visual==='string'?c.client_text_visual:PUBLIC_DESIGN_DEFAULTS.client_text_visual,
