@@ -13,10 +13,22 @@ export async function signInAdmin(email, password) {
 }
 
 export async function signInAdminWithGoogle() {
-  return supabase.auth.signInWithOAuth({
+  const result = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${location.origin}/admin` }
+    options: {
+      redirectTo: `${location.origin}/admin`,
+      // O painel legado roda dentro de um iframe no app Next. Obtemos a URL
+      // sem navegar o iframe e enviamos a janela principal ao provedor.
+      skipBrowserRedirect: true
+    }
   });
+
+  if (!result.error && result.data?.url) {
+    const targetWindow = window.top || window;
+    targetWindow.location.assign(result.data.url);
+  }
+
+  return result;
 }
 
 export async function listAdminFactors() {
