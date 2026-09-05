@@ -585,6 +585,15 @@
     margin: 14px 0 4px;
   }
 
+  #turnstile-recovery {
+    display: flex;
+    justify-content: center;
+  }
+
+  #turnstile-recovery:has(iframe) {
+    margin: 16px 0 0;
+  }
+
   /* "Esqueci meu código" como link de texto centralizado, não como botão */
   #forgot-access-code {
     width: auto;
@@ -756,6 +765,7 @@
         <button type="submit" class="btn btn-accent" id="recovery-reset-submit">Guardar nova senha</button>
       </div>
     </form>
+    <div id="turnstile-recovery"></div>
     <p id="recovery-msg" class="msg" aria-live="polite"></p>
   </section>
 </div>
@@ -867,44 +877,68 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY } from './js/supaba
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Turnstile em modo "execute": fica invisível e só entra em ação quando a
-// pessoa clica em entrar (ou em "esqueci meu código"). Na maioria das vezes
-// ele confirma sozinho, em segundo plano, sem mostrar nada; só aparece uma
-// verificação visível (checkbox ou, raramente, um desafio) quando o
-// Cloudflare julga necessário — sempre no mesmo lugar, sem pular o layout.
-let turnstileWidgetId = null;
-let turnstileResolve = null;
-let turnstileReject = null;
-const turnstileReady = TURNSTILE_SITE_KEY
-  ? new Promise((resolveReady) => {
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.onload = () => {
-        turnstileWidgetId = turnstile.render('#turnstile-client', {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          size: 'flexible',
-          appearance: 'execute',
-          execution: 'execute',
-          callback: (token) => { if (turnstileResolve) { turnstileResolve(token); turnstileResolve = null; turnstileReject = null; } },
-          'error-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-error')); turnstileResolve = null; turnstileReject = null; } },
-          'expired-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-expired')); turnstileResolve = null; turnstileReject = null; } }
-        });
-        resolveReady();
-      };
-      document.head.append(script);
-    })
-  : Promise.resolve();
+// Turnstile em modo "execute": fica invisível e só entra em ação quando a
+// pessoa clica em entrar (ou envia o formulário de recuperação). Na maioria
+// das vezes ele confirma sozinho, em segundo plano, sem mostrar nada; só
+// aparece uma verificação visível (checkbox ou, raramente, um desafio)
+// quando o Cloudflare julga necessário.
+//
+// Há DOIS widgets independentes — um para a tela de login (#turnstile-client)
+// e outro para dentro do modal de recuperação (#turnstile-recovery) — porque
+// o modal cobre a tela inteira; se os dois dividissem o mesmo widget, uma
+// verificação visível pedida enquanto o modal está aberto ficaria escondida
+// atrás dele (ou vice-versa), travando para sempre à espera de um clique que
+// a pessoa nunca consegue dar.
+const turnstileWidgets = {};
 
-async function obterTurnstileToken() {
-  if (!TURNSTILE_SITE_KEY) return '';
-  await turnstileReady;
-  return new Promise((resolve, reject) => {
-    turnstileResolve = resolve;
-    turnstileReject = reject;
-    turnstile.reset(turnstileWidgetId);
-    turnstile.execute(turnstileWidgetId);
+function prepararTurnstile(nome, elementId) {
+  turnstileWidgets[nome] = { id: null, resolve: null, reject: null };
+  if (!TURNSTILE_SITE_KEY) return Promise.resolve();
+  return new Promise((resolveReady) => {
+    const render = () => {
+      turnstileWidgets[nome].id = turnstile.render(`#${elementId}`, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: 'dark',
+        size: 'flexible',
+        appearance: 'execute',
+        execution: 'execute',
+        callback: (token) => { const w = turnstileWidgets[nome]; if (w.resolve) { w.resolve(token); w.resolve = null; w.reject = null; } },
+        'error-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-error')); w.resolve = null; w.reject = null; } },
+        'expired-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-expired')); w.resolve = null; w.reject = null; } }
+      });
+      resolveReady();
+    };
+    if (window.turnstile) { render(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.onload = render;
+    document.head.append(script);
   });
+}
+
+const turnstileReadyMain = prepararTurnstile('main', 'turnstile-client');
+const turnstileReadyRecovery = prepararTurnstile('recovery', 'turnstile-recovery');
+
+async function obterTurnstileToken(nome = 'main') {
+  if (!TURNSTILE_SITE_KEY) return '';
+  await (nome === 'recovery' ? turnstileReadyRecovery : turnstileReadyMain);
+  const w = turnstileWidgets[nome];
+  const verificacao = new Promise((resolve, reject) => {
+    w.resolve = resolve;
+    w.reject = reject;
+    turnstile.reset(w.id);
+    turnstile.execute(w.id);
+  });
+  // Limite de segurança: nunca fica travado para sempre, mesmo se algo
+  // impedir a verificação de aparecer ou de ser concluída.
+  const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 25000));
+  try {
+    return await Promise.race([verificacao, tempoEsgotado]);
+  } finally {
+    w.resolve = null;
+    w.reject = null;
+  }
 }
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
@@ -1061,8 +1095,7 @@ recoveryRequestForm.addEventListener('submit', async event => {
   submit.disabled = true;
   recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
   try {
-    const turnstileToken = await obterTurnstileToken();
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email:document.getElementById('recovery-email').value.trim(), turnstileToken }) });
+    const turnstileToken = await obterTurnstileToken('recovery');
     const data = await response.json().catch(() => ({}));
     recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
     recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
@@ -1080,8 +1113,7 @@ recoveryResetForm.addEventListener('submit', async event => {
   submit.disabled = true;
   recoveryMsg.textContent = 'A guardar a nova senha...'; recoveryMsg.className = 'msg';
   try {
-    const turnstileToken = await obterTurnstileToken();
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'reset', token:recoveryToken, newPassword:password, turnstileToken }) });
+    const turnstileToken = await obterTurnstileToken('recovery');
     const data = await response.json().catch(() => ({}));
     recoveryMsg.textContent = data.message || data.erro || 'Não foi possível alterar a senha.';
     recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
