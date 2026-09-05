@@ -594,6 +594,12 @@
     margin: 16px 0 0;
   }
 
+  #recovery-sent-text {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+
   /* "Esqueci meu código" como link de texto centralizado, não como botão */
   #forgot-access-code {
     width: auto;
@@ -765,6 +771,12 @@
         <button type="submit" class="btn btn-accent" id="recovery-reset-submit">Guardar nova senha</button>
       </div>
     </form>
+    <div id="recovery-sent" hidden>
+      <p id="recovery-sent-text"></p>
+      <div class="recovery-actions">
+        <button type="button" class="btn btn-accent" id="recovery-sent-close">Entendi</button>
+      </div>
+    </div>
     <div id="turnstile-recovery"></div>
     <p id="recovery-msg" class="msg" aria-live="polite"></p>
   </section>
@@ -1080,6 +1092,7 @@ async function entrar(slug, codigo, turnstileToken) {
 const recoveryModal = document.getElementById('recovery-modal');
 const recoveryRequestForm = document.getElementById('recovery-request-form');
 const recoveryResetForm = document.getElementById('recovery-reset-form');
+const recoverySent = document.getElementById('recovery-sent');
 const recoveryMsg = document.getElementById('recovery-msg');
 const recoveryToken = new URLSearchParams(location.search).get('recuperar') || '';
 
@@ -1087,30 +1100,58 @@ function openRecovery(resetMode = false) {
   recoveryModal.hidden = false;
   recoveryRequestForm.hidden = resetMode;
   recoveryResetForm.hidden = !resetMode;
+  recoverySent.hidden = true;
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
   document.getElementById('recovery-title').textContent = resetMode ? 'Crie uma nova senha' : 'Recuperar acesso';
   document.getElementById('recovery-description').textContent = resetMode
     ? 'Escolha a nova senha que será utilizada para entrar nesta galeria.'
     : 'Informe o e-mail utilizado no cadastro da galeria. Enviaremos o seu login e um link seguro para criar uma nova senha.';
+  document.getElementById('recovery-description').hidden = false;
   setTimeout(() => document.getElementById(resetMode ? 'recovery-password' : 'recovery-email').focus(), 50);
 }
-function closeRecovery() { recoveryModal.hidden = true; recoveryMsg.textContent = ''; }
+function closeRecovery() {
+  recoveryModal.hidden = true;
+  recoveryMsg.textContent = '';
+  recoverySent.hidden = true;
+  recoveryRequestForm.hidden = false;
+  recoveryRequestForm.reset();
+}
+
+function mostrarRecoveryEnviado(mensagem, email) {
+  recoveryRequestForm.hidden = true;
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
+  document.getElementById('recovery-title').textContent = 'Verifique o seu e-mail';
+  document.getElementById('recovery-description').hidden = true;
+  document.getElementById('recovery-sent-text').textContent = mensagem || `Enviámos as instruções de acesso para ${email}. Verifique a caixa de entrada (e também o spam).`;
+  recoverySent.hidden = false;
+}
 
 document.getElementById('forgot-access-code').textContent = 'Esqueci meus dados de acesso';
 document.getElementById('forgot-access-code').addEventListener('click', () => openRecovery(false));
 document.getElementById('recovery-close').addEventListener('click', closeRecovery);
 document.getElementById('recovery-cancel').addEventListener('click', closeRecovery);
+document.getElementById('recovery-sent-close').addEventListener('click', closeRecovery);
 
 recoveryRequestForm.addEventListener('submit', async event => {
   event.preventDefault();
   const submit = document.getElementById('recovery-request-submit');
+  const email = document.getElementById('recovery-email').value.trim();
   submit.disabled = true;
-  recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
   try {
+    // Nenhuma mensagem aqui ainda: se o Cloudflare precisar de confirmação,
+    // é a própria caixinha do Turnstile que aparece primeiro. Só depois que
+    // ela é resolvida (com ou sem clique) é que avisamos que está a enviar.
     const turnstileToken = await obterTurnstileToken('recovery');
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email:document.getElementById('recovery-email').value.trim(), turnstileToken }) });
+    recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email, turnstileToken }) });
     const data = await response.json().catch(() => ({}));
-    recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
-    recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
+    if (response.ok) {
+      mostrarRecoveryEnviado(data.message, email);
+    } else {
+      recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
+      recoveryMsg.className = 'msg erro';
+    }
   } catch (error) {
     recoveryMsg.textContent = mensagemErroTurnstile(error);
     recoveryMsg.className = 'msg erro';
