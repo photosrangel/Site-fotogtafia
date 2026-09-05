@@ -612,6 +612,40 @@
     color: var(--accent);
   }
 
+  .recovery-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0,0,0,.82);
+    backdrop-filter: blur(8px);
+  }
+  .recovery-modal[hidden] { display: none; }
+  .recovery-card {
+    position: relative;
+    width: min(460px, 100%);
+    padding: 36px;
+    border: 1px solid var(--border);
+    background: #11110f;
+    box-shadow: 0 24px 80px rgba(0,0,0,.55);
+  }
+  .recovery-card h2 { margin: 8px 0 12px; font-size: clamp(2rem, 7vw, 3rem); }
+  .recovery-card > p { color: var(--text-muted); line-height: 1.6; }
+  .recovery-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .recovery-actions { display: grid; gap: 12px; margin-top: 22px; }
+  .recovery-cancel { background: transparent; color: var(--text-muted); border: 0; cursor: pointer; }
+
 </style>
 </head>
 <body class="client-area-premium">
@@ -690,6 +724,40 @@
       </form>
     </section>
   </div>
+</div>
+
+<!-- RECUPERAÇÃO DE ACESSO -->
+<div id="recovery-modal" class="recovery-modal" hidden role="dialog" aria-modal="true" aria-labelledby="recovery-title">
+  <section class="recovery-card">
+    <button type="button" class="recovery-close" id="recovery-close" aria-label="Fechar">×</button>
+    <p class="section-eyebrow">Acesso privado</p>
+    <h2 class="section-title" id="recovery-title">Recuperar acesso</h2>
+    <p id="recovery-description">Informe o e-mail utilizado no cadastro da galeria. Enviaremos o seu login e um link seguro para criar uma nova senha.</p>
+    <form id="recovery-request-form">
+      <div class="field">
+        <label for="recovery-email">E-mail</label>
+        <input id="recovery-email" type="email" autocomplete="email" required maxlength="254">
+      </div>
+      <div class="recovery-actions">
+        <button type="submit" class="btn btn-accent" id="recovery-request-submit">Enviar dados de acesso</button>
+        <button type="button" class="recovery-cancel" id="recovery-cancel">Voltar</button>
+      </div>
+    </form>
+    <form id="recovery-reset-form" hidden>
+      <div class="field">
+        <label for="recovery-password">Nova senha</label>
+        <input id="recovery-password" type="password" autocomplete="new-password" required minlength="6" maxlength="64">
+      </div>
+      <div class="field">
+        <label for="recovery-password-confirm">Confirmar nova senha</label>
+        <input id="recovery-password-confirm" type="password" autocomplete="new-password" required minlength="6" maxlength="64">
+      </div>
+      <div class="recovery-actions">
+        <button type="submit" class="btn btn-accent" id="recovery-reset-submit">Guardar nova senha</button>
+      </div>
+    </form>
+    <p id="recovery-msg" class="msg" aria-live="polite"></p>
+  </section>
 </div>
 
 <!-- GALERIA DO CLIENTE -->
@@ -964,22 +1032,70 @@ async function entrar(slug, codigo, turnstileToken) {
   mostrarGaleria();
 }
 
-document.getElementById('forgot-access-code').addEventListener('click',async()=>{
-  const slug=document.getElementById('input-slug').value.trim();
-  if(!slug){acessoMsg.textContent='Informe primeiro o login do ensaio.';acessoMsg.className='msg erro';return}
-  acessoMsg.textContent='A enviar instruções...';acessoMsg.className='msg';
-  let turnstileToken='';
+const recoveryModal = document.getElementById('recovery-modal');
+const recoveryRequestForm = document.getElementById('recovery-request-form');
+const recoveryResetForm = document.getElementById('recovery-reset-form');
+const recoveryMsg = document.getElementById('recovery-msg');
+const recoveryToken = new URLSearchParams(location.search).get('recuperar') || '';
+
+function openRecovery(resetMode = false) {
+  recoveryModal.hidden = false;
+  recoveryRequestForm.hidden = resetMode;
+  recoveryResetForm.hidden = !resetMode;
+  document.getElementById('recovery-title').textContent = resetMode ? 'Crie uma nova senha' : 'Recuperar acesso';
+  document.getElementById('recovery-description').textContent = resetMode
+    ? 'Escolha a nova senha que será utilizada para entrar nesta galeria.'
+    : 'Informe o e-mail utilizado no cadastro da galeria. Enviaremos o seu login e um link seguro para criar uma nova senha.';
+  setTimeout(() => document.getElementById(resetMode ? 'recovery-password' : 'recovery-email').focus(), 50);
+}
+function closeRecovery() { recoveryModal.hidden = true; recoveryMsg.textContent = ''; }
+
+document.getElementById('forgot-access-code').textContent = 'Esqueci meus dados de acesso';
+document.getElementById('forgot-access-code').addEventListener('click', () => openRecovery(false));
+document.getElementById('recovery-close').addEventListener('click', closeRecovery);
+document.getElementById('recovery-cancel').addEventListener('click', closeRecovery);
+
+recoveryRequestForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = document.getElementById('recovery-request-submit');
+  submit.disabled = true;
+  recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
   try {
-    turnstileToken = await obterTurnstileToken();
-  } catch (error) {
-    acessoMsg.textContent='Não foi possível confirmar que você não é um robô. Tente novamente.';
-    acessoMsg.className='msg erro';
-    return;
-  }
-  const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'forgot',slug,turnstileToken})});
-  const data=await response.json().catch(()=>({}));
-  acessoMsg.textContent=data.message||'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.';acessoMsg.className=response.ok?'msg sucesso':'msg erro';
+    const turnstileToken = await obterTurnstileToken();
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email:document.getElementById('recovery-email').value.trim(), turnstileToken }) });
+    const data = await response.json().catch(() => ({}));
+    recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
+    recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
+  } catch {
+    recoveryMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.'; recoveryMsg.className = 'msg erro';
+  } finally { submit.disabled = false; }
 });
+
+recoveryResetForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const password = document.getElementById('recovery-password').value;
+  const confirmation = document.getElementById('recovery-password-confirm').value;
+  if (password !== confirmation) { recoveryMsg.textContent = 'As duas senhas precisam ser iguais.'; recoveryMsg.className = 'msg erro'; return; }
+  const submit = document.getElementById('recovery-reset-submit');
+  submit.disabled = true;
+  recoveryMsg.textContent = 'A guardar a nova senha...'; recoveryMsg.className = 'msg';
+  try {
+    const turnstileToken = await obterTurnstileToken();
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'reset', token:recoveryToken, newPassword:password, turnstileToken }) });
+    const data = await response.json().catch(() => ({}));
+    recoveryMsg.textContent = data.message || data.erro || 'Não foi possível alterar a senha.';
+    recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
+    if (response.ok) {
+      recoveryResetForm.reset();
+      history.replaceState({}, '', '/area-cliente');
+      setTimeout(() => { closeRecovery(); acessoMsg.textContent = data.message; acessoMsg.className = 'msg sucesso'; }, 1800);
+    }
+  } catch {
+    recoveryMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.'; recoveryMsg.className = 'msg erro';
+  } finally { submit.disabled = false; }
+});
+
+if (recoveryToken) openRecovery(true);
 
 function mostrarGaleria() {
   acessoScreen.style.display = 'none';
