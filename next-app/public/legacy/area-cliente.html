@@ -931,14 +931,25 @@ async function obterTurnstileToken(nome = 'main') {
     turnstile.execute(w.id);
   });
   // Limite de segurança: nunca fica travado para sempre, mesmo se algo
-  // impedir a verificação de aparecer ou de ser concluída.
-  const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 25000));
+  // impedir a verificação de aparecer ou de ser concluída. 90s dá folga de
+  // sobra para desafios visuais (imagens) que a pessoa demora a resolver.
+  const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 90000));
   try {
     return await Promise.race([verificacao, tempoEsgotado]);
   } finally {
     w.resolve = null;
     w.reject = null;
   }
+}
+
+function mensagemErroTurnstile(error) {
+  if (error && error.message === 'turnstile-timeout') {
+    return 'A verificação demorou mais do que o esperado. Tente novamente.';
+  }
+  if (error && (error.message === 'turnstile-error' || error.message === 'turnstile-expired')) {
+    return 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+  }
+  return 'Não foi possível concluir agora. Verifique sua internet e tente novamente.';
 }
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
@@ -1019,7 +1030,7 @@ document.getElementById('acesso-form').addEventListener('submit', async (e) => {
   try {
     turnstileToken = await obterTurnstileToken();
   } catch (error) {
-    acessoMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+    acessoMsg.textContent = mensagemErroTurnstile(error);
     acessoMsg.className = 'msg erro';
     submitBtn.disabled = false;
     loginEmAndamento = false;
@@ -1096,11 +1107,13 @@ recoveryRequestForm.addEventListener('submit', async event => {
   recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
   try {
     const turnstileToken = await obterTurnstileToken('recovery');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email:document.getElementById('recovery-email').value.trim(), turnstileToken }) });
     const data = await response.json().catch(() => ({}));
     recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
     recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
-  } catch {
-    recoveryMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.'; recoveryMsg.className = 'msg erro';
+  } catch (error) {
+    recoveryMsg.textContent = mensagemErroTurnstile(error);
+    recoveryMsg.className = 'msg erro';
   } finally { submit.disabled = false; }
 });
 
@@ -1114,6 +1127,7 @@ recoveryResetForm.addEventListener('submit', async event => {
   recoveryMsg.textContent = 'A guardar a nova senha...'; recoveryMsg.className = 'msg';
   try {
     const turnstileToken = await obterTurnstileToken('recovery');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'reset', token:recoveryToken, newPassword:password, turnstileToken }) });
     const data = await response.json().catch(() => ({}));
     recoveryMsg.textContent = data.message || data.erro || 'Não foi possível alterar a senha.';
     recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
@@ -1122,8 +1136,9 @@ recoveryResetForm.addEventListener('submit', async event => {
       history.replaceState({}, '', '/area-cliente');
       setTimeout(() => { closeRecovery(); acessoMsg.textContent = data.message; acessoMsg.className = 'msg sucesso'; }, 1800);
     }
-  } catch {
-    recoveryMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.'; recoveryMsg.className = 'msg erro';
+  } catch (error) {
+    recoveryMsg.textContent = mensagemErroTurnstile(error);
+    recoveryMsg.className = 'msg erro';
   } finally { submit.disabled = false; }
 });
 
