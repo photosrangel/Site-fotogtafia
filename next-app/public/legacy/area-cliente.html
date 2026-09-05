@@ -728,7 +728,7 @@
           Acessar minha galeria
         </button>
         <div id="turnstile-client"></div>
-        <button type="button" class="btn" id="forgot-access-code">Esqueci meu código</button>
+        <button type="button" class="btn" id="forgot-access-code">Esqueci meus dados de acesso</button>
 
         <p id="acesso-msg" class="msg"></p>
 
@@ -1126,7 +1126,6 @@ function mostrarRecoveryEnviado(mensagem, email) {
   recoverySent.hidden = false;
 }
 
-document.getElementById('forgot-access-code').textContent = 'Esqueci meus dados de acesso';
 document.getElementById('forgot-access-code').addEventListener('click', () => openRecovery(false));
 document.getElementById('recovery-close').addEventListener('click', closeRecovery);
 document.getElementById('recovery-cancel').addEventListener('click', closeRecovery);
