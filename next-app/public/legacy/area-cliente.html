@@ -574,6 +574,44 @@
     white-space: pre-line;
   }
 
+  /* Turnstile invisível por padrão — só ocupa espaço quando o Cloudflare
+     efetivamente mostra uma verificação (checkbox ou desafio). */
+  #turnstile-client {
+    display: flex;
+    justify-content: center;
+  }
+
+  #turnstile-client:has(iframe) {
+    margin: 14px 0 4px;
+  }
+
+  /* "Esqueci meu código" como link de texto centralizado, não como botão */
+  #forgot-access-code {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    margin: 16px auto 0;
+    padding: 0;
+    display: block;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-align: center;
+    cursor: pointer;
+    transition: color .2s ease;
+  }
+
+  #forgot-access-code:hover {
+    color: var(--accent);
+  }
+
 </style>
 </head>
 <body class="client-area-premium">
@@ -759,8 +797,46 @@ import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY } from './js/supabase-config.js';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let turnstileToken='';
-if(TURNSTILE_SITE_KEY){const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';script.async=true;script.onload=()=>turnstile.render('#turnstile-client',{sitekey:TURNSTILE_SITE_KEY,callback:token=>turnstileToken=token,'expired-callback':()=>turnstileToken='' });document.head.append(script)}
+
+// Turnstile em modo "execute": fica invisível e só entra em ação quando a
+// pessoa clica em entrar (ou em "esqueci meu código"). Na maioria das vezes
+// ele confirma sozinho, em segundo plano, sem mostrar nada; só aparece uma
+// verificação visível (checkbox ou, raramente, um desafio) quando o
+// Cloudflare julga necessário — sempre no mesmo lugar, sem pular o layout.
+let turnstileWidgetId = null;
+let turnstileResolve = null;
+let turnstileReject = null;
+const turnstileReady = TURNSTILE_SITE_KEY
+  ? new Promise((resolveReady) => {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.onload = () => {
+        turnstileWidgetId = turnstile.render('#turnstile-client', {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme: 'dark',
+          size: 'flexible',
+          appearance: 'execute',
+          callback: (token) => { if (turnstileResolve) { turnstileResolve(token); turnstileResolve = null; turnstileReject = null; } },
+          'error-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-error')); turnstileResolve = null; turnstileReject = null; } },
+          'expired-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-expired')); turnstileResolve = null; turnstileReject = null; } }
+        });
+        resolveReady();
+      };
+      document.head.append(script);
+    })
+  : Promise.resolve();
+
+async function obterTurnstileToken() {
+  if (!TURNSTILE_SITE_KEY) return '';
+  await turnstileReady;
+  return new Promise((resolve, reject) => {
+    turnstileResolve = resolve;
+    turnstileReject = reject;
+    turnstile.reset(turnstileWidgetId);
+    turnstile.execute(turnstileWidgetId);
+  });
+}
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
 // foto marcada como protegida (prova/seleção) — sem afetar o resto da página.
@@ -822,14 +898,31 @@ document.getElementById('btn-toggle-senha').addEventListener('click', () => {
   btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
 });
 
-document.getElementById('acesso-form').addEventListener('submit', (e) => {
+document.getElementById('acesso-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const slug = document.getElementById('input-slug').value.trim();
   const codigo = document.getElementById('input-codigo').value.trim();
-  entrar(slug, codigo);
+  const submitBtn = document.getElementById('client-access-submit');
+
+  submitBtn.disabled = true;
+  acessoMsg.textContent = 'Verificando...';
+  acessoMsg.className = 'msg';
+
+  let turnstileToken = '';
+  try {
+    turnstileToken = await obterTurnstileToken();
+  } catch (error) {
+    acessoMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+    acessoMsg.className = 'msg erro';
+    submitBtn.disabled = false;
+    return;
+  }
+
+  await entrar(slug, codigo, turnstileToken);
+  submitBtn.disabled = false;
 });
 
-async function entrar(slug, codigo) {
+async function entrar(slug, codigo, turnstileToken) {
   acessoMsg.textContent = 'Verificando...';
   acessoMsg.className = 'msg';
 
@@ -868,6 +961,14 @@ document.getElementById('forgot-access-code').addEventListener('click',async()=>
   const slug=document.getElementById('input-slug').value.trim();
   if(!slug){acessoMsg.textContent='Informe primeiro o login do ensaio.';acessoMsg.className='msg erro';return}
   acessoMsg.textContent='A enviar instruções...';acessoMsg.className='msg';
+  let turnstileToken='';
+  try {
+    turnstileToken = await obterTurnstileToken();
+  } catch (error) {
+    acessoMsg.textContent='Não foi possível confirmar que você não é um robô. Tente novamente.';
+    acessoMsg.className='msg erro';
+    return;
+  }
   const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'forgot',slug,turnstileToken})});
   const data=await response.json().catch(()=>({}));
   acessoMsg.textContent=data.message||'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.';acessoMsg.className=response.ok?'msg sucesso':'msg erro';

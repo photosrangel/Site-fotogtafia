@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sobre — Rangel Santos — Fotografia</title>
+<meta name="description" content="Conheça Rangel Santos, fotógrafo de retratos femininos em Vale de Cambra, Aveiro."><link rel="canonical" href="https://photosrangel.pt/sobre"><meta property="og:type" content="profile"><meta property="og:title" content="Sobre Rangel Santos — Fotógrafo"><meta property="og:description" content="Fotografia de retrato com uma experiência acolhedora e personalizada."><meta property="og:url" content="https://photosrangel.pt/sobre"><meta property="og:image" content="https://photosrangel.pt/images/sobre-retrato.jpg"><meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  document.documentElement.classList.add('sobre-cms-loading');
+</script>
+<style>
+  /*
+    Evita o “conteúdo antigo → pisca → conteúdo do CMS”.
+    A área principal só aparece depois que o CMS terminar o primeiro render.
+  */
+  .sobre-cms-loading .about-grid {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .sobre-cms-ready .about-grid {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .16s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sobre-cms-ready .about-grid {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a href="/inicio" class="nav-logo" data-setting="site_name">Rangel <em>Santos</em> <span class="nav-logo-photo">Fotografia</span></a>
+    <button class="nav-toggle" aria-label="Abrir menu"><span></span><span></span><span></span></button>
+    <div class="nav-links">
+    <a href="/inicio">Início</a>
+    <a href="/galeria">Galeria</a>
+    <a href="/sobre" class="active">Sobre</a>
+    <a href="/contato">Contato</a>
+    <a href="/area-cliente" class="nav-cta">Área do Cliente</a>
+    </div>
+  </div>
+</nav>
+
+<section class="section" style="padding-top:160px;">
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-portrait">
+        <img id="sobre-portrait" src="images/retrato-01.jpg" alt="Retrato de Rangel Santos, fotógrafo">
+      </div>
+      <div class="about-text">
+        <p class="section-eyebrow" id="sobre-eyebrow">Sobre mim</p>
+        <div id="sobre-paragraphs"></div>
+
+        <dl class="specs" id="sobre-specs"></dl>
+
+        <div style="margin-top:36px;">
+          <a href="/contato" class="btn btn-accent" id="sobre-cta">Vamos conversar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-layout">
+    <p class="footer-invitation">Vamos criar algo que<br>devolve confiança.</p>
+    <div class="footer-column"><span class="footer-label">Site</span><a href="/inicio">Início</a><a href="/galeria">Galeria</a><a href="/sobre">Sobre</a><a href="/contato">Contato</a></div>
+    <div class="footer-column"><span class="footer-label">Conecte-se</span><a href="https://instagram.com/photosrangel" target="_blank" rel="noopener" data-setting="instagram_url">Instagram</a><a href="https://wa.me/351931159748" target="_blank" rel="noopener" data-setting="whatsapp">WhatsApp</a><a href="/area-cliente">Área do Cliente</a></div>
+    <div class="footer-bottom"><span class="footer-mono" data-setting="footer_text">© 2026 Rangel Santos — Fotografia</span><span class="footer-mono">Vale de Cambra, Portugal</span></div>
+    <div class="footer-watermark" aria-hidden="true">Rangel Santos</div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/privacy-consent.js"></script>
+<script type="module" src="js/sobre.js"></script>
+</body>
+</html>

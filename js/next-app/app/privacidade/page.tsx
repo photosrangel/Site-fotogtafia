@@ -1,0 +1,1 @@
+import type {Metadata} from 'next';import {LegacyPage} from '@/components/legacy-page';export const metadata:Metadata={title:'Política de Privacidade',description:'Como Rangel Santos Fotografia trata e protege dados pessoais.',alternates:{canonical:'/privacidade'}};export default function Page(){return <LegacyPage file="privacidade.html" title="Política de Privacidade"/>}
