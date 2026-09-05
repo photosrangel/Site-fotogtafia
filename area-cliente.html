@@ -817,6 +817,7 @@ const turnstileReady = TURNSTILE_SITE_KEY
           theme: 'dark',
           size: 'flexible',
           appearance: 'execute',
+          execution: 'execute',
           callback: (token) => { if (turnstileResolve) { turnstileResolve(token); turnstileResolve = null; turnstileReject = null; } },
           'error-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-error')); turnstileResolve = null; turnstileReject = null; } },
           'expired-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-expired')); turnstileResolve = null; turnstileReject = null; } }
@@ -853,6 +854,7 @@ const acessoMsg = document.getElementById('acesso-msg');
 
 let ensaioAtual = null;
 let selecaoAtual = new Set();
+let loginEmAndamento = false;
 
 function statusEnsaioNormalizado(status) {
   if (status === 'selecionado') return 'selecao_finalizada';
@@ -900,6 +902,9 @@ document.getElementById('btn-toggle-senha').addEventListener('click', () => {
 
 document.getElementById('acesso-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (loginEmAndamento) return;
+  loginEmAndamento = true;
+
   const slug = document.getElementById('input-slug').value.trim();
   const codigo = document.getElementById('input-codigo').value.trim();
   const submitBtn = document.getElementById('client-access-submit');
@@ -915,11 +920,13 @@ document.getElementById('acesso-form').addEventListener('submit', async (e) => {
     acessoMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.';
     acessoMsg.className = 'msg erro';
     submitBtn.disabled = false;
+    loginEmAndamento = false;
     return;
   }
 
   await entrar(slug, codigo, turnstileToken);
   submitBtn.disabled = false;
+  loginEmAndamento = false;
 });
 
 async function entrar(slug, codigo, turnstileToken) {
