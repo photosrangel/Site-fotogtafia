@@ -585,6 +585,21 @@
     margin: 14px 0 4px;
   }
 
+  #turnstile-recovery {
+    display: flex;
+    justify-content: center;
+  }
+
+  #turnstile-recovery:has(iframe) {
+    margin: 16px 0 0;
+  }
+
+  #recovery-sent-text {
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+
   /* "Esqueci meu código" como link de texto centralizado, não como botão */
   #forgot-access-code {
     width: auto;
@@ -611,6 +626,40 @@
   #forgot-access-code:hover {
     color: var(--accent);
   }
+
+  .recovery-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0,0,0,.82);
+    backdrop-filter: blur(8px);
+  }
+  .recovery-modal[hidden] { display: none; }
+  .recovery-card {
+    position: relative;
+    width: min(460px, 100%);
+    padding: 36px;
+    border: 1px solid var(--border);
+    background: #11110f;
+    box-shadow: 0 24px 80px rgba(0,0,0,.55);
+  }
+  .recovery-card h2 { margin: 8px 0 12px; font-size: clamp(2rem, 7vw, 3rem); }
+  .recovery-card > p { color: var(--text-muted); line-height: 1.6; }
+  .recovery-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .recovery-actions { display: grid; gap: 12px; margin-top: 22px; }
+  .recovery-cancel { background: transparent; color: var(--text-muted); border: 0; cursor: pointer; }
 
 </style>
 </head>
@@ -679,7 +728,7 @@
           Acessar minha galeria
         </button>
         <div id="turnstile-client"></div>
-        <button type="button" class="btn" id="forgot-access-code">Esqueci meu código</button>
+        <button type="button" class="btn" id="forgot-access-code">Esqueci meus dados de acesso</button>
 
         <p id="acesso-msg" class="msg"></p>
 
@@ -690,6 +739,47 @@
       </form>
     </section>
   </div>
+</div>
+
+<!-- RECUPERAÇÃO DE ACESSO -->
+<div id="recovery-modal" class="recovery-modal" hidden role="dialog" aria-modal="true" aria-labelledby="recovery-title">
+  <section class="recovery-card">
+    <button type="button" class="recovery-close" id="recovery-close" aria-label="Fechar">×</button>
+    <p class="section-eyebrow">Acesso privado</p>
+    <h2 class="section-title" id="recovery-title">Recuperar acesso</h2>
+    <p id="recovery-description">Informe o e-mail utilizado no cadastro da galeria. Enviaremos o seu login e um link seguro para criar uma nova senha.</p>
+    <form id="recovery-request-form">
+      <div class="field">
+        <label for="recovery-email">E-mail</label>
+        <input id="recovery-email" type="email" autocomplete="email" required maxlength="254">
+      </div>
+      <div class="recovery-actions">
+        <button type="submit" class="btn btn-accent" id="recovery-request-submit">Enviar dados de acesso</button>
+        <button type="button" class="recovery-cancel" id="recovery-cancel">Voltar</button>
+      </div>
+    </form>
+    <form id="recovery-reset-form" hidden>
+      <div class="field">
+        <label for="recovery-password">Nova senha</label>
+        <input id="recovery-password" type="password" autocomplete="new-password" required minlength="6" maxlength="64">
+      </div>
+      <div class="field">
+        <label for="recovery-password-confirm">Confirmar nova senha</label>
+        <input id="recovery-password-confirm" type="password" autocomplete="new-password" required minlength="6" maxlength="64">
+      </div>
+      <div class="recovery-actions">
+        <button type="submit" class="btn btn-accent" id="recovery-reset-submit">Guardar nova senha</button>
+      </div>
+    </form>
+    <div id="recovery-sent" hidden>
+      <p id="recovery-sent-text"></p>
+      <div class="recovery-actions">
+        <button type="button" class="btn btn-accent" id="recovery-sent-close">Entendi</button>
+      </div>
+    </div>
+    <div id="turnstile-recovery"></div>
+    <p id="recovery-msg" class="msg" aria-live="polite"></p>
+  </section>
 </div>
 
 <!-- GALERIA DO CLIENTE -->
@@ -799,44 +889,79 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY } from './js/supaba
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Turnstile em modo "execute": fica invisível e só entra em ação quando a
-// pessoa clica em entrar (ou em "esqueci meu código"). Na maioria das vezes
-// ele confirma sozinho, em segundo plano, sem mostrar nada; só aparece uma
-// verificação visível (checkbox ou, raramente, um desafio) quando o
-// Cloudflare julga necessário — sempre no mesmo lugar, sem pular o layout.
-let turnstileWidgetId = null;
-let turnstileResolve = null;
-let turnstileReject = null;
-const turnstileReady = TURNSTILE_SITE_KEY
-  ? new Promise((resolveReady) => {
-      const script = document.createElement('script');
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-      script.async = true;
-      script.onload = () => {
-        turnstileWidgetId = turnstile.render('#turnstile-client', {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          size: 'flexible',
-          appearance: 'execute',
-          execution: 'execute',
-          callback: (token) => { if (turnstileResolve) { turnstileResolve(token); turnstileResolve = null; turnstileReject = null; } },
-          'error-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-error')); turnstileResolve = null; turnstileReject = null; } },
-          'expired-callback': () => { if (turnstileReject) { turnstileReject(new Error('turnstile-expired')); turnstileResolve = null; turnstileReject = null; } }
-        });
-        resolveReady();
-      };
-      document.head.append(script);
-    })
-  : Promise.resolve();
+// Turnstile em modo "execute": fica invisível e só entra em ação quando a
+// pessoa clica em entrar (ou envia o formulário de recuperação). Na maioria
+// das vezes ele confirma sozinho, em segundo plano, sem mostrar nada; só
+// aparece uma verificação visível (checkbox ou, raramente, um desafio)
+// quando o Cloudflare julga necessário.
+//
+// Há DOIS widgets independentes — um para a tela de login (#turnstile-client)
+// e outro para dentro do modal de recuperação (#turnstile-recovery) — porque
+// o modal cobre a tela inteira; se os dois dividissem o mesmo widget, uma
+// verificação visível pedida enquanto o modal está aberto ficaria escondida
+// atrás dele (ou vice-versa), travando para sempre à espera de um clique que
+// a pessoa nunca consegue dar.
+const turnstileWidgets = {};
 
-async function obterTurnstileToken() {
-  if (!TURNSTILE_SITE_KEY) return '';
-  await turnstileReady;
-  return new Promise((resolve, reject) => {
-    turnstileResolve = resolve;
-    turnstileReject = reject;
-    turnstile.reset(turnstileWidgetId);
-    turnstile.execute(turnstileWidgetId);
+function prepararTurnstile(nome, elementId) {
+  turnstileWidgets[nome] = { id: null, resolve: null, reject: null };
+  if (!TURNSTILE_SITE_KEY) return Promise.resolve();
+  return new Promise((resolveReady) => {
+    const render = () => {
+      turnstileWidgets[nome].id = turnstile.render(`#${elementId}`, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: 'dark',
+        size: 'flexible',
+        appearance: 'execute',
+        execution: 'execute',
+        callback: (token) => { const w = turnstileWidgets[nome]; if (w.resolve) { w.resolve(token); w.resolve = null; w.reject = null; } },
+        'error-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-error')); w.resolve = null; w.reject = null; } },
+        'expired-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-expired')); w.resolve = null; w.reject = null; } }
+      });
+      resolveReady();
+    };
+    if (window.turnstile) { render(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.onload = render;
+    document.head.append(script);
   });
+}
+
+const turnstileReadyMain = prepararTurnstile('main', 'turnstile-client');
+const turnstileReadyRecovery = prepararTurnstile('recovery', 'turnstile-recovery');
+
+async function obterTurnstileToken(nome = 'main') {
+  if (!TURNSTILE_SITE_KEY) return '';
+  await (nome === 'recovery' ? turnstileReadyRecovery : turnstileReadyMain);
+  const w = turnstileWidgets[nome];
+  const verificacao = new Promise((resolve, reject) => {
+    w.resolve = resolve;
+    w.reject = reject;
+    turnstile.reset(w.id);
+    turnstile.execute(w.id);
+  });
+  // Limite de segurança: nunca fica travado para sempre, mesmo se algo
+  // impedir a verificação de aparecer ou de ser concluída. 90s dá folga de
+  // sobra para desafios visuais (imagens) que a pessoa demora a resolver.
+  const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 90000));
+  try {
+    return await Promise.race([verificacao, tempoEsgotado]);
+  } finally {
+    w.resolve = null;
+    w.reject = null;
+  }
+}
+
+function mensagemErroTurnstile(error) {
+  if (error && error.message === 'turnstile-timeout') {
+    return 'A verificação demorou mais do que o esperado. Tente novamente.';
+  }
+  if (error && (error.message === 'turnstile-error' || error.message === 'turnstile-expired')) {
+    return 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+  }
+  return 'Não foi possível concluir agora. Verifique sua internet e tente novamente.';
 }
 
 // Bloqueia o menu de botão direito e o "arrastar para salvar" em qualquer
@@ -917,7 +1042,7 @@ document.getElementById('acesso-form').addEventListener('submit', async (e) => {
   try {
     turnstileToken = await obterTurnstileToken();
   } catch (error) {
-    acessoMsg.textContent = 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+    acessoMsg.textContent = mensagemErroTurnstile(error);
     acessoMsg.className = 'msg erro';
     submitBtn.disabled = false;
     loginEmAndamento = false;
@@ -964,22 +1089,100 @@ async function entrar(slug, codigo, turnstileToken) {
   mostrarGaleria();
 }
 
-document.getElementById('forgot-access-code').addEventListener('click',async()=>{
-  const slug=document.getElementById('input-slug').value.trim();
-  if(!slug){acessoMsg.textContent='Informe primeiro o login do ensaio.';acessoMsg.className='msg erro';return}
-  acessoMsg.textContent='A enviar instruções...';acessoMsg.className='msg';
-  let turnstileToken='';
+const recoveryModal = document.getElementById('recovery-modal');
+const recoveryRequestForm = document.getElementById('recovery-request-form');
+const recoveryResetForm = document.getElementById('recovery-reset-form');
+const recoverySent = document.getElementById('recovery-sent');
+const recoveryMsg = document.getElementById('recovery-msg');
+const recoveryToken = new URLSearchParams(location.search).get('recuperar') || '';
+
+function openRecovery(resetMode = false) {
+  recoveryModal.hidden = false;
+  recoveryRequestForm.hidden = resetMode;
+  recoveryResetForm.hidden = !resetMode;
+  recoverySent.hidden = true;
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
+  document.getElementById('recovery-title').textContent = resetMode ? 'Crie uma nova senha' : 'Recuperar acesso';
+  document.getElementById('recovery-description').textContent = resetMode
+    ? 'Escolha a nova senha que será utilizada para entrar nesta galeria.'
+    : 'Informe o e-mail utilizado no cadastro da galeria. Enviaremos o seu login e um link seguro para criar uma nova senha.';
+  document.getElementById('recovery-description').hidden = false;
+  setTimeout(() => document.getElementById(resetMode ? 'recovery-password' : 'recovery-email').focus(), 50);
+}
+function closeRecovery() {
+  recoveryModal.hidden = true;
+  recoveryMsg.textContent = '';
+  recoverySent.hidden = true;
+  recoveryRequestForm.hidden = false;
+  recoveryRequestForm.reset();
+}
+
+function mostrarRecoveryEnviado(mensagem, email) {
+  recoveryRequestForm.hidden = true;
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
+  document.getElementById('recovery-title').textContent = 'Verifique o seu e-mail';
+  document.getElementById('recovery-description').hidden = true;
+  document.getElementById('recovery-sent-text').textContent = mensagem || `Enviámos as instruções de acesso para ${email}. Verifique a caixa de entrada (e também o spam).`;
+  recoverySent.hidden = false;
+}
+
+document.getElementById('forgot-access-code').addEventListener('click', () => openRecovery(false));
+document.getElementById('recovery-close').addEventListener('click', closeRecovery);
+document.getElementById('recovery-cancel').addEventListener('click', closeRecovery);
+document.getElementById('recovery-sent-close').addEventListener('click', closeRecovery);
+
+recoveryRequestForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const submit = document.getElementById('recovery-request-submit');
+  const email = document.getElementById('recovery-email').value.trim();
+  submit.disabled = true;
+  recoveryMsg.textContent = ''; recoveryMsg.className = 'msg';
   try {
-    turnstileToken = await obterTurnstileToken();
+    // Nenhuma mensagem aqui ainda: se o Cloudflare precisar de confirmação,
+    // é a própria caixinha do Turnstile que aparece primeiro. Só depois que
+    // ela é resolvida (com ou sem clique) é que avisamos que está a enviar.
+    const turnstileToken = await obterTurnstileToken('recovery');
+    recoveryMsg.textContent = 'A enviar instruções...'; recoveryMsg.className = 'msg';
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'forgot', email, turnstileToken }) });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      mostrarRecoveryEnviado(data.message, email);
+    } else {
+      recoveryMsg.textContent = data.message || data.erro || 'Não foi possível enviar agora.';
+      recoveryMsg.className = 'msg erro';
+    }
   } catch (error) {
-    acessoMsg.textContent='Não foi possível confirmar que você não é um robô. Tente novamente.';
-    acessoMsg.className='msg erro';
-    return;
-  }
-  const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'forgot',slug,turnstileToken})});
-  const data=await response.json().catch(()=>({}));
-  acessoMsg.textContent=data.message||'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.';acessoMsg.className=response.ok?'msg sucesso':'msg erro';
+    recoveryMsg.textContent = mensagemErroTurnstile(error);
+    recoveryMsg.className = 'msg erro';
+  } finally { submit.disabled = false; }
 });
+
+recoveryResetForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const password = document.getElementById('recovery-password').value;
+  const confirmation = document.getElementById('recovery-password-confirm').value;
+  if (password !== confirmation) { recoveryMsg.textContent = 'As duas senhas precisam ser iguais.'; recoveryMsg.className = 'msg erro'; return; }
+  const submit = document.getElementById('recovery-reset-submit');
+  submit.disabled = true;
+  recoveryMsg.textContent = 'A guardar a nova senha...'; recoveryMsg.className = 'msg';
+  try {
+    const turnstileToken = await obterTurnstileToken('recovery');
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/client-access`, { method:'POST', headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ action:'reset', token:recoveryToken, newPassword:password, turnstileToken }) });
+    const data = await response.json().catch(() => ({}));
+    recoveryMsg.textContent = data.message || data.erro || 'Não foi possível alterar a senha.';
+    recoveryMsg.className = response.ok ? 'msg sucesso' : 'msg erro';
+    if (response.ok) {
+      recoveryResetForm.reset();
+      history.replaceState({}, '', '/area-cliente');
+      setTimeout(() => { closeRecovery(); acessoMsg.textContent = data.message; acessoMsg.className = 'msg sucesso'; }, 1800);
+    }
+  } catch (error) {
+    recoveryMsg.textContent = mensagemErroTurnstile(error);
+    recoveryMsg.className = 'msg erro';
+  } finally { submit.disabled = false; }
+});
+
+if (recoveryToken) openRecovery(true);
 
 function mostrarGaleria() {
   acessoScreen.style.display = 'none';

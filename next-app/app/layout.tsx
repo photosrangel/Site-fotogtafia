@@ -4,6 +4,7 @@ import { HydrationMarker } from '@/components/hydration-marker';
 import { PublishedVisualDesign } from '@/components/published-visual-design';
 import { FloatingWhatsApp } from '@/components/floating-whatsapp';
 import { getPublishedDesignConfig } from '@/lib/published-design';
+import { PrivacyAnalytics } from '@/components/privacy-analytics';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://photosrangel.pt'),
@@ -31,7 +32,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head>
         <link rel="stylesheet" href="/legacy/css/style.css?v=67-gallery-mobile-2" />
       </head>
-      <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/></body>
+      <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/><PrivacyAnalytics /></body>
     </html>
   );
 }

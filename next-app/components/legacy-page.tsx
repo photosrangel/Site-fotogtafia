@@ -17,17 +17,23 @@ export function LegacyPage({ file, title }: LegacyPageProps) {
   const [source, setSource] = useState(baseSource);
 
   useEffect(() => {
+    // Tanto a query string da página Next (ex.: ?recuperar=TOKEN, usada no
+    // link de "criar nova senha" do e-mail) quanto o fragmento que o
+    // Supabase devolve após confirmar um e-mail (ex.: #access_token=...)
+    // ficam só na URL do navegador por padrão — o iframe tem sua própria
+    // URL independente e nunca os recebe sozinho. Aqui repassamos os dois.
+    const search = window.location.search;
     const hash = window.location.hash;
-    if (!hash) return;
+    const hashParams = hash ? new URLSearchParams(hash.slice(1)) : null;
+    const hashIsAuthCallback = !!hashParams && (hashParams.has('access_token') || hashParams.has('error'));
 
-    const callback = new URLSearchParams(hash.slice(1));
-    if (!callback.has('access_token') && !callback.has('error')) return;
+    if (!search && !hashIsAuthCallback) return;
 
-    // O Supabase devolve a sessão no fragmento da rota Next. O cliente de
-    // autenticação vive no painel legado incorporado, então entregamos o
-    // fragmento ao iframe uma única vez e o removemos imediatamente da barra.
-    setSource(`${baseSource}${hash}`);
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    setSource(`${baseSource}${search}${hashIsAuthCallback ? hash : ''}`);
+
+    if (hashIsAuthCallback) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
   }, [baseSource]);
 
   function connectNavigation() {
