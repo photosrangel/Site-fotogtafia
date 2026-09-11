@@ -6868,103 +6868,6 @@ body.modal-open {
 
 
 /* =========================================================
-   BUILD V42 — PONTO FOCAL DA ÁREA DO CLIENTE
-   ========================================================= */
-
-.design-client-image-preview {
-  cursor: crosshair;
-}
-
-.design-client-image-preview.empty {
-  cursor: default;
-}
-
-.design-client-focal-marker {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  top: 50%;
-
-  width: 24px;
-  height: 24px;
-
-  border: 2px solid #fff;
-  border-radius: 50%;
-
-  transform: translate(-50%, -50%);
-
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.55),
-    0 4px 16px rgba(0,0,0,.35);
-
-  pointer-events: none;
-}
-
-.design-client-focal-marker::before,
-.design-client-focal-marker::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  background: #fff;
-  transform: translate(-50%, -50%);
-}
-
-.design-client-focal-marker::before {
-  width: 1px;
-  height: 32px;
-}
-
-.design-client-focal-marker::after {
-  width: 32px;
-  height: 1px;
-}
-
-.design-client-image-preview.empty
-.design-client-focal-marker {
-  display: none;
-}
-
-.design-client-focal-controls {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--admin-line-soft);
-}
-
-.design-client-focal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  margin-bottom: 8px;
-
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: .52rem;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-}
-
-.design-client-focal-head strong {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.design-client-focal-row output {
-  float: right;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: .54rem;
-}
-
-.design-client-focal-row input[type="range"] {
-  width: 100%;
-  margin-top: 7px;
-}
-
-
-/* =========================================================
    BUILD V43 — CONTEÚDO FULLSCREEN REAL + PREVIEW SLIDESHOW
    ========================================================= */
 
@@ -7243,11 +7146,13 @@ body .design-controls-drawer.is-content-editor
 
 /* =========================================================
    BUILD V44 — ÁREA DO CLIENTE / FOCO VISUAL + TEXTOS
+   AJUSTE — reduz o tamanho da prévia, mantendo a proporção
    ========================================================= */
 
 .design-client-image-preview {
   position: relative !important;
   width: 100% !important;
+  max-width: 320px !important;
   height: auto !important;
   min-height: 0 !important;
   aspect-ratio: auto;
@@ -7311,13 +7216,6 @@ body .design-controls-drawer.is-content-editor
 .design-client-focal-help {
   margin: 9px 0 0;
   line-height: 1.5;
-}
-
-/* Neutraliza os sliders antigos da V42. */
-.design-client-focal-controls,
-.design-client-focal-head,
-.design-client-focal-row {
-  display: none !important;
 }
 
 .design-client-texts-section {
