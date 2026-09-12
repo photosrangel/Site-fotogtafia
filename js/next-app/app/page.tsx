@@ -6,7 +6,7 @@ import { getNativePageData } from '@/lib/site-content';
 import { getRecentPhotos } from '@/lib/public-gallery';
 /*
  * Rede de segurança: mesmo que a revalidação sob demanda (chamada pelo
- * botão "Publicar alterações no site" do painel) falhe por qualquer
+ * botão "Salvar e aplicar no site" do painel) falhe por qualquer
  * motivo (sessão expirada, falha de rede, domínio de preview), esta
  * página nunca fica desatualizada por mais de 30 segundos. Sem isto, a
  * página é gerada uma única vez em build e só muda se a revalidação sob

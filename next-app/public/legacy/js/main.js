@@ -359,8 +359,11 @@ function applyPublishedDesign(config={}){
     ${clientGalleryRule}
 
     .client-access-visual{
-      ${!LOCK_CLIENT_ACCESS_COVER && c.client_access_image ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${c.client_access_image.replace(/"/g,'%22')}") !important;` : ''}
-      ${!LOCK_CLIENT_ACCESS_COVER ? `background-position:${c.client_focus_x}% ${c.client_focus_y}% !important;` : ''}
+      /* O layout da capa permanece fixo, mas a fotografia e o ponto focal
+         são controlados pelo Admin. Sem URL publicada, o fundo base
+         cinza/escuro definido no area-cliente.html permanece visível. */
+      ${c.client_access_image ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${c.client_access_image.replace(/"/g,'%22')}") !important;` : ''}
+      background-position:${c.client_focus_x}% ${c.client_focus_y}% !important;
     }
 
     @media (prefers-reduced-motion:reduce){body,.section{animation:none !important}}

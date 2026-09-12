@@ -9416,8 +9416,15 @@ function updateDesignClientFocalUI() {
 
   if (summary) {
     summary.textContent =
-      `Ponto focal: ${Math.round(x)}% × ${Math.round(y)}% — clique na foto para alterar.`;
+      `Ponto focal: ${Math.round(x)}% × ${Math.round(y)}% — clique na foto ou use os controles abaixo.`;
   }
+
+  const xOut = $('design-client-focus-x-out');
+  const yOut = $('design-client-focus-y-out');
+  const coords = $('design-client-focal-coordinates');
+  if (xOut) xOut.textContent = `${Math.round(x)}%`;
+  if (yOut) yOut.textContent = `${Math.round(y)}%`;
+  if (coords) coords.textContent = `${Math.round(x)}% × ${Math.round(y)}%`;
 
   const preview =
     $('design-client-access-image-preview');

@@ -221,7 +221,7 @@
     <section class="panel design-publication-panel design-actions-simple" aria-label="Ações das alterações">
       <div class="design-publication-actions">
         <button class="btn" id="design-restore-published" type="button" disabled>Descartar todas</button>
-        <button class="btn btn-accent" id="design-publish" type="button" disabled>Publicar alterações no site</button>
+        <button class="btn btn-accent" id="design-publish" type="button" disabled>Salvar e aplicar no site</button>
       </div>
     </section>
   </div>
@@ -455,8 +455,6 @@
   </div>
 
   <input id="design-client-access-image" type="hidden" value="">
-  <input id="design-client-focus-x" type="hidden" value="50">
-  <input id="design-client-focus-y" type="hidden" value="50">
 
   <div
     class="design-client-image-preview focal-preview empty"
@@ -470,6 +468,25 @@
       style="left:50%;top:50%"
       aria-hidden="true"
     ></span>
+  </div>
+
+  <div class="design-client-focal-controls is-visible" id="design-client-focal-controls">
+    <div class="design-client-focal-head">
+      <span>Ponto central da fotografia</span>
+      <strong id="design-client-focal-coordinates">50% × 50%</strong>
+    </div>
+
+    <label class="design-client-focal-row">
+      Horizontal
+      <output id="design-client-focus-x-out">50%</output>
+      <input id="design-client-focus-x" type="range" min="0" max="100" step="1" value="50">
+    </label>
+
+    <label class="design-client-focal-row">
+      Vertical
+      <output id="design-client-focus-y-out">50%</output>
+      <input id="design-client-focus-y" type="range" min="0" max="100" step="1" value="50">
+    </label>
   </div>
 
   <div class="design-client-image-actions">

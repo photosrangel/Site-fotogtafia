@@ -7787,3 +7787,35 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .design-inline-size-control output{text-align:right;color:var(--text)}
 .design-inline-button-row{min-height:54px}
 @media(max-width:700px){.design-inline-tool-panel{flex-basis:100%}.design-inline-position{grid-template-columns:auto minmax(110px,1fr);flex:1 1 170px}.design-inline-position input{width:100%}}
+
+
+/* =========================================================
+   AJUSTE 2026-09-12 — ÁREA DO CLIENTE / FOTO + PONTO FOCAL
+   ========================================================= */
+.design-client-focal-controls.is-visible{
+  display:block !important;
+  margin-top:12px;
+  padding:12px;
+  border:1px solid var(--admin-line-soft);
+  background:rgba(255,255,255,.018);
+}
+.design-client-focal-controls.is-visible .design-client-focal-head{
+  display:flex !important;
+}
+.design-client-focal-controls.is-visible .design-client-focal-row{
+  display:block !important;
+  margin-top:10px;
+  color:var(--text-muted);
+  font-size:.72rem;
+}
+.design-client-focal-controls.is-visible .design-client-focal-row input[type="range"]{
+  display:block;
+  width:100%;
+  margin-top:7px;
+}
+.design-client-focal-controls.is-visible .design-client-focal-row output{
+  float:right;
+}
+.design-client-image-preview.empty + .design-client-focal-controls{
+  opacity:.5;
+}
