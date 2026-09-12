@@ -2499,11 +2499,20 @@ html[data-admin-design-device="mobile"] [data-design-inline-editable="1"]:hover{
 
 /* Visualizador público — composição final aprovada para prévia */
 #lightbox .lightbox-carousel{
-  grid-template-columns:minmax(110px,18vw) minmax(0,64vw) minmax(110px,18vw);
-  gap:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(8px,1vw,18px);
 }
 #lightbox .lightbox-slide-current{
+  flex:0 1 auto;
   padding-inline:clamp(6px,.65vw,12px);
+}
+#lightbox .lightbox-slide-prev,
+#lightbox .lightbox-slide-next{
+  flex:1 1 0;
+  min-width:0;
+  max-width:27vw;
 }
 #lightbox .lightbox-slide-prev img,
 #lightbox .lightbox-slide-next img{
@@ -2515,7 +2524,7 @@ html[data-admin-design-device="mobile"] [data-design-inline-editable="1"]:hover{
 #lightbox .lightbox-slide-next{justify-content:flex-start;transform:none}
 
 @media(max-width:760px){
-  #lightbox .lightbox-carousel{grid-template-columns:minmax(0,1fr)}
+  #lightbox .lightbox-carousel{display:grid;grid-template-columns:minmax(0,1fr)}
   #lightbox .lightbox-slide-prev,
   #lightbox .lightbox-slide-next{display:none}
   #lightbox .lightbox-slide-current{padding-inline:8px}

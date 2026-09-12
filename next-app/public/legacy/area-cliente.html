@@ -121,20 +121,20 @@
   /* Visualizador da seleção — imagem atual com prévias laterais */
   #lightbox-selecao { padding:20px clamp(10px,1.8vw,30px); overflow:hidden; }
   #lightbox-selecao .lightbox-stage { width:100%; height:calc(100dvh - 118px); padding:4px 0 58px; overflow:hidden; }
-  .selection-lightbox-carousel { width:100%; height:100%; display:grid; grid-template-columns:minmax(110px,18vw) minmax(0,64vw) minmax(110px,18vw); gap:0; align-items:center; }
+  .selection-lightbox-carousel { width:100%; height:100%; display:flex; align-items:center; justify-content:center; gap:clamp(8px,1vw,18px); }
   .selection-lightbox-slide { position:relative; min-width:0; height:min(78dvh,920px); border:0; padding:0; background:transparent; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .selection-lightbox-slide img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; }
-  .selection-lightbox-current { z-index:2; overflow:visible; }
-  .selection-lightbox-current .lightbox-photo-protected { max-width:min(68vw,1280px); max-height:78dvh; }
+  .selection-lightbox-current { z-index:2; flex:0 1 auto; overflow:visible; }
+  .selection-lightbox-current .lightbox-photo-protected { max-width:min(64vw,1280px); max-height:78dvh; }
   .selection-lightbox-current .lightbox-photo-protected img { max-height:78dvh; }
-  .selection-lightbox-neighbor { cursor:pointer; opacity:.3; filter:brightness(.5); transition:opacity .22s ease,filter .22s ease,transform .22s ease; }
+  .selection-lightbox-neighbor { flex:1 1 0; min-width:0; max-width:27vw; cursor:pointer; opacity:.3; filter:brightness(.5); transition:opacity .22s ease,filter .22s ease,transform .22s ease; }
   .selection-lightbox-neighbor:hover { opacity:.55; filter:brightness(.72); transform:scale(1.015); }
   .selection-lightbox-neighbor:first-child { justify-content:flex-end; }
   .selection-lightbox-neighbor:last-child { justify-content:flex-start; }
-  .selection-lightbox-neighbor > span { position:relative; display:inline-flex; flex:0 0 auto; width:clamp(280px,32vw,680px); max-width:none; max-height:64dvh; overflow:hidden; }
+  .selection-lightbox-neighbor > span { position:relative; display:inline-flex; flex:0 0 auto; width:clamp(260px,31vw,620px); max-width:none; max-height:64dvh; overflow:hidden; }
   .selection-lightbox-neighbor img { width:100%; max-width:none; max-height:64dvh; object-fit:contain; }
   .final-photo-open { cursor:zoom-in; }
-  @media(max-width:760px) { #lightbox-selecao { padding:10px 4px; } #lightbox-selecao .lightbox-stage { height:calc(100dvh - 104px); padding-bottom:62px; } .selection-lightbox-carousel { grid-template-columns:1fr; } .selection-lightbox-neighbor, .selection-lightbox-carousel > span:not(.protegida) { display:none; } .selection-lightbox-current .lightbox-photo-protected { max-width:94vw; max-height:72dvh; } .selection-lightbox-current .lightbox-photo-protected img { max-height:72dvh; } }
+  @media(max-width:760px) { #lightbox-selecao { padding:10px 4px; } #lightbox-selecao .lightbox-stage { height:calc(100dvh - 104px); padding-bottom:62px; } .selection-lightbox-carousel { display:grid; grid-template-columns:1fr; } .selection-lightbox-neighbor, .selection-lightbox-carousel > span:not(.protegida) { display:none; } .selection-lightbox-current .lightbox-photo-protected { max-width:94vw; max-height:72dvh; } .selection-lightbox-current .lightbox-photo-protected img { max-height:72dvh; } }
 
   /* Acesso — narrativa visual da experiência */
   .client-access-visual::after { content:'RS'; position:absolute; left:clamp(20px,4vw,54px); top:50%; transform:translateY(-56%); color:rgba(245,242,235,.045); font:400 clamp(9rem,20vw,19rem)/.8 var(--font-display); letter-spacing:-.09em; }
