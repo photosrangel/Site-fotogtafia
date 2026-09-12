@@ -5898,10 +5898,10 @@ const DESIGN_DEFAULTS = Object.freeze({
   client_focus_x: 50,
   client_focus_y: 50,
   client_text_visual: 'Retratos guardados com cuidado.\nUm espaço reservado só para você.',
-  client_text_eyebrow: 'Bem-vinda à sua galeria',
-  client_text_title: 'Entre no seu',
-  client_text_title_emphasis: 'espaço privado.',
-  client_text_description: 'Use os dados enviados pelo estúdio para acessar suas fotografias e acompanhar cada etapa.',
+  client_text_eyebrow: 'Área privada',
+  client_text_title: 'Sua sessão,',
+  client_text_title_emphasis: 'em um espaço só seu.',
+  client_text_description: 'Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.',
   client_text_login: 'Login',
   client_text_password: 'Senha',
   client_text_button: 'Acessar minha galeria',
@@ -9416,35 +9416,7 @@ function updateDesignClientFocalUI() {
 
   if (summary) {
     summary.textContent =
-      `Ponto focal: ${Math.round(x)}% × ${Math.round(y)}% — clique na foto ou use as barras acima para alterar.`;
-  }
-
-  const sliderX =
-    $('design-client-focus-x-slider');
-
-  if (sliderX && sliderX !== document.activeElement) {
-    sliderX.value = String(Math.round(x));
-  }
-
-  const sliderY =
-    $('design-client-focus-y-slider');
-
-  if (sliderY && sliderY !== document.activeElement) {
-    sliderY.value = String(Math.round(y));
-  }
-
-  const outX =
-    $('design-client-focus-x-out');
-
-  if (outX) {
-    outX.textContent = `${Math.round(x)}%`;
-  }
-
-  const outY =
-    $('design-client-focus-y-out');
-
-  if (outY) {
-    outY.textContent = `${Math.round(y)}%`;
+      `Ponto focal: ${Math.round(x)}% × ${Math.round(y)}% — clique na foto para alterar.`;
   }
 
   const preview =
@@ -9453,66 +9425,6 @@ function updateDesignClientFocalUI() {
   if (preview) {
     preview.style.backgroundPosition =
       focalStyle(x, y);
-  }
-}
-
-function setDesignClientFocalFromSlider() {
-  $('design-client-focus-x').value =
-    String($('design-client-focus-x-slider')?.value ?? 50);
-
-  $('design-client-focus-y').value =
-    String($('design-client-focus-y-slider')?.value ?? 50);
-
-  updateDesignClientFocalUI();
-  applyDesignPreview();
-  updateDesignPublicationState();
-}
-
-async function publishClientAreaVisual() {
-  const button = $('design-client-image-save');
-
-  if (button?.dataset.busy === '1') return;
-
-  if (button) {
-    button.dataset.busy = '1';
-    button.disabled = true;
-    button.textContent = 'Publicando…';
-  }
-
-  try {
-    if (!designPersistenceLoaded) await ensureDesignPersistenceLoaded();
-
-    const current = collectDesignConfig();
-
-    designDraftSaved = await upsertDesignRow('draft', current);
-    designDraftUpdatedAt = new Date().toISOString();
-
-    const basePublished =
-      designPublishedSaved || DESIGN_DEFAULTS;
-
-    const merged = {
-      ...basePublished,
-      client_access_image: current.client_access_image,
-      client_focus_x: current.client_focus_x,
-      client_focus_y: current.client_focus_y,
-    };
-
-    designPublishedSaved = await upsertDesignRow('published', merged);
-    designPublishedUpdatedAt = new Date().toISOString();
-
-    updateDesignPublicationState();
-
-    flash('Foto da Área do Cliente publicada no site.', 'sucesso');
-  } catch (error) {
-    console.error('[admin-v2] publishClientAreaVisual:', error);
-
-    flash(`Erro ao publicar a foto: ${error.message}`, 'erro');
-  } finally {
-    if (button) {
-      button.dataset.busy = '0';
-      button.disabled = false;
-      button.textContent = 'Salvar e publicar foto';
-    }
   }
 }
 
@@ -9976,22 +9888,7 @@ function initDesignStudio() {
   );
 
   $('design-client-access-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-client-access-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-client-access-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-client-image-upload',()=>uploadDesignClientImage(validos[0]));if(url?.skipped)return;$('design-client-access-image').value=url||'';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Fotografia adicionada ao rascunho.'}catch(error){$('design-client-access-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
-  $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho. Clique em "Salvar e publicar foto" para remover também do site.'});
-
-  $('design-client-focus-x-slider')?.addEventListener(
-    'input',
-    setDesignClientFocalFromSlider
-  );
-
-  $('design-client-focus-y-slider')?.addEventListener(
-    'input',
-    setDesignClientFocalFromSlider
-  );
-
-  $('design-client-image-save')?.addEventListener(
-    'click',
-    publishClientAreaVisual
-  );
+  $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho.'});
   updateDesignClientImagePreview();
   if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel,#design-inline-hero,.design-stack-body'))return;applyDesignPreview();applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
   loadContent().then(()=>ensureDesignPersistenceLoaded()).catch(()=>{});
