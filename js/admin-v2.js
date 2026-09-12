@@ -1,4 +1,5 @@
 import { ADMIN_ID, SITE_GALLERY_BUCKET as BUCKET } from './core/admin-config.js';
+import { supabase } from './core/supabase-client.js';
 import { getAdminSession, signInAdmin, signInAdminWithGoogle, signOutAdmin, onAdminAuthStateChange, listAdminFactors, enrollAdminTotp, verifyAdminTotp, getAdminAssuranceLevel } from './core/admin-auth-service.js';
 import {
   listCategories,
@@ -379,6 +380,7 @@ function setView(v) {
     galleries: ['Conteúdo', 'Galerias'],
     categories: ['Organização', 'Categorias'],
     sessions: ['Clientes', 'Ensaios'],
+    'client-access': ['Clientes', 'Acessos das clientes'],
     messages: ['Site', 'Mensagens'],
     settings: ['Site', 'Configurações']
   }[v];
@@ -404,6 +406,7 @@ function setView(v) {
   if (v === 'galleries') loadGalleries();
   if (v === 'categories') loadCategories();
   if (v === 'sessions') loadSessions();
+  if (v === 'client-access') loadClientAccess();
   if (v === 'messages') loadMessages();
   if (v === 'settings') loadSettings();
 }
@@ -1217,9 +1220,11 @@ $('login-form').addEventListener(
         const msgErro = String(resultado.error.message || resultado.error.code || '');
         msg(
           $('login-msg'),
-          /confirm|verified|verification|mail/i.test(msgErro)
-            ? 'Seu e-mail ainda não foi confirmado.'
-            : 'E-mail ou senha incorretos.',
+          msgErro === 'rate_limited'
+            ? 'Muitas tentativas. Aguarde 15 minutos e tente novamente.'
+            : /confirm|verified|verification|mail/i.test(msgErro)
+              ? 'Seu e-mail ainda não foi confirmado.'
+              : 'E-mail ou senha incorretos.',
           'erro'
         );
         return;
@@ -2872,6 +2877,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
     'galleries',
     'categories',
     'sessions',
+    'client-access',
     'messages',
     'settings'
   ]
@@ -2943,10 +2949,14 @@ function normalizeAdminUiConfig(config = {}) {
 
     menu_order: (() => {
       const allowed = [
-        'dashboard','design','galleries','categories','sessions','messages','settings'
+        'dashboard','design','galleries','categories','sessions','client-access','messages','settings'
       ];
       const incoming = Array.isArray(c.menu_order) ? c.menu_order : [];
       const normalized = incoming.filter(item => allowed.includes(item));
+      if (!normalized.includes('client-access')) {
+        const sessionsIndex = normalized.indexOf('sessions');
+        normalized.splice(sessionsIndex >= 0 ? sessionsIndex + 1 : normalized.length, 0, 'client-access');
+      }
       allowed.forEach(item => { if (!normalized.includes(item)) normalized.push(item); });
       return normalized.slice(0, allowed.length);
     })()
@@ -4821,6 +4831,56 @@ $('btn-add-spec').addEventListener('click', () => {
    MENSAGENS
 ========================================================= */
 
+const CLIENT_ACCESS_EVENT_TYPES = [
+  'client_gallery_accessed',
+  'client_selection_completed',
+  'client_recovery_requested',
+  'client_password_changed',
+  'selection_reminder_day_3',
+  'selection_reminder_day_7',
+  'selection_reminder_day_15',
+  'selection_reminder_photographer_day_15',
+  'selection_reminder_manual'
+];
+let clientAccessEventsCache = [];
+
+function renderClientAccessEvents() {
+  const list = $('client-access-list');
+  if (!list) return;
+  const selectedSession = $('client-access-session-filter')?.value || '';
+  const events = selectedSession
+    ? clientAccessEventsCache.filter(item => String(item.entity_id) === selectedSession)
+    : clientAccessEventsCache;
+  list.innerHTML = events.length
+    ? events.map(item => `<div class="dashboard-activity-item is-${esc(item.severity || 'info')}"><span class="dashboard-activity-dot"></span><div><strong>${esc(item.title || 'Atividade da cliente')}</strong>${item.detail ? `<small>${esc(item.detail)}</small>` : ''}</div><time>${formatDateTime(item.created_at)}</time></div>`).join('')
+    : '<p class="panel-copy">Nenhuma atividade registrada para este filtro.</p>';
+}
+
+async function loadClientAccess() {
+  const list = $('client-access-list');
+  const filter = $('client-access-session-filter');
+  if (!list || !filter) return;
+  list.innerHTML = '<p class="panel-copy">Carregando histórico…</p>';
+  const currentFilter = filter.value;
+  const [eventsResult, sessionsResult] = await Promise.all([
+    supabase.from('admin_activity').select('*').in('activity_type', CLIENT_ACCESS_EVENT_TYPES).order('created_at', { ascending: false }).limit(300),
+    supabase.from('ensaios').select('id,titulo,cliente_nome').order('created_at', { ascending: false })
+  ]);
+  if (eventsResult.error) {
+    list.innerHTML = `<p class="msg erro">Não foi possível carregar o histórico: ${esc(eventsResult.error.message)}</p>`;
+    return;
+  }
+  clientAccessEventsCache = eventsResult.data || [];
+  filter.innerHTML = '<option value="">Todos os ensaios</option>' + (sessionsResult.data || []).map(session => `<option value="${attr(session.id)}">${esc(session.titulo || session.cliente_nome || 'Ensaio')}</option>`).join('');
+  if ([...filter.options].some(option => option.value === currentFilter)) filter.value = currentFilter;
+  if (filter.dataset.bound !== '1') {
+    filter.dataset.bound = '1';
+    filter.addEventListener('change', renderClientAccessEvents);
+    $('refresh-client-access')?.addEventListener('click', loadClientAccess);
+  }
+  renderClientAccessEvents();
+}
+
 async function loadMessages() {
   const list = $('messages-list');
   list.innerHTML = '';
@@ -5289,14 +5349,20 @@ async function iniciarEdicao() {
   const divergence = storedNumbers.length && liveNumbers.length !== storedNumbers.length
     ? `\n\nA lista histórica possui ${storedNumbers.length} fotos e será preservada; ${liveNumbers.length} ainda aparecem marcadas entre as provas atuais.`
     : '';
-  if (!confirm(`Iniciar edição e liberar armazenamento?\n\nOs ${numbers.length} números selecionados serão guardados, e ${provas.length} provas serão apagadas definitivamente.${divergence}`)) return;
+  const capaPreservada = provas.find(photo => photo.id === currentSession.capa_foto_id)
+    || provas.slice().sort((a, b) => Number(a.ordem ?? 999999) - Number(b.ordem ?? 999999))[0]
+    || null;
+  const totalParaApagar = Math.max(0, provas.length - (capaPreservada ? 1 : 0));
+  if (!confirm(`Iniciar edição e liberar armazenamento?\n\nOs ${numbers.length} números selecionados serão guardados, ${totalParaApagar} provas serão apagadas definitivamente e uma miniatura ficará preservada como capa do ensaio.${divergence}`)) return;
 
   // Primeiro protege a lista histórica, sem mudar o estado do ensaio nem
   // afirmar que a limpeza terminou.
-  const snapshot = await updateSessionAndReturn(currentSession.id, {
+  const snapshotPayload = {
     selected_photo_numbers: numbers,
     selection_completed_at: currentSession.selection_completed_at || new Date().toISOString()
-  });
+  };
+  if (capaPreservada) snapshotPayload.capa_foto_id = capaPreservada.id;
+  const snapshot = await updateSessionAndReturn(currentSession.id, snapshotPayload);
 
   if (snapshot.error) {
     flash(`Erro ao guardar a seleção antes da limpeza: ${snapshot.error.message}`, 'erro');
@@ -5304,10 +5370,15 @@ async function iniciarEdicao() {
   }
 
   currentSession = snapshot.data || { ...currentSession, selected_photo_numbers: numbers };
-  flash(`Seleção protegida (${numbers.length} números). Removendo ${provas.length} provas...`, 'sucesso');
+
+  // A fotografia escolhida como capa fica fora da lista enviada à limpeza.
+  // A Área do Cliente já não renderiza provas após a confirmação, portanto
+  // esta única miniatura permanece visível somente no painel administrativo.
+  const provasParaLimpar = provas.filter(photo => photo.id !== capaPreservada?.id);
+  flash(`Seleção protegida (${numbers.length} números). Removendo ${provasParaLimpar.length} provas...`, 'sucesso');
 
   const cleanup = await deleteSessionProofsWithAssets({
-    photos: provas,
+    photos: provasParaLimpar,
     session: currentSession,
     bucket: SESSIONS_BUCKET
   });
@@ -5323,15 +5394,14 @@ async function iniciarEdicao() {
     selected_photo_numbers: numbers,
     selection_cleaned_at: new Date().toISOString()
   };
-  if (cleanup.data.coverCleared) finalPayload.capa_foto_id = null;
   const finalized = await updateSessionAndReturn(currentSession.id, finalPayload);
   if (finalized.error) {
     flash(`As provas foram removidas e os ${numbers.length} números continuam guardados, mas o estado “Em edição” não pôde ser salvo: ${finalized.error.message}`, 'erro');
     return;
   }
   currentSession = finalized.data || { ...currentSession, ...finalPayload };
-  await logAdminActivity('session_editing_started', `Edição iniciada para “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}”`, { detail: `${numbers.length} foto(s) escolhida(s); provas removidas do armazenamento.`, entityType: 'session', entityId: currentSession.id }).catch(() => {});
-  flash(`Edição iniciada. ${cleanup.data.removedRecords} provas foram removidas e os ${numbers.length} números escolhidos ficaram guardados.`, 'sucesso');
+  await logAdminActivity('session_editing_started', `Edição iniciada para “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}”`, { detail: `${numbers.length} foto(s) escolhida(s); provas removidas do armazenamento e miniatura de capa preservada.`, entityType: 'session', entityId: currentSession.id }).catch(() => {});
+  flash(`Edição iniciada. ${cleanup.data.removedRecords} provas foram removidas, a capa foi preservada e os ${numbers.length} números escolhidos ficaram guardados.`, 'sucesso');
   await loadSessionPhotos();
   await loadSessions();
   renderSessionDetail();
@@ -5350,6 +5420,17 @@ async function reenviarNotificacoesSelecao() {
     renderSessionDetail();
   } catch (error) {
     flash(`Não foi possível enviar as notificações: ${error.message}`, 'erro');
+  }
+}
+
+async function lembrarClienteSelecao() {
+  if (!currentSession) return;
+  try {
+    flash('Enviando lembrete para a cliente...', 'sucesso');
+    const result = await invocarNotificacaoEnsaio('selection_reminder_manual');
+    flash(result.message || 'Lembrete enviado para a cliente.', 'sucesso');
+  } catch (error) {
+    flash(`Não foi possível enviar o lembrete: ${error.message}`, 'erro');
   }
 }
 
@@ -5411,13 +5492,14 @@ function renderSessionDetail() {
     sendSelection: enviarParaSelecao,
     startEditing: iniciarEdicao,
     retrySelectionNotifications: reenviarNotificacoesSelecao,
+    remindClient: lembrarClienteSelecao,
     extendExpiry: estenderPrazoEnsaio
   });
   return;
 
 }
 
-async function estenderPrazoEnsaio(){if(!currentSession)return;const days=clampNumber(prompt('Quantos dias deseja acrescentar?', '30'),1,365,30);const base=currentSession.expires_at?new Date(currentSession.expires_at):new Date();base.setDate(base.getDate()+days);const {data,error}=await updateSessionAndReturn(currentSession.id,{expires_at:base.toISOString(),expired_at:null,deletion_scheduled_at:null});if(error)return flash(error.message,'erro');currentSession=data||{...currentSession,expires_at:base.toISOString()};flash(`Prazo estendido por ${days} dias.`,'sucesso');renderSessionDetail()}
+async function estenderPrazoEnsaio(){if(!currentSession)return;const days=clampNumber(prompt('Quantos dias deseja acrescentar?', '30'),1,365,30);const currentExpiry=currentSession.expires_at?new Date(currentSession.expires_at):null;const base=currentExpiry&&currentExpiry.getTime()>Date.now()?currentExpiry:new Date();base.setDate(base.getDate()+days);const payload={status:'fotos_disponiveis',expires_at:base.toISOString(),expired_at:null,deletion_scheduled_at:null};const {data,error}=await updateSessionAndReturn(currentSession.id,payload);if(error)return flash(error.message,'erro');currentSession=data||{...currentSession,...payload};flash(`Prazo estendido por ${days} dias.`,'sucesso');renderSessionDetail()}
 
 
 function configurarOrdenacaoFotosEnsaio(grid) {
@@ -5668,6 +5750,7 @@ async function enviarParaSelecao() {
     return;
   }
   currentSession.status = 'aguardando_selecao';
+  await logAdminActivity('session_selection_sent', `Fotos enviadas para seleção — ${currentSession.titulo || currentSession.nome_cliente || 'Ensaio'}`, { detail: 'Início da contagem dos lembretes automáticos de seleção.', entityType: 'ensaio', entityId: currentSession.id }).catch(() => {});
   msgEl.textContent = 'Fotos enviadas para seleção! A cliente já pode acessar.';
   msgEl.className = 'msg sucesso';
   await loadSessions();
@@ -5679,12 +5762,6 @@ async function marcarEntregue() {
   const msgEl = $('session-msg');
   const statusAtual = sessionStatusNormalizado(currentSession.status);
 
-  if (statusAtual !== 'em_edicao' && statusAtual !== 'fotos_disponiveis') {
-    msgEl.textContent = 'Primeiro marque o ensaio como “Em edição”.';
-    msgEl.className = 'msg erro';
-    return;
-  }
-
   try {
     msgEl.textContent = statusAtual === 'fotos_disponiveis'
       ? 'Reenviando e-mail de entrega...'
@@ -5694,13 +5771,14 @@ async function marcarEntregue() {
     const result = await invocarNotificacaoEnsaio('publish_final');
 
     if (result.ensaio) currentSession = { ...currentSession, ...result.ensaio };
-    else currentSession.status = 'fotos_disponiveis';
 
-    await logAdminActivity('session_delivered', `Ensaio “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}” entregue`, { detail: 'Prazo de 30 dias iniciado.', entityType: 'session', entityId: currentSession.id }).catch(() => {});
+    if (result.email_sent !== false && result.delivery_confirmed !== false) {
+      await logAdminActivity('session_delivered', `Ensaio “${currentSession.titulo || currentSession.nome_cliente || 'ensaio'}” entregue`, { detail: 'E-mail enviado e prazo de download iniciado.', entityType: 'session', entityId: currentSession.id }).catch(() => {});
+    }
 
     msgEl.textContent = result.email_sent === false
-      ? (result.message || 'Fotos publicadas. O e-mail não foi enviado; verifique o e-mail da cliente e a configuração do serviço.')
-      : (result.message || 'Fotos publicadas e cliente notificada por e-mail!');
+      ? (result.message || 'Entrega não confirmada. O e-mail não foi enviado e o prazo não começou.')
+      : (result.message || 'Fotos publicadas, cliente notificada e prazo iniciado!');
     msgEl.className = result.email_sent === false ? 'msg erro' : 'msg sucesso';
 
     await loadSessions();

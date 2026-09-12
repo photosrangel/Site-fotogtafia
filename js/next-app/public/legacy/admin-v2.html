@@ -141,7 +141,7 @@
       <span>⌄</span>
     </button>
   </div>
-</div><button class="sidebar-link" data-view="galleries" data-admin-menu-key="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-menu-key="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-menu-key="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="messages" data-admin-menu-key="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-menu-key="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
+</div><button class="sidebar-link" data-view="galleries" data-admin-menu-key="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-menu-key="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-menu-key="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="client-access" data-admin-menu-key="client-access">Acessos das clientes</button><button class="sidebar-link" data-view="messages" data-admin-menu-key="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-menu-key="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
 <button id="admin-menu-reorder" class="admin-menu-reorder" type="button" aria-pressed="false">Reordenar menu</button>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor" data-admin-ui-text="nav_view_site">Ver site</a><button id="logout-btn" class="sidebar-link" data-admin-ui-text="nav_logout">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
@@ -1166,6 +1166,7 @@ Um espaço reservado só para você.</textarea>
 </div>
 </div>
 </section>
+<section id="view-client-access" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Histórico privado dos acessos e ações das clientes. Senhas e endereços IP nunca são exibidos.</p><select id="client-access-session-filter" aria-label="Filtrar por ensaio"><option value="">Todos os ensaios</option></select></div><article class="panel dashboard-activity-panel"><div class="panel-head"><div><p class="section-eyebrow">Área privada</p><h2>Histórico das clientes</h2></div><button class="small-btn" id="refresh-client-access" type="button">Atualizar</button></div><div id="client-access-list" class="dashboard-activity-list"><p class="panel-copy">Carregando histórico…</p></div></article></section>
 <section id="view-messages" class="admin-view" hidden>
 <div class="toolbar"><p class="panel-copy">Mensagens recebidas pelo formulário da página de contato.</p></div>
 <div id="messages-list"></div>
@@ -1225,6 +1226,8 @@ Um espaço reservado só para você.</textarea>
     </div>
   </div>
 </div>
+
+<div id="session-delivery-deadline" class="session-deadline-overview"></div>
 
 <div class="session-workflow session-workflow-accordion">
   <section class="session-stage-card session-stage-accordion" data-session-stage="provas">

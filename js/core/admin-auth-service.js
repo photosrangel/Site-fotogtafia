@@ -8,7 +8,12 @@ export async function getAdminSession() {
 
 export async function signInAdmin(email, password) {
   const guard = await supabase.functions.invoke('admin-login-guard', { body: { emailHint: String(email || '').slice(-32) } });
-  if (guard.data?.rate_limited) return { data: { session: null }, error: new Error('rate_limited') };
+  let guardData = guard.data;
+  if (guard.error?.context && typeof guard.error.context.json === 'function') {
+    try { guardData = await guard.error.context.json(); } catch {}
+  }
+  if (guardData?.rate_limited) return { data: { session: null }, error: new Error('rate_limited') };
+  if (guard.error || guardData?.ok !== true) return { data: { session: null }, error: new Error('guard_unavailable') };
   return supabase.auth.signInWithPassword({ email, password });
 }
 

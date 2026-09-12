@@ -163,9 +163,14 @@ async function enviarMensagem(e) {
       }
     );
 
+    let responseData = data;
+    if (error?.context && typeof error.context.json === 'function') {
+      try { responseData = await error.context.json(); } catch {}
+    }
+    if (responseData?.rate_limited) throw new Error('rate_limited');
     if (error) throw error;
-    if (!data?.ok) {
-      throw new Error(data?.error || 'Não foi possível enviar a mensagem.');
+    if (!responseData?.ok) {
+      throw new Error(responseData?.error || 'Não foi possível enviar a mensagem.');
     }
 
     msgEl.textContent = 'Mensagem enviada! Em breve entro em contato.';
@@ -174,15 +179,17 @@ async function enviarMensagem(e) {
 
     // Se a mensagem foi salva mas alguma notificação por e-mail falhou,
     // não assusta a cliente: o contato continua disponível no Admin V2.
-    if (data?.saved && data?.notifications?.photographer === false) {
+    if (responseData?.saved && responseData?.notifications?.photographer === false) {
       console.warn('[contato] Mensagem salva; notificação do fotógrafo não foi enviada.');
     }
-    if (data?.saved && data?.notifications?.client === false) {
+    if (responseData?.saved && responseData?.notifications?.client === false) {
       console.warn('[contato] Mensagem salva; confirmação da cliente não foi enviada.');
     }
   } catch (error) {
     console.error('[contato] Falha no envio:', error);
-    msgEl.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
+    msgEl.textContent = error?.message === 'rate_limited'
+      ? 'Muitas mensagens enviadas. Aguarde uma hora e tente novamente.'
+      : 'Não foi possível enviar. Tente novamente em instantes.';
     msgEl.className = 'msg erro';
   } finally {
     btn.disabled = false;

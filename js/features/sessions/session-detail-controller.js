@@ -4,6 +4,15 @@ export function normalizeSessionStatus(status) {
   return status || 'preparando';
 }
 
+function formatDeadline(value) {
+  if (!value) return '—';
+  return new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value));
+}
+
+function remainingDays(value) {
+  return value ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 86400000)) : 0;
+}
+
 function renderProgress({ $, session }) {
   const el = $('session-progress');
   if (!el) return;
@@ -40,7 +49,7 @@ function renderEmailState({ $, session, esc }) {
 export function renderSessionDetailUI({
   $, session, photos, attr, esc, numero, msg, location,
   syncAccordions, configureOrdering, withOperationLock,
-  setCover, deletePhoto, sendSelection, startEditing, retrySelectionNotifications, extendExpiry
+  setCover, deletePhoto, sendSelection, startEditing, retrySelectionNotifications, remindClient, extendExpiry
 }) {
   const linkCliente = `${location.origin}/area-cliente`;
   const provas = photos.filter(photo => photo.tipo === 'prova');
@@ -114,7 +123,8 @@ export function renderSessionDetailUI({
     actions.innerHTML = `<button class="btn btn-accent" id="btn-enviar-selecao" ${provas.length ? '' : 'disabled'}>Enviar fotos para seleção</button>`;
     $('btn-enviar-selecao').addEventListener('click', () => withOperationLock('selecao:' + session.id, sendSelection));
   } else if (status === 'aguardando_selecao') {
-    actions.innerHTML = `<span class="status-pill published">Aguardando seleção da cliente</span>${selectionWhatsApp ? `<a href="${attr(selectionWhatsApp)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : ''}`;
+    actions.innerHTML = `<span class="status-pill published">Aguardando seleção da cliente</span><button class="small-btn" id="btn-lembrar-cliente" type="button">Lembrar cliente agora</button>${selectionWhatsApp ? `<a href="${attr(selectionWhatsApp)}" target="_blank" rel="noopener" class="small-btn">Notificar por WhatsApp</a>` : ''}`;
+    $('btn-lembrar-cliente').addEventListener('click', () => withOperationLock('lembrete:' + session.id, remindClient));
   } else {
     const missingEmails = !session.email_selecao_cliente_enviado_em || !session.email_selecao_fotografo_enviado_em;
     actions.innerHTML = `<span class="status-pill published">✓ Seleção finalizada</span>
@@ -125,7 +135,17 @@ export function renderSessionDetailUI({
   }
 
   const published = status === 'fotos_disponiveis';
-  if(published&&session.expires_at){actions.insertAdjacentHTML('beforeend',`<span class="status-pill">Expira em ${new Date(session.expires_at).toLocaleDateString('pt-PT')}</span><button class="small-btn" id="btn-estender-prazo" type="button">Estender prazo</button>`);$('btn-estender-prazo')?.addEventListener('click',extendExpiry)}
+  const deadline = $('session-delivery-deadline');
+  if (deadline) {
+    if (session.expires_at) {
+      const days = remainingDays(session.expires_at);
+      const expired = new Date(session.expires_at).getTime() <= Date.now();
+      deadline.innerHTML = `<div class="session-select-box"><p class="section-eyebrow">Prazo de acesso e download</p><p style="margin:8px 0 4px;"><strong>${expired ? 'Prazo encerrado' : `${days} dia${days === 1 ? '' : 's'} restante${days === 1 ? '' : 's'}`}</strong></p><p class="panel-copy" style="margin:0;">Publicado em ${formatDeadline(session.delivered_at || session.publicado_em)} · Disponível até ${formatDeadline(session.expires_at)}</p><button class="small-btn" id="btn-estender-prazo" type="button" style="margin-top:12px;">Estender prazo</button></div>`;
+      $('btn-estender-prazo')?.addEventListener('click', extendExpiry);
+    } else {
+      deadline.innerHTML = '<div class="session-select-box"><p class="section-eyebrow">Prazo de acesso e download</p><p class="panel-copy" style="margin:8px 0 0;">O prazo ainda não começou. Ele será iniciado somente depois de publicar as fotos finais e confirmar o envio do e-mail.</p></div>';
+    }
+  }
   const deliver = $('btn-entregar');
   if (published) {
     deliver.textContent = session.email_entrega_cliente_enviado_em ? 'Fotos publicadas ✓' : 'Reenviar e-mail de entrega';
@@ -134,8 +154,10 @@ export function renderSessionDetailUI({
   } else {
     deliver.textContent = 'Publicar fotos finais';
     deliver.className = 'btn btn-accent';
-    deliver.disabled = status !== 'em_edicao' || finais.length === 0;
-    deliver.title = status !== 'em_edicao' ? 'Marque o ensaio como “Em edição” antes de publicar.' : finais.length ? 'Publicar e avisar a cliente por e-mail.' : 'Adicione pelo menos uma foto final.';
+    deliver.disabled = finais.length === 0;
+    deliver.title = finais.length
+      ? 'Publicar as fotos finais, avisar a cliente por e-mail e iniciar o prazo de acesso.'
+      : 'Adicione pelo menos uma foto final.';
   }
   const deliveryWhatsApp = session.cliente_telefone
     ? `https://wa.me/${session.cliente_telefone}?text=${encodeURIComponent(`Olá${session.cliente_nome ? ', ' + session.cliente_nome : ''}! Suas fotos finais já estão prontas para download! \n\nAcesse: ${linkCliente}\nLogin: ${session.slug}\nSenha: ${session.codigo_acesso}`)}` : null;

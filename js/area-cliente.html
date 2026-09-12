@@ -27,6 +27,8 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='64'%3E%3Cline x1='0' y1='0' x2='120' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Cline x1='120' y1='0' x2='0' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Ctext x='-8' y='38' font-family='monospace' font-size='10' fill='rgba(255,255,255,0.28)' transform='rotate(-20 60 32)'%3EPHOTOSRANGEL%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
   }
+  .lightbox-photo-protected { position: relative; display: inline-flex; max-width: 100%; max-height: calc(100dvh - 150px); }
+  .lightbox-photo-protected img { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 150px); object-fit: contain; }
 
   /* Caixinha de seleção — usada SÓ na tela onde a cliente ainda pode escolher */
   .foto-selecionavel { cursor: pointer; }
@@ -735,7 +737,7 @@
     <button class="lightbox-close" id="lightbox-sel-close" aria-label="Fechar visualizador">✕</button>
   </div>
   <button class="lightbox-arrow lightbox-arrow-left" id="lightbox-sel-prev" aria-label="Foto anterior">‹</button>
-  <div class="lightbox-stage protegida" id="lightbox-sel-stage"></div>
+  <div class="lightbox-stage" id="lightbox-sel-stage"></div>
   <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-sel-next" aria-label="Próxima foto">›</button>
   <div style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
     <button class="btn btn-accent" id="lightbox-sel-toggle"></button>
@@ -974,6 +976,14 @@ document.getElementById('forgot-access-code').addEventListener('click',async()=>
   acessoMsg.textContent=data.message||'Se o ensaio estiver ativo, o código será enviado para o e-mail já cadastrado.';acessoMsg.className=response.ok?'msg sucesso':'msg erro';
 });
 
+function prazoGaleria() {
+  if (!ensaioAtual?.expires_at) return '';
+  const expiry = new Date(ensaioAtual.expires_at);
+  const days = Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 86400000));
+  const date = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long', timeStyle: 'short' }).format(expiry);
+  return `<aside style="margin:22px 0;padding:18px 20px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.035);"><p style="margin:0 0 6px;font-family:var(--font-mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);">Prazo para download</p><p style="margin:0;color:var(--text);"><strong>${days} dia${days === 1 ? '' : 's'} restante${days === 1 ? '' : 's'}</strong> · As fotografias ficam disponíveis até ${date}.</p><p style="margin:8px 0 0;color:var(--text-muted);font-size:.78rem;">Faça o download antes dessa data para guardar os seus arquivos.</p></aside>`;
+}
+
 function mostrarGaleria() {
   acessoScreen.style.display = 'none';
   galeriaScreen.style.display = 'block';
@@ -1037,6 +1047,7 @@ function mostrarGaleria() {
             Foi um prazer registrar esse momento com você. Obrigado pela confiança —
             espero que essas fotos te façam sentir exatamente como você é.
           </p>
+          ${prazoGaleria()}
         </div>
         <button class="btn btn-accent" id="btn-baixar-tudo" style="flex-shrink:0;">Baixar tudo (.zip)</button>
       </div>
@@ -1235,7 +1246,7 @@ function fecharLightboxSelecao() {
 
 function mostrarFotoLightbox() {
   const foto = ensaioAtual.fotos[indiceAtualLightbox];
-  lightboxSelStage.innerHTML = `<img src="${foto.url}" alt="Foto ampliada">`;
+  lightboxSelStage.innerHTML = `<div class="lightbox-photo-protected protegida"><img src="${foto.url}" alt="Foto ampliada"></div>`;
   lightboxSelCounter.textContent = `${indiceAtualLightbox + 1} / ${ensaioAtual.fotos.length}`;
   atualizarBotaoLightbox(foto);
 }

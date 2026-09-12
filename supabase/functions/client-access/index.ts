@@ -90,15 +90,34 @@ Deno.serve(async req => {
       if (!response.ok) console.error('recovery email:', await response.text());
     }
     await db.from('security_events').insert({ event_type: 'client_access_recovery', outcome: 'success', ip_hash: ipHash, subject_hash: pairHash });
+    for (const session of active) {
+      await db.from('admin_activity').insert({
+        activity_type: 'client_recovery_requested',
+        title: `Recuperação solicitada — ${session.titulo}`,
+        detail: 'A cliente solicitou por e-mail os dados de acesso à galeria.',
+        entity_type: 'ensaio', entity_id: String(session.id), severity: 'info',
+      });
+    }
     return reply({ message: 'Se o e-mail estiver associado a uma galeria ativa, enviaremos os dados de acesso.' });
   }
 
   if (action === 'reset') {
     if (token.length < 32 || token.length > 200 || newPassword.length < 6 || newPassword.length > 64) return reply({ erro: 'Link inválido ou nova senha fora do tamanho permitido.' }, 400);
-    const { data: changed, error } = await db.rpc('reset_client_gallery_password', { p_token_hash: await sha256(token), p_new_password: newPassword });
+    const tokenHash = await sha256(token);
+    const { data: recovery } = await db.from('client_recovery_tokens').select('ensaio_id').eq('token_hash', tokenHash).is('used_at', null).maybeSingle();
+    const { data: changed, error } = await db.rpc('reset_client_gallery_password', { p_token_hash: tokenHash, p_new_password: newPassword });
     if (error) { console.error('password reset:', error.message); return reply({ erro: 'Não foi possível alterar a senha agora.' }, 500); }
     if (!changed) return reply({ erro: 'Este link é inválido ou já expirou.' }, 400);
     await db.from('security_events').insert({ event_type: 'client_password_reset', outcome: 'success', ip_hash: ipHash, subject_hash: pairHash });
+    if (recovery?.ensaio_id) {
+      const { data: session } = await db.from('ensaios').select('titulo').eq('id', recovery.ensaio_id).maybeSingle();
+      await db.from('admin_activity').insert({
+        activity_type: 'client_password_changed',
+        title: `Senha alterada — ${session?.titulo || 'Ensaio'}`,
+        detail: 'A cliente criou uma nova senha usando o link seguro de recuperação.',
+        entity_type: 'ensaio', entity_id: String(recovery.ensaio_id), severity: 'success',
+      });
+    }
     return reply({ message: 'Senha alterada com sucesso. Já pode entrar na sua galeria.' });
   }
 
@@ -107,6 +126,10 @@ Deno.serve(async req => {
   if (error) return reply({ erro: 'Não foi possível verificar o acesso agora.' }, 500);
   if (data?.rate_limited) return new Response(JSON.stringify(data), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(Math.max(1, Number(data.retry_after) || 1800)) } });
   if (data?.erro) return reply(data, 401);
+  const { data: sessionMeta } = await db.from('ensaios')
+    .select('delivered_at,publicado_em,expires_at,expiry_days,selected_photo_numbers,selection_completed_at')
+    .eq('id', data.id).maybeSingle();
+  if (sessionMeta) Object.assign(data, sessionMeta);
   const photos = Array.isArray(data?.fotos) ? data.fotos : [];
   if (photos.length) {
     const paths = photos.map((photo: { url?: string }) => storagePath(photo.url || '', 'fotos'));
@@ -115,5 +138,17 @@ Deno.serve(async req => {
     if (signError || !signed || signed.length !== photos.length) return reply({ erro: 'Não foi possível carregar as fotografias agora.' }, 500);
     data.fotos = photos.map((photo: Record<string, unknown>, index: number) => ({ ...photo, url: signed[index]?.signedUrl }));
   }
+  const accessDetail = ['fotos_disponiveis', 'entregue'].includes(String(data?.status))
+    ? 'A cliente entrou e visualizou as fotografias finais.'
+    : ['aguardando_selecao'].includes(String(data?.status))
+      ? 'A cliente entrou e visualizou as provas; a seleção ainda não foi finalizada.'
+      : 'A cliente entrou na galeria privada.';
+  await db.from('admin_activity').insert({
+    activity_type: 'client_gallery_accessed',
+    title: `Acesso da cliente — ${data?.titulo || slug}`,
+    detail: accessDetail,
+    entity_type: 'ensaio', entity_id: String(data?.id || ''), severity: 'info',
+    metadata: { session_status: data?.status || null },
+  });
   return reply(data);
 });

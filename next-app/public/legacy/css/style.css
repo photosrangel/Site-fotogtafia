@@ -1908,6 +1908,61 @@ html, body {
   }
 }
 
+/* Visualizador público premium — foco central com fotografias vizinhas recortadas */
+#lightbox .lightbox-carousel{
+  grid-template-columns:minmax(92px,17vw) minmax(0,66vw) minmax(92px,17vw);
+  gap:0;
+}
+#lightbox .lightbox-slide-current{
+  padding-inline:clamp(10px,1.2vw,24px);
+}
+#lightbox .lightbox-slide-current img{
+  max-width:100%;
+  max-height:86dvh;
+  box-shadow:0 22px 70px rgba(0,0,0,.34);
+}
+#lightbox .lightbox-slide-prev img,
+#lightbox .lightbox-slide-next img{
+  width:clamp(300px,34vw,760px);
+  max-width:none;
+  max-height:70dvh;
+  opacity:.72;
+}
+#lightbox .lightbox-slide-prev{
+  justify-content:flex-end;
+  transform:translateX(-10%);
+}
+#lightbox .lightbox-slide-next{
+  justify-content:flex-start;
+  transform:translateX(10%);
+}
+
+@media(max-width:900px){
+  #lightbox .lightbox-carousel{
+    grid-template-columns:10vw minmax(0,80vw) 10vw;
+  }
+  #lightbox .lightbox-slide-current{
+    padding-inline:6px;
+  }
+  #lightbox .lightbox-slide-prev img,
+  #lightbox .lightbox-slide-next img{
+    width:44vw;
+    max-height:58dvh;
+  }
+  #lightbox .lightbox-slide-prev{transform:translateX(-16%)}
+  #lightbox .lightbox-slide-next{transform:translateX(16%)}
+}
+
+@media(max-width:560px){
+  #lightbox .lightbox-carousel{
+    grid-template-columns:7vw minmax(0,86vw) 7vw;
+  }
+  #lightbox .lightbox-slide-prev img,
+  #lightbox .lightbox-slide-next img{
+    width:52vw;
+  }
+}
+
 /* Fase 26 — rodapé alinhado integralmente à composição de referência */
 .footer{
   min-height:500px;
@@ -2441,3 +2496,28 @@ html[data-admin-design-device="mobile"] [data-design-inline-editable="1"]:hover{
   .hero .hero-title{max-width:100%;overflow-wrap:anywhere;word-break:normal}
 }
 .cookie-consent{position:fixed;z-index:99999;left:20px;right:20px;bottom:20px;max-width:760px;margin:auto;padding:20px;border:1px solid var(--hairline);background:#111;color:#f4f1e9;box-shadow:0 18px 60px #000a}.cookie-consent p{margin:0 0 14px;line-height:1.6}.cookie-consent div{display:flex;gap:10px;flex-wrap:wrap}.cookie-consent a{color:inherit;text-decoration:underline}.legal-page{max-width:900px;margin:auto;padding:150px 24px 80px}.legal-page h1,.legal-page h2{font-family:var(--font-display)}.legal-page h2{margin-top:36px}.legal-page p,.legal-page li{line-height:1.75;color:var(--text-muted)}
+
+/* Visualizador público — composição final aprovada para prévia */
+#lightbox .lightbox-carousel{
+  grid-template-columns:minmax(110px,18vw) minmax(0,64vw) minmax(110px,18vw);
+  gap:0;
+}
+#lightbox .lightbox-slide-current{
+  padding-inline:clamp(6px,.65vw,12px);
+}
+#lightbox .lightbox-slide-prev img,
+#lightbox .lightbox-slide-next img{
+  width:clamp(300px,32vw,700px);
+  max-width:none;
+  max-height:70dvh;
+}
+#lightbox .lightbox-slide-prev{justify-content:flex-end;transform:none}
+#lightbox .lightbox-slide-next{justify-content:flex-start;transform:none}
+
+@media(max-width:760px){
+  #lightbox .lightbox-carousel{grid-template-columns:minmax(0,1fr)}
+  #lightbox .lightbox-slide-prev,
+  #lightbox .lightbox-slide-next{display:none}
+  #lightbox .lightbox-slide-current{padding-inline:8px}
+  #lightbox .lightbox-slide-current img{max-width:calc(100vw - 16px)}
+}

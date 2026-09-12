@@ -141,7 +141,7 @@
       <span>⌄</span>
     </button>
   </div>
-</div><button class="sidebar-link" data-view="galleries" data-admin-menu-key="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-menu-key="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-menu-key="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="messages" data-admin-menu-key="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-menu-key="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
+</div><button class="sidebar-link" data-view="galleries" data-admin-menu-key="galleries" data-admin-ui-text="nav_galleries">Galerias</button><button class="sidebar-link" data-view="categories" data-admin-menu-key="categories" data-admin-ui-text="nav_categories">Categorias</button><button class="sidebar-link" data-view="sessions" data-admin-menu-key="sessions" data-admin-ui-text="nav_sessions">Ensaios</button><button class="sidebar-link" data-view="client-access" data-admin-menu-key="client-access">Acessos das clientes</button><button class="sidebar-link" data-view="messages" data-admin-menu-key="messages" data-admin-ui-text="nav_messages">Mensagens</button><button class="sidebar-link" data-view="settings" data-admin-menu-key="settings" data-admin-ui-text="nav_settings">Configurações</button></nav>
 <button id="admin-menu-reorder" class="admin-menu-reorder" type="button" aria-pressed="false">Reordenar menu</button>
 <div class="sidebar-bottom"><a href="/inicio" class="sidebar-link sidebar-link-anchor" data-admin-ui-text="nav_view_site">Ver site</a><button id="logout-btn" class="sidebar-link" data-admin-ui-text="nav_logout">Sair</button></div></aside>
 <main class="admin-main"><header class="admin-topbar"><div><p class="section-eyebrow" id="view-eyebrow">Painel</p><h1 id="view-title">Dashboard</h1></div><div class="admin-user" id="user-email"></div></header><div id="flash" class="flash" hidden></div>
@@ -490,14 +490,33 @@
     >
       Remover
     </button>
+
+    <button
+      class="small-btn small-btn-accent"
+      id="design-client-image-save"
+      type="button"
+    >
+      Salvar e publicar foto
+    </button>
+  </div>
+
+  <div class="design-client-focal-sliders">
+    <label class="design-control-row">Ponto focal — horizontal
+      <output id="design-client-focus-x-out">50%</output>
+      <input id="design-client-focus-x-slider" type="range" min="0" max="100" value="50">
+    </label>
+    <label class="design-control-row">Ponto focal — vertical
+      <output id="design-client-focus-y-out">50%</output>
+      <input id="design-client-focus-y-slider" type="range" min="0" max="100" value="50">
+    </label>
   </div>
 
   <p class="field-help design-client-focal-help" id="design-client-focal-summary">
-    Ponto focal: 50% × 50% — clique na foto para alterar.
+    Ponto focal: 50% × 50% — clique na foto ou use as barras acima para alterar.
   </p>
 
   <p class="design-control-help" id="design-client-access-image-msg">
-    JPG, PNG ou WebP. A fotografia será enviada para o storage do site.
+    JPG, PNG ou WebP. A fotografia será enviada para o storage do site. Clique em "Salvar e publicar foto" para que a alteração vá direto ao ar, sem precisar publicar o Design inteiro.
   </p>
 
   <details class="design-client-texts-section">
@@ -512,22 +531,22 @@ Um espaço reservado só para você.</textarea>
 
       <label class="design-control-row">
         Identificação
-        <input id="design-client-text-eyebrow" type="text" maxlength="80" value="Área privada">
+        <input id="design-client-text-eyebrow" type="text" maxlength="80" value="Bem-vinda à sua galeria">
       </label>
 
       <label class="design-control-row">
         Título principal
-        <input id="design-client-text-title" type="text" maxlength="120" value="Sua sessão,">
+        <input id="design-client-text-title" type="text" maxlength="120" value="Entre no seu">
       </label>
 
       <label class="design-control-row">
         Título em destaque
-        <input id="design-client-text-title-emphasis" type="text" maxlength="120" value="em um espaço só seu.">
+        <input id="design-client-text-title-emphasis" type="text" maxlength="120" value="espaço privado.">
       </label>
 
       <label class="design-control-row">
         Texto de apoio
-        <textarea id="design-client-text-description" rows="4" maxlength="600">Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.</textarea>
+        <textarea id="design-client-text-description" rows="4" maxlength="600">Use os dados enviados pelo estúdio para acessar suas fotografias e acompanhar cada etapa.</textarea>
       </label>
 
       <label class="design-control-row">
@@ -1166,6 +1185,7 @@ Um espaço reservado só para você.</textarea>
 </div>
 </div>
 </section>
+<section id="view-client-access" class="admin-view" hidden><div class="toolbar"><p class="panel-copy">Histórico privado dos acessos e ações das clientes. Senhas e endereços IP nunca são exibidos.</p><select id="client-access-session-filter" aria-label="Filtrar por ensaio"><option value="">Todos os ensaios</option></select></div><article class="panel dashboard-activity-panel"><div class="panel-head"><div><p class="section-eyebrow">Área privada</p><h2>Histórico das clientes</h2></div><button class="small-btn" id="refresh-client-access" type="button">Atualizar</button></div><div id="client-access-list" class="dashboard-activity-list"><p class="panel-copy">Carregando histórico…</p></div></article></section>
 <section id="view-messages" class="admin-view" hidden>
 <div class="toolbar"><p class="panel-copy">Mensagens recebidas pelo formulário da página de contato.</p></div>
 <div id="messages-list"></div>
@@ -1225,6 +1245,8 @@ Um espaço reservado só para você.</textarea>
     </div>
   </div>
 </div>
+
+<div id="session-delivery-deadline" class="session-deadline-overview"></div>
 
 <div class="session-workflow session-workflow-accordion">
   <section class="session-stage-card session-stage-accordion" data-session-stage="provas">

@@ -1,11 +1,9 @@
 import { uploadToBucket, getPublicUrlFromBucket, removeFromBucket } from '../../core/storage-service.js';
 import { createSessionPhoto } from './session-photos-repository.js';
-import { watermarkProof } from './proof-watermark.js';
 
 export async function uploadSessionPhoto({ bucket, path, file, sessionId, type, sortOrder }) {
-  const uploadFile=type==='prova'?await watermarkProof(file):file;
-  const uploadPath=type==='prova'?path.replace(/\.[^.]+$/,'.jpg'):path;
-  const upload = await uploadToBucket(bucket, uploadPath, uploadFile, { upsert: false });
+  const uploadPath=path;
+  const upload = await uploadToBucket(bucket, uploadPath, file, { upsert: false });
   if (upload.error) return { error: upload.error, stage: 'upload' };
 
   const { data } = getPublicUrlFromBucket(bucket, uploadPath);

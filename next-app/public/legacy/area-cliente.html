@@ -27,6 +27,93 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='64'%3E%3Cline x1='0' y1='0' x2='120' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Cline x1='120' y1='0' x2='0' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Ctext x='-8' y='38' font-family='monospace' font-size='10' fill='rgba(255,255,255,0.28)' transform='rotate(-20 60 32)'%3EPHOTOSRANGEL%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
   }
+  .lightbox-photo-protected { position: relative; display: inline-flex; max-width: 100%; max-height: calc(100dvh - 150px); }
+  .lightbox-photo-protected img { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 150px); object-fit: contain; }
+  .delivery-premium { animation: deliveryReveal .8s cubic-bezier(.22,.61,.36,1) both; }
+  .delivery-premium-hero { position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:36px; align-items:end; margin:8px 0 28px; padding:clamp(28px,5vw,58px); border:1px solid rgba(222,219,212,.18); background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.012)); }
+  .delivery-premium-hero::after { content:'03'; position:absolute; right:24px; top:-28px; color:rgba(222,219,212,.035); font:400 clamp(7rem,16vw,14rem)/1 var(--font-display); pointer-events:none; }
+  .delivery-premium-eyebrow { margin:0 0 18px; color:var(--accent); font:600 .67rem/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; }
+  .delivery-premium-title { max-width:720px; margin:0; color:var(--text); font:400 clamp(2.5rem,5.2vw,5.6rem)/.98 var(--font-display); letter-spacing:-.035em; }
+  .delivery-premium-title em { font-weight:400; }
+  .delivery-premium-copy { max-width:55ch; margin:24px 0 0; color:var(--text-muted); font-size:clamp(.95rem,1.2vw,1.08rem); line-height:1.75; }
+  .delivery-premium-download { position:relative; z-index:1; min-width:210px; }
+  .delivery-premium-deadline { display:grid; grid-template-columns:auto 1fr; gap:18px; align-items:center; margin:0; padding:22px 24px; border:1px solid rgba(222,219,212,.16); background:rgba(0,0,0,.18); }
+  .delivery-premium-days { min-width:88px; padding-right:18px; border-right:1px solid rgba(222,219,212,.14); color:var(--text); font:400 2.6rem/1 var(--font-display); }
+  .delivery-premium-days small { display:block; margin-top:5px; color:var(--text-muted); font:600 .55rem/1.2 var(--font-mono); letter-spacing:.13em; text-transform:uppercase; }
+  .delivery-premium-deadline p { margin:0; color:var(--text-muted); font-size:.8rem; line-height:1.6; }
+  .delivery-premium-gallery { margin-top:26px!important; }
+  .delivery-premium-gallery .frame { animation: deliveryPhotoIn .65s ease both; }
+  @keyframes deliveryReveal { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+  @keyframes deliveryPhotoIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  @media(max-width:760px) { .delivery-premium-hero { grid-template-columns:1fr; align-items:start; } .delivery-premium-download { width:100%; } .delivery-premium-download .btn { width:100%; } }
+  .selection-thanks { animation:deliveryReveal .8s cubic-bezier(.22,.61,.36,1) both; padding-top:8px; }
+  .selection-thanks-card { position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(230px,.75fr); border:1px solid rgba(222,219,212,.18); background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.012)); }
+  .selection-thanks-card::after { content:'02'; position:absolute; right:24px; top:-38px; color:rgba(222,219,212,.035); font:400 clamp(8rem,18vw,15rem)/1 var(--font-display); pointer-events:none; }
+  .selection-thanks-copy { position:relative; z-index:1; padding:clamp(32px,5vw,64px); }
+  .selection-thanks-eyebrow { margin:0 0 22px; color:var(--accent); font:600 .67rem/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; }
+  .selection-thanks-mark { display:grid; place-items:center; width:44px; height:44px; margin-bottom:24px; border:1px solid rgba(222,219,212,.32); border-radius:50%; color:var(--text); font-size:1rem; }
+  .selection-thanks-title { max-width:650px; margin:0; color:var(--text); font:400 clamp(2.4rem,5vw,5rem)/1 var(--font-display); letter-spacing:-.035em; }
+  .selection-thanks-message { max-width:58ch; margin:24px 0 0; color:var(--text-muted); font-size:clamp(.94rem,1.15vw,1.05rem); line-height:1.75; }
+  .selection-thanks-summary { position:relative; z-index:1; display:flex; align-items:center; align-self:stretch; gap:18px; padding:clamp(30px,4vw,48px); border-left:1px solid rgba(222,219,212,.14); background:rgba(0,0,0,.16); }
+  .selection-thanks-summary strong { color:var(--text); font:400 clamp(3.5rem,7vw,6.5rem)/.8 var(--font-display); }
+  .selection-thanks-summary span { color:var(--text); font:600 .66rem/1.5 var(--font-mono); letter-spacing:.13em; text-transform:uppercase; }
+  .selection-thanks-summary small { display:block; max-width:18ch; margin-top:8px; color:var(--text-muted); font-size:.58rem; font-weight:400; letter-spacing:.08em; }
+  .selection-thanks-image { position:relative; z-index:1; width:100%; height:100%; min-height:340px; object-fit:cover; border-left:1px solid rgba(222,219,212,.14); }
+  .selection-thanks-previews { margin-top:38px; }
+  .selection-thanks-previews-head { display:flex; justify-content:space-between; gap:20px; align-items:end; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid rgba(222,219,212,.12); }
+  .selection-thanks-previews-head p { margin:0; color:var(--text-muted); font:.62rem/1.4 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; }
+  .selection-thanks-grid { margin-top:0!important; opacity:.72; }
+  @media(max-width:760px) { .selection-thanks-card { grid-template-columns:1fr; } .selection-thanks-summary,.selection-thanks-image { border-left:0; border-top:1px solid rgba(222,219,212,.14); } .selection-thanks-summary { min-height:150px; } .selection-thanks-image { min-height:260px; } }
+  .selection-premium { animation:deliveryReveal .7s cubic-bezier(.22,.61,.36,1) both; }
+  .selection-premium-head { position:relative; overflow:hidden; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:32px; align-items:end; margin:8px 0 30px; padding:clamp(28px,4.5vw,54px); border:1px solid rgba(222,219,212,.18); background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.01)); }
+  .selection-premium-head::after { content:'01'; position:absolute; right:22px; top:-34px; color:rgba(222,219,212,.035); font:400 clamp(8rem,17vw,14rem)/1 var(--font-display); pointer-events:none; }
+  .selection-premium-eyebrow { margin:0 0 18px; color:var(--accent); font:600 .67rem/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; }
+  .selection-premium-title { max-width:760px; margin:0; color:var(--text); font:400 clamp(2.5rem,5vw,5.2rem)/.98 var(--font-display); letter-spacing:-.035em; }
+  .selection-premium-title em { font-weight:400; }
+  .selection-premium-copy { max-width:60ch; margin:22px 0 0; color:var(--text-muted); font-size:1rem; line-height:1.75; }
+  .selection-premium-total { position:relative; z-index:1; min-width:150px; padding-left:28px; border-left:1px solid rgba(222,219,212,.14); }
+  .selection-premium-total strong { display:block; color:var(--text); font:400 3.8rem/.9 var(--font-display); }
+  .selection-premium-total span { display:block; margin-top:9px; color:var(--text-muted); font:600 .62rem/1.5 var(--font-mono); letter-spacing:.13em; text-transform:uppercase; }
+  .selection-premium-grid .frame { animation:deliveryPhotoIn .55s ease both; transition:border-color .25s ease,transform .25s ease,box-shadow .25s ease; }
+  .selection-premium-grid .frame:hover { transform:translateY(-3px); border-color:rgba(222,219,212,.28); }
+  .selection-premium-grid .foto-selecionavel.marcada { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .selection-premium-grid .foto-selecionavel.marcada img { filter:brightness(.76); }
+  .selection-photo-number { position:absolute; left:10px; bottom:10px; z-index:2; padding:4px 7px; background:rgba(0,0,0,.72); color:var(--text); font:600 .6rem/1 var(--font-mono); letter-spacing:.08em; }
+  .selection-premium .barra-selecao { z-index:20; border:1px solid rgba(222,219,212,.2); background:rgba(13,13,12,.92); box-shadow:0 -18px 50px rgba(0,0,0,.24); }
+  .selection-premium .barra-selecao::before { content:'Sua seleção'; color:var(--text-muted); font:600 .6rem/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; }
+  .selection-premium .barra-selecao .footer-mono { margin-right:auto; color:var(--text); font-size:.72rem; }
+  @media(max-width:760px) { .selection-premium-head { grid-template-columns:1fr; } .selection-premium-total { padding:18px 0 0; border-left:0; border-top:1px solid rgba(222,219,212,.14); } .selection-premium .barra-selecao::before { width:100%; } .selection-premium .barra-selecao .btn { width:100%; } }
+  /* Visualizador da seleção — imagem atual com prévias laterais */
+  #lightbox-selecao { padding:20px clamp(10px,1.8vw,30px); overflow:hidden; }
+  #lightbox-selecao .lightbox-stage { width:100%; height:calc(100dvh - 118px); padding:4px 0 58px; overflow:hidden; }
+  .selection-lightbox-carousel { width:100%; height:100%; display:grid; grid-template-columns:minmax(110px,18vw) minmax(0,64vw) minmax(110px,18vw); gap:0; align-items:center; }
+  .selection-lightbox-slide { position:relative; min-width:0; height:min(78dvh,920px); border:0; padding:0; background:transparent; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .selection-lightbox-slide img { display:block; width:auto; height:auto; max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; }
+  .selection-lightbox-current { z-index:2; overflow:visible; }
+  .selection-lightbox-current .lightbox-photo-protected { max-width:min(68vw,1280px); max-height:78dvh; }
+  .selection-lightbox-current .lightbox-photo-protected img { max-height:78dvh; }
+  .selection-lightbox-neighbor { cursor:pointer; opacity:.3; filter:brightness(.5); transition:opacity .22s ease,filter .22s ease,transform .22s ease; }
+  .selection-lightbox-neighbor:hover { opacity:.55; filter:brightness(.72); transform:scale(1.015); }
+  .selection-lightbox-neighbor:first-child { justify-content:flex-end; }
+  .selection-lightbox-neighbor:last-child { justify-content:flex-start; }
+  .selection-lightbox-neighbor > span { position:relative; display:inline-flex; flex:0 0 auto; width:clamp(280px,32vw,680px); max-width:none; max-height:64dvh; overflow:hidden; }
+  .selection-lightbox-neighbor img { width:100%; max-width:none; max-height:64dvh; object-fit:contain; }
+  .final-photo-open { cursor:zoom-in; }
+  @media(max-width:760px) { #lightbox-selecao { padding:10px 4px; } #lightbox-selecao .lightbox-stage { height:calc(100dvh - 104px); padding-bottom:62px; } .selection-lightbox-carousel { grid-template-columns:1fr; } .selection-lightbox-neighbor, .selection-lightbox-carousel > span:not(.protegida) { display:none; } .selection-lightbox-current .lightbox-photo-protected { max-width:94vw; max-height:72dvh; } .selection-lightbox-current .lightbox-photo-protected img { max-height:72dvh; } }
+
+  /* Acesso — narrativa visual da experiência */
+  .client-access-visual::after { content:'RS'; position:absolute; left:clamp(20px,4vw,54px); top:50%; transform:translateY(-56%); color:rgba(245,242,235,.045); font:400 clamp(9rem,20vw,19rem)/.8 var(--font-display); letter-spacing:-.09em; }
+  .client-access-brand { z-index:3; left:clamp(26px,4vw,58px); }
+  .client-access-path { position:absolute; z-index:3; top:50%; left:clamp(26px,4vw,58px); right:clamp(26px,4vw,58px); display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid rgba(255,255,255,.14); }
+  .client-access-path-item { padding:16px 10px 0 0; }
+  .client-access-path-item span,.client-access-path-item small { display:block; color:rgba(245,242,235,.48); font:600 .58rem/1.4 var(--font-mono); letter-spacing:.12em; text-transform:uppercase; }
+  .client-access-path-item strong { display:block; margin:7px 0 3px; color:rgba(245,242,235,.86); font:400 clamp(1rem,1.7vw,1.35rem)/1.1 var(--font-display); }
+  .client-access-panel { position:relative; }
+  .client-access-panel::before { content:'ACESSO  ·  01'; position:absolute; top:clamp(28px,3vw,42px); right:clamp(28px,4vw,52px); color:var(--text-muted); font:600 .54rem/1 var(--font-mono); letter-spacing:.15em; }
+  @media(max-width:920px) { .client-access-path { top:46%; } }
+  @media(max-width:640px) { .client-access-visual::after { font-size:9rem; } .client-access-path { top:auto; bottom:78px; } .client-access-path-item { padding-top:10px; } .client-access-path-item strong { font-size:.95rem; } .client-access-path-item small { display:none; } .client-access-panel::before { top:28px; right:22px; } }
+
+
 
   /* Caixinha de seleção — usada SÓ na tela onde a cliente ainda pode escolher */
   .foto-selecionavel { cursor: pointer; }
@@ -401,6 +488,9 @@
     align-items: center;
     gap: 10px;
   }
+  .client-gallery-tools { display:grid; justify-items:end; gap:14px; }
+  .client-logout { min-height:38px; padding:0 17px; border:1px solid rgba(255,255,255,.16); border-radius:999px; background:transparent; color:var(--text-muted); font:600 .65rem/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .2s ease,color .2s ease,background .2s ease; }
+  .client-logout:hover,.client-logout:focus-visible { border-color:var(--accent); color:var(--text); background:rgba(255,255,255,.04); }
 
   .client-stage-card {
     min-width: 94px;
@@ -492,6 +582,7 @@
       overflow-x: auto;
       padding-bottom: 4px;
     }
+    .client-gallery-tools { width:100%; justify-items:start; }
   }
 
   @media (max-width: 640px) {
@@ -660,6 +751,42 @@
   }
   .recovery-actions { display: grid; gap: 12px; margin-top: 22px; }
   .recovery-cancel { background: transparent; color: var(--text-muted); border: 0; cursor: pointer; }
+  /* =====================================================
+     ÁREA DO CLIENTE — ACESSO PRIVADO / DIREÇÃO EDITORIAL V2
+     ===================================================== */
+  .client-access-wrap { max-width:none!important; min-height:100dvh; padding:clamp(92px,8vh,132px) clamp(18px,3vw,64px) clamp(30px,5vh,64px)!important; display:grid; align-items:center; }
+  .client-access-shell { width:min(100%,1760px); min-height:min(800px,calc(100dvh - 150px)); grid-template-columns:minmax(0,1.35fr) minmax(420px,.65fr); border-color:rgba(222,219,212,.15); background:#0d0d0b; box-shadow:0 32px 90px rgba(0,0,0,.26); }
+  .client-access-visual { min-height:inherit; padding:clamp(42px,5vw,82px); display:flex; flex-direction:column; justify-content:space-between; background:radial-gradient(circle at 76% 22%,rgba(255,255,255,.06),transparent 24%),linear-gradient(145deg,#1a1916 0%,#0e0e0c 58%,#090908 100%); }
+  .client-access-visual::before { opacity:.32; background:linear-gradient(90deg,transparent 49.8%,rgba(255,255,255,.045) 50%,transparent 50.2%),linear-gradient(0deg,transparent 49.8%,rgba(255,255,255,.035) 50%,transparent 50.2%); background-size:clamp(70px,6vw,110px) clamp(70px,6vw,110px); }
+  .client-access-visual::after { content:'R/S'; left:auto; right:clamp(24px,4vw,70px); top:46%; transform:translateY(-50%); color:rgba(245,242,235,.04); font-size:clamp(10rem,18vw,22rem); letter-spacing:-.13em; }
+  .client-access-brand { position:relative; inset:auto; z-index:3; display:flex; align-items:baseline; gap:10px; }
+  .client-access-brand-name { font-size:clamp(1.2rem,1.5vw,1.65rem); }
+  .client-access-brand-sub { padding-left:10px; border-left:1px solid rgba(222,219,212,.24); }
+  .client-access-editorial { position:relative; z-index:3; margin:auto 0; padding:clamp(60px,8vh,110px) 0; }
+  .client-access-editorial .section-eyebrow { margin:0 0 22px; }
+  .client-access-editorial-title { max-width:10ch; margin:0; color:var(--text); font:400 clamp(3.8rem,7.1vw,8.8rem)/.86 var(--font-display); letter-spacing:-.055em; }
+  .client-access-editorial-title em { display:block; margin-left:clamp(30px,7vw,120px); font-weight:300; color:var(--accent); }
+  .client-access-visual-copy { position:relative; inset:auto; z-index:3; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:30px; }
+  .client-access-visual-copy p { max-width:38ch; font-family:inherit; font-size:1rem; font-style:normal; line-height:1.7; text-align:left; }
+  .client-access-path { position:relative; inset:auto; width:min(100%,520px); display:grid; grid-template-columns:repeat(3,1fr); border-top-color:rgba(222,219,212,.2); }
+  .client-access-panel { min-height:inherit; padding:clamp(46px,4.5vw,78px); justify-content:center; border-left:1px solid rgba(222,219,212,.15); background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 30%),#11110f; }
+  .client-access-panel::before { content:'ACESSO RESERVADO'; top:clamp(30px,4vw,52px); left:clamp(32px,4vw,68px); right:auto; }
+  .client-access-panel-number { position:absolute; top:clamp(28px,4vw,50px); right:clamp(32px,4vw,68px); color:rgba(222,219,212,.22); font:400 2.4rem/1 var(--font-display); }
+  .client-access-copy { margin:30px 0 34px; }
+  .client-access-copy .section-eyebrow { color:var(--text-muted); }
+  .client-access-title { max-width:9ch; margin:14px 0 22px; font-size:clamp(3rem,4.2vw,5.3rem); line-height:.94; }
+  .client-access-description { font-size:1rem; }
+  .client-access-form { width:100%; max-width:520px; }
+  .client-access-form .field { margin-bottom:22px; }
+  .client-access-form input { min-height:60px; border:1px solid rgba(222,219,212,.13); background:rgba(255,255,255,.018); }
+  .client-access-form input:focus { border-color:rgba(222,219,212,.5); box-shadow:0 0 0 3px rgba(222,219,212,.045); }
+  .client-access-submit { min-height:58px; margin-top:10px; }
+  .client-access-footnote { margin:30px 0 0; padding-top:18px; border-top:1px solid rgba(222,219,212,.1); color:var(--text-muted); font:500 .6rem/1.6 var(--font-mono); letter-spacing:.1em; text-transform:uppercase; }
+  @media(min-width:1900px) { .client-access-shell { min-height:min(900px,calc(100dvh - 180px)); } .client-access-editorial-title { font-size:8.8rem; } }
+  @media(max-width:1100px) { .client-access-shell { grid-template-columns:minmax(0,1fr) minmax(380px,.78fr); } .client-access-visual-copy { grid-template-columns:1fr; } .client-access-path { width:100%; } }
+  @media(max-width:920px) { .client-access-wrap { display:block; } .client-access-shell { grid-template-columns:1fr; } .client-access-visual { min-height:560px; } .client-access-panel { min-height:auto; border-left:0; border-top:1px solid rgba(222,219,212,.15); padding-top:90px; } .client-access-editorial-title { font-size:clamp(4.2rem,12vw,7rem); } }
+  @media(max-width:640px) { .client-access-wrap { padding:78px 10px 18px!important; } .client-access-shell { min-height:auto; } .client-access-visual { min-height:470px; padding:28px 22px; } .client-access-brand { align-items:flex-start; flex-direction:column; gap:6px; } .client-access-brand-sub { padding:0; border:0; } .client-access-editorial { padding:58px 0 42px; } .client-access-editorial-title { font-size:clamp(3.5rem,17vw,5rem); } .client-access-editorial-title em { margin-left:18px; } .client-access-visual-copy { gap:20px; } .client-access-visual-copy p { font-size:.94rem; } .client-access-path-item strong { font-size:.9rem; } .client-access-panel { padding:82px 22px 30px; } .client-access-panel::before { left:22px; } .client-access-panel-number { right:22px; } .client-access-title { font-size:clamp(3rem,14vw,4.3rem); } }
+
 
 </style>
 </head>
@@ -682,21 +809,34 @@
 <!-- TELA DE ACESSO -->
 <div id="acesso-screen" class="cliente-wrap client-access-wrap">
   <div class="client-access-shell">
-    <div class="client-access-visual" aria-hidden="true">
-      <div class="client-access-visual-copy">
-        <p id="client-visual-text">Retratos guardados com cuidado.<br>Um espaço reservado só para você.</p>
+    <section class="client-access-visual" aria-label="Experiência da Área do Cliente">
+      <div class="client-access-brand">
+        <span class="client-access-brand-name">Rangel Santos <em>Fotografia</em></span>
+        <span class="client-access-brand-sub">Experiência privada</span>
       </div>
-    </div>
+      <div class="client-access-editorial">
+        <p class="section-eyebrow">Sua história, preservada</p>
+        <h2 class="client-access-editorial-title">Um espaço <em>só seu.</em></h2>
+      </div>
+      <div class="client-access-visual-copy">
+        <p id="client-visual-text">Da escolha à entrega final, acompanhe cada etapa da sua experiência com privacidade e cuidado.</p>
+        <div class="client-access-path">
+          <div class="client-access-path-item"><span>01</span><strong>Seleção</strong><small>Suas escolhas</small></div>
+          <div class="client-access-path-item"><span>02</span><strong>Edição</strong><small>Nosso cuidado</small></div>
+          <div class="client-access-path-item"><span>03</span><strong>Entrega</strong><small>Suas memórias</small></div>
+        </div>
+      </div>
+    </section>
 
     <section class="acesso-box client-access-panel">
-<div class="client-access-copy">
-        <p class="section-eyebrow" id="client-access-eyebrow">Área privada</p>
+      <span class="client-access-panel-number" aria-hidden="true">01</span>
+      <div class="client-access-copy">
+        <p class="section-eyebrow" id="client-access-eyebrow">Bem-vinda à sua galeria</p>
         <h1 class="client-access-title">
-          <span id="client-access-title-main">Sua sessão,</span><br><em id="client-access-title-emphasis">em um espaço só seu.</em>
+          <span id="client-access-title-main">Entre no seu</span><br><em id="client-access-title-emphasis">espaço privado.</em>
         </h1>
         <p class="client-access-description" id="client-access-description">
-          Acesse sua galeria para selecionar fotografias, acompanhar a edição
-          e receber seus arquivos finais.
+          Use os dados enviados pelo estúdio para acessar suas fotografias e acompanhar cada etapa.
         </p>
       </div>
 
@@ -737,6 +877,7 @@
           <span id="client-access-secure-text">Acesso privado e protegido</span>
         </div>
       </form>
+      <p class="client-access-footnote">Seleção · acompanhamento · entrega em alta resolução</p>
     </section>
   </div>
 </div>
@@ -791,7 +932,7 @@
       <p class="client-gallery-status" id="cliente-status"></p>
     </div>
 
-    <div class="client-journey" id="client-journey" aria-label="Etapas do ensaio">
+    <div class="client-gallery-tools"><button class="client-logout" id="client-logout" type="button">Sair da Área do Cliente</button><div class="client-journey" id="client-journey" aria-label="Etapas do ensaio">
       <div class="client-stage-card" data-client-stage="selection">
         <span>01</span>
         <strong id="client-stage-selection">Seleção</strong>
@@ -809,7 +950,7 @@
         <strong id="client-stage-delivery">Entrega</strong>
         <small id="client-stage-delivery-sub">Final</small>
       </div>
-    </div>
+    </div></div>
   </header>
 
   <div id="conteudo-galeria"></div>
@@ -825,9 +966,9 @@
     <button class="lightbox-close" id="lightbox-sel-close" aria-label="Fechar visualizador">✕</button>
   </div>
   <button class="lightbox-arrow lightbox-arrow-left" id="lightbox-sel-prev" aria-label="Foto anterior">‹</button>
-  <div class="lightbox-stage protegida" id="lightbox-sel-stage"></div>
+  <div class="lightbox-stage" id="lightbox-sel-stage"></div>
   <button class="lightbox-arrow lightbox-arrow-right" id="lightbox-sel-next" aria-label="Próxima foto">›</button>
-  <div style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
+  <div id="lightbox-sel-action" style="position:absolute; bottom:24px; left:0; right:0; display:flex; justify-content:center;">
     <button class="btn btn-accent" id="lightbox-sel-toggle"></button>
   </div>
 </div>
@@ -980,6 +1121,26 @@ const acessoMsg = document.getElementById('acesso-msg');
 let ensaioAtual = null;
 let selecaoAtual = new Set();
 let loginEmAndamento = false;
+
+function sairAreaCliente() {
+  fecharLightboxSelecao();
+  ensaioAtual = null;
+  selecaoAtual.clear();
+  document.getElementById('conteudo-galeria').replaceChildren();
+  document.getElementById('lightbox-sel-stage').replaceChildren();
+  document.getElementById('cliente-titulo').textContent = '';
+  document.getElementById('cliente-status').textContent = '';
+  document.getElementById('acesso-form').reset();
+  acessoMsg.textContent = '';
+  acessoMsg.className = 'msg';
+  galeriaScreen.style.display = 'none';
+  acessoScreen.style.display = 'block';
+  document.body.style.overflow = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => document.getElementById('input-slug').focus(), 150);
+}
+
+document.getElementById('client-logout').addEventListener('click', sairAreaCliente);
 
 function statusEnsaioNormalizado(status) {
   if (status === 'selecionado') return 'selecao_finalizada';
@@ -1184,6 +1345,14 @@ recoveryResetForm.addEventListener('submit', async event => {
 
 if (recoveryToken) openRecovery(true);
 
+function prazoGaleria() {
+  if (!ensaioAtual?.expires_at) return '';
+  const expiry = new Date(ensaioAtual.expires_at);
+  const days = Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 86400000));
+  const date = new Intl.DateTimeFormat('pt-PT', { dateStyle: 'long', timeStyle: 'short' }).format(expiry);
+  return `<aside class="delivery-premium-deadline"><div class="delivery-premium-days">${days}<small>dia${days === 1 ? '' : 's'} restante${days === 1 ? '' : 's'}</small></div><p><strong style="color:var(--text);">Disponível até ${date}</strong><br>Faça o download antes dessa data para guardar os seus arquivos.</p></aside>`;
+}
+
 function mostrarGaleria() {
   acessoScreen.style.display = 'none';
   galeriaScreen.style.display = 'block';
@@ -1238,80 +1407,103 @@ function mostrarGaleria() {
 
   if (statusAtual === 'fotos_disponiveis') {
     conteudo.innerHTML = `
-      <div class="section-head" style="align-items:flex-start; border-bottom:none;">
+      <div class="delivery-premium">
+      <section class="delivery-premium-hero">
         <div>
-          <p style="font-family:var(--font-display); font-style:italic; font-size:1.8rem; color:var(--text); margin-bottom:14px;">
-            Suas fotos estão prontas! 🤍
-          </p>
-          <p style="color:var(--text-muted); max-width:52ch;">
+          <p class="delivery-premium-eyebrow">Entrega final · ${ensaioAtual.fotos.length} fotografia${ensaioAtual.fotos.length === 1 ? '' : 's'}</p>
+          <h2 class="delivery-premium-title">Suas fotos estão <em>prontas.</em></h2>
+          <p class="delivery-premium-copy">
             Foi um prazer registrar esse momento com você. Obrigado pela confiança —
             espero que essas fotos te façam sentir exatamente como você é.
           </p>
         </div>
-        <button class="btn btn-accent" id="btn-baixar-tudo" style="flex-shrink:0;">Baixar tudo (.zip)</button>
-      </div>
+        <div class="delivery-premium-download"><button class="btn btn-accent" id="btn-baixar-tudo">Baixar tudo (.zip)</button></div>
+      </section>
+      ${prazoGaleria()}
       <p class="msg" id="baixar-tudo-msg" style="text-align:right;"></p>
-      <div class="grid client-gallery-grid" style="margin-top:20px;">
+      <div class="grid client-gallery-grid delivery-premium-gallery">
         ${ensaioAtual.fotos.map((f, i) => `
-          <div class="frame">
+          <div class="frame final-photo-open" data-final-index="${i}" role="button" tabindex="0" aria-label="Ampliar foto final ${i + 1}" style="animation-delay:${Math.min(i * 55, 440)}ms;">
             <img src="${f.url}" alt="Foto final ${i + 1}">
             <div class="frame-caption" style="transform:translateY(0); justify-content:center;">
-              <button class="btn btn-accent" style="padding:8px 16px;" onclick="baixarFoto('${f.url}', 'foto-${i + 1}.jpg', this)">Baixar</button>
+              <button class="btn btn-accent" data-final-download style="padding:8px 16px;" onclick="baixarFoto('${f.url}', 'foto-${i + 1}.jpg', this)">Baixar</button>
             </div>
           </div>
         `).join('')}
       </div>
+      </div>
     `;
     document.getElementById('btn-baixar-tudo').addEventListener('click', (e) => baixarTudo(ensaioAtual.fotos, e.target));
+    conteudo.querySelectorAll('[data-final-index]').forEach(card => {
+      const abrir = event => {
+        if (event.target.closest('[data-final-download]')) return;
+        abrirLightboxFinal(Number(card.dataset.finalIndex));
+      };
+      card.addEventListener('click', abrir);
+      card.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          abrir(event);
+        }
+      });
+    });
     return;
   }
 
   if (['selecao_finalizada', 'em_edicao'].includes(statusAtual)) {
     const selecionadas = ensaioAtual.fotos.filter(f => f.selecionada);
-    const quantidadeSelecionada = selecionadas.length || (ensaioAtual.selected_photo_numbers || []).length;
+    // A lista histórica é gravada quando a cliente confirma a seleção. Depois
+    // da limpeza das provas pode restar somente a capa, portanto a quantidade
+    // exibida nunca deve ser menor que esse registro definitivo.
+    const quantidadeSelecionada = Math.max(
+      selecionadas.length,
+      Array.isArray(ensaioAtual.selected_photo_numbers) ? ensaioAtual.selected_photo_numbers.length : 0
+    );
     const imagemAgradecimento = statusAtual === 'em_edicao' && ensaioAtual.selection_thank_you_image_url
-      ? `<img src="${ensaioAtual.selection_thank_you_image_url}" alt="Agradecimento pela seleção" style="display:block;max-width:min(100%,720px);max-height:48vh;object-fit:cover;margin:0 auto 28px;">`
+      ? `<img class="selection-thanks-image" src="${ensaioAtual.selection_thank_you_image_url}" alt="Agradecimento pela seleção">`
       : '';
+    const mensagemAgradecimento = ensaioAtual.selection_thank_you_message || `Recebemos sua seleção e ela já está guardada com segurança. Agora é com o Rangel — assim que as fotografias estiverem prontas e tratadas, elas vão aparecer aqui mesmo para você baixar.`;
     conteudo.innerHTML = `
-      <div style="text-align:center; padding: 40px 0 20px;">
-        ${imagemAgradecimento}
-        <p style="font-family:var(--font-display); font-style:italic; font-size:1.6rem; color:var(--text); margin-bottom:14px;">
-          Obrigado pela sua escolha!
-        </p>
-        <p style="color:var(--text-muted); max-width:50ch; margin:0 auto;">
-          ${ensaioAtual.selection_thank_you_message || `Recebemos sua seleção de ${quantidadeSelecionada} foto${quantidadeSelecionada === 1 ? '' : 's'}.
-          Agora é com o Rangel — assim que as fotos estiverem prontas e tratadas,
-          elas vão aparecer aqui mesmo, nesse link, para você baixar.`}
-        </p>
-      </div>
-      ${statusAtual === 'selecao_finalizada' ? `<div class="grid" style="margin-top:32px; opacity:0.6;">
-        ${selecionadas.map(f => `
-          <div class="frame protegida">
-            <img src="${f.url}" alt="Foto selecionada">
+      <section class="selection-thanks">
+        <div class="selection-thanks-card">
+          <div class="selection-thanks-copy">
+            <p class="selection-thanks-eyebrow">Seleção confirmada</p>
+            <span class="selection-thanks-mark" aria-hidden="true">✓</span>
+            <h2 class="selection-thanks-title">Escolhas recebidas <em>com carinho.</em></h2>
+            <p class="selection-thanks-message">${mensagemAgradecimento}</p>
           </div>
-        `).join('')}
-      </div>` : ''}
+          ${imagemAgradecimento || `<aside class="selection-thanks-summary"><strong>${quantidadeSelecionada}</strong><span>fotografia${quantidadeSelecionada === 1 ? '' : 's'} escolhida${quantidadeSelecionada === 1 ? '' : 's'}<small>Próxima etapa: edição cuidadosa das suas imagens</small></span></aside>`}
+        </div>
+      </section>
     `;
     return;
   }
 
   conteudo.innerHTML = `
-    <p style="color:var(--text-muted); margin-bottom:24px;">
-      Clique nas fotos que você mais gostou. Pode escolher quantas quiser, e mudar de ideia antes de enviar.
-    </p>
-    <div class="grid client-gallery-grid" id="grid-selecao">
-      ${ensaioAtual.fotos.map((f, i) => `
-        <div class="frame protegida foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}" data-index="${i}">
-          <img src="${f.url}" alt="Foto do ensaio">
-          <span class="check-box">${selecaoAtual.has(f.id) ? '✓' : ''}</span>
+    <section class="selection-premium">
+      <header class="selection-premium-head">
+        <div>
+          <p class="selection-premium-eyebrow">Sua curadoria</p>
+          <h2 class="selection-premium-title">Escolha as imagens que mais <em>tocaram você.</em></h2>
+          <p class="selection-premium-copy">Clique no quadrado de cada fotografia para selecionar. Você pode rever as imagens de perto e mudar de ideia quantas vezes quiser antes de enviar.</p>
         </div>
-      `).join('')}
-    </div>
-    <div class="barra-selecao" id="barra-selecao">
-      <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
-      <button class="btn btn-accent" id="btn-salvar-selecao">Enviar seleção</button>
-    </div>
-    <p class="msg" id="selecao-msg"></p>
+        <aside class="selection-premium-total"><strong>${ensaioAtual.fotos.length}</strong><span>fotografia${ensaioAtual.fotos.length === 1 ? '' : 's'} para descobrir</span></aside>
+      </header>
+      <div class="grid client-gallery-grid selection-premium-grid" id="grid-selecao">
+        ${ensaioAtual.fotos.map((f, i) => `
+          <div class="frame protegida foto-selecionavel ${selecaoAtual.has(f.id) ? 'marcada' : ''}" data-id="${f.id}" data-index="${i}" style="animation-delay:${Math.min(i * 45, 360)}ms;">
+            <img src="${f.url}" alt="Foto ${i + 1} do ensaio">
+            <span class="selection-photo-number">${String(i + 1).padStart(4, '0')}</span>
+            <span class="check-box" aria-label="Selecionar foto ${i + 1}">${selecaoAtual.has(f.id) ? '✓' : ''}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="barra-selecao" id="barra-selecao">
+        <span class="footer-mono" id="contador-selecao">${selecaoAtual.size} foto(s) selecionada(s)</span>
+        <button class="btn btn-accent" id="btn-salvar-selecao">Confirmar seleção</button>
+      </div>
+      <p class="msg" id="selecao-msg"></p>
+    </section>
   `;
 
   document.querySelectorAll('.foto-selecionavel').forEach((el) => {
@@ -1429,10 +1621,26 @@ const lightboxSel = document.getElementById('lightbox-selecao');
 const lightboxSelStage = document.getElementById('lightbox-sel-stage');
 const lightboxSelCounter = document.getElementById('lightbox-sel-counter');
 const lightboxSelToggle = document.getElementById('lightbox-sel-toggle');
+const lightboxSelAction = document.getElementById('lightbox-sel-action');
+const lightboxSelTitle = lightboxSel.querySelector('.lightbox-title');
 let indiceAtualLightbox = 0;
+let modoLightbox = 'selecao';
 
 function abrirLightboxSelecao(indice) {
+  modoLightbox = 'selecao';
   indiceAtualLightbox = indice;
+  lightboxSelTitle.textContent = 'Foto ampliada';
+  lightboxSelAction.style.display = 'flex';
+  mostrarFotoLightbox();
+  lightboxSel.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function abrirLightboxFinal(indice) {
+  modoLightbox = 'final';
+  indiceAtualLightbox = indice;
+  lightboxSelTitle.textContent = 'Foto final ampliada';
+  lightboxSelAction.style.display = 'none';
   mostrarFotoLightbox();
   lightboxSel.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -1444,10 +1652,27 @@ function fecharLightboxSelecao() {
 }
 
 function mostrarFotoLightbox() {
-  const foto = ensaioAtual.fotos[indiceAtualLightbox];
-  lightboxSelStage.innerHTML = `<img src="${foto.url}" alt="Foto ampliada">`;
-  lightboxSelCounter.textContent = `${indiceAtualLightbox + 1} / ${ensaioAtual.fotos.length}`;
-  atualizarBotaoLightbox(foto);
+  const fotos = ensaioAtual.fotos;
+  const foto = fotos[indiceAtualLightbox];
+  const anterior = fotos[(indiceAtualLightbox - 1 + fotos.length) % fotos.length];
+  const proxima = fotos[(indiceAtualLightbox + 1) % fotos.length];
+  const mostrarVizinhas = fotos.length > 1;
+  const protegida = modoLightbox === 'selecao';
+  const fotoAtual = protegida
+    ? `<div class="lightbox-photo-protected protegida"><img src="${foto.url}" alt="Foto ampliada"></div>`
+    : `<div class="lightbox-photo-protected"><img src="${foto.url}" alt="Foto final ampliada"></div>`;
+  const vizinha = item => protegida
+    ? `<span class="protegida"><img src="${item.url}" alt=""></span>`
+    : `<span><img src="${item.url}" alt=""></span>`;
+  lightboxSelStage.innerHTML = `
+    <div class="selection-lightbox-carousel">
+      ${mostrarVizinhas ? `<button type="button" class="selection-lightbox-slide selection-lightbox-neighbor" data-lightbox-neighbor="prev" aria-label="Ver fotografia anterior">${vizinha(anterior)}</button>` : '<span></span>'}
+      <div class="selection-lightbox-slide selection-lightbox-current">${fotoAtual}</div>
+      ${mostrarVizinhas ? `<button type="button" class="selection-lightbox-slide selection-lightbox-neighbor" data-lightbox-neighbor="next" aria-label="Ver próxima fotografia">${vizinha(proxima)}</button>` : '<span></span>'}
+    </div>
+  `;
+  lightboxSelCounter.textContent = `${indiceAtualLightbox + 1} / ${fotos.length}`;
+  if (modoLightbox === 'selecao') atualizarBotaoLightbox(foto);
 }
 
 function atualizarBotaoLightbox(foto) {
@@ -1467,6 +1692,11 @@ function fotoAnteriorLightbox() {
 document.getElementById('lightbox-sel-close').addEventListener('click', fecharLightboxSelecao);
 document.getElementById('lightbox-sel-next').addEventListener('click', proximaFotoLightbox);
 document.getElementById('lightbox-sel-prev').addEventListener('click', fotoAnteriorLightbox);
+lightboxSelStage.addEventListener('click', event => {
+  const neighbor = event.target.closest('[data-lightbox-neighbor]');
+  if (!neighbor) return;
+  neighbor.dataset.lightboxNeighbor === 'prev' ? fotoAnteriorLightbox() : proximaFotoLightbox();
+});
 
 lightboxSel.addEventListener('click', (e) => {
   if (e.target === lightboxSel) fecharLightboxSelecao();
@@ -1480,6 +1710,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 lightboxSelToggle.addEventListener('click', () => {
+  if (modoLightbox !== 'selecao') return;
   const foto = ensaioAtual.fotos[indiceAtualLightbox];
   const cardCorrespondente = document.querySelector(`.foto-selecionavel[data-id="${foto.id}"]`);
   if (cardCorrespondente) alternarSelecao(cardCorrespondente);
