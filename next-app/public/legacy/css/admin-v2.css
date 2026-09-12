@@ -7819,4 +7819,3 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .design-client-image-preview.empty + .design-client-focal-controls{
   opacity:.5;
 }
-\n\n/* AJUSTE 2026-09-12 — prévia compacta da foto da Área do Cliente */\n.design-client-image-control .design-client-image-preview{\n  width:min(100%,520px) !important;\n  max-width:520px !important;\n  aspect-ratio:16 / 10 !important;\n  height:auto !important;\n  min-height:0 !important;\n  margin:10px auto 0 !important;\n  background-size:cover !important;\n}\n.design-client-image-control .design-client-image-actions{\n  width:min(100%,520px);\n  margin:10px auto 0;\n}\n.design-client-image-control .design-client-focal-controls{\n  width:min(100%,520px);\n  margin-left:auto;\n  margin-right:auto;\n}\n.design-client-image-control .design-client-focal-help,\n.design-client-image-control .design-control-help{\n  width:min(100%,520px);\n  margin-left:auto;\n  margin-right:auto;\n}\n
