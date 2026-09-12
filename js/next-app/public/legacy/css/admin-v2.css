@@ -7819,3 +7819,45 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .design-client-image-preview.empty + .design-client-focal-controls{
   opacity:.5;
 }
+
+/* 2026-09-12 — Área do Cliente: editor compacto alinhado à esquerda */
+.design-client-preview-card .design-client-image-preview {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+.design-client-preview-card .design-client-focal-controls {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  width: min(900px, 100%) !important;
+}
+.design-client-preview-card .design-client-focal-instruction {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  width: min(900px, 100%) !important;
+}
+.design-client-preview-card .design-client-image-actions {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+}
+.design-client-preview-card .design-client-tips {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+}
+/* Nunca renderizar o placeholder antigo via pseudo-elemento. */
+.design-client-image-preview.empty::after {
+  content: none !important;
+  display: none !important;
+}
+.design-client-image-preview .design-client-image-empty {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 16px !important;
+  text-align: center !important;
+}
+.design-client-image-preview:not(.empty) .design-client-image-empty {
+  display: none !important;
+}
