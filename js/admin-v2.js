@@ -9243,18 +9243,18 @@ function openDesignDrawer(sectionName, trigger = null) {
 
   setView?.('design');
 
-  /* A Área do Cliente usa agora um editor dedicado no corpo do Admin,
-     em vez do antigo flyout + iframe em tamanho gigante. */
   if (sectionName === 'client_area') {
-    drawer.hidden = true;
-    drawer.classList.remove('is-open','is-client-area-editor','is-content-editor');
-    updateDesignPageSwitcher('/area-cliente');
-    const panel=document.querySelector('.design-stack-panel[data-inline-panel="client_area"]');
-    const body=$('design-inline-client_area');
-    panel?.classList.add('is-open');
-    if(body)body.hidden=false;
-    requestAnimationFrame(()=>panel?.scrollIntoView({behavior:'smooth',block:'start'}));
-    return;
+    const frame = $('design-preview-frame');
+    if (frame) {
+      const currentPath = (() => {
+        try { return new URL(frame.src, location.origin).pathname; }
+        catch (_) { return ''; }
+      })();
+
+      if (currentPath !== '/area-cliente' && currentPath !== '/area-cliente.html') {
+        frame.src = '/area-cliente';
+      }
+    }
   }
 
   drawer.hidden = false;
@@ -9631,14 +9631,16 @@ function updateDesignClientImagePreview() {
         img.naturalHeight || 0
       );
 
-    /* A prévia administrativa permanece compacta em 16:9,
-       independentemente da proporção original do ficheiro. */
-    if (width > 0 && height > 0 && $('design-client-access-image')?.value === url) {
-      preview.style.aspectRatio = '16 / 9';
+    if (
+      width > 0 &&
+      height > 0 &&
+      $('design-client-access-image')?.value === url
+    ) {
+      preview.style.aspectRatio =
+        `${width} / ${height}`;
     }
 
     updateDesignClientFocalUI();
-    updateDesignClientPreviewOverlay();
   };
 
   img.onerror = () => {
@@ -9652,39 +9654,13 @@ function updateDesignClientImagePreview() {
   img.src = url;
 }
 
-function updateDesignClientPreviewOverlay(){
-  const set=(id,value)=>{const el=$(id);if(el)el.innerHTML=String(value||'').replace(/\n/g,'<br>')};
-  set('design-client-preview-bottom-text',$('design-client-text-visual')?.value||'Retratos guardados com cuidado.\nUm espaço reservado só para você.');
-  set('design-client-preview-stage-1',$('design-client-stage-selection')?.value||'Seleção');
-  set('design-client-preview-stage-1-sub',$('design-client-stage-selection-sub')?.value||'SUAS ESCOLHAS');
-  set('design-client-preview-stage-2',$('design-client-stage-editing')?.value||'Edição');
-  set('design-client-preview-stage-2-sub',$('design-client-stage-editing-sub')?.value||'NOSSO CUIDADO');
-  set('design-client-preview-stage-3',$('design-client-stage-delivery')?.value||'Entrega');
-  set('design-client-preview-stage-3-sub',$('design-client-stage-delivery-sub')?.value||'SUAS MEMÓRIAS');
-}
-
 async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
 
 function updateDesignPageSwitcher(pathname='/inicio'){
   const normalized=pathname==='/'?'/inicio':pathname.replace(/\/$/,'')||'/inicio';
-  const clientMode=normalized==='/area-cliente'||normalized==='/area-cliente.html';
-  $('view-design')?.classList.toggle('is-client-area-settings',clientMode);
   document.querySelectorAll('[data-design-page]').forEach(button=>{
     button.classList.toggle('active',button.dataset.designPage===normalized);
   });
-  if(clientMode){
-    const panel=document.querySelector('.design-stack-panel[data-inline-panel="client_area"]');
-    const body=$('design-inline-client_area');
-    panel?.classList.add('is-open');
-    panel?.querySelector('.design-stack-toggle')?.setAttribute('aria-expanded','true');
-    if(body)body.hidden=false;
-    const section=document.querySelector('[data-design-section="client_area"]');
-    section?.classList.add('is-open');
-    const sectionBody=section?.querySelector('.design-accordion-body');
-    if(sectionBody)sectionBody.hidden=false;
-    updateDesignClientImagePreview();
-    updateDesignClientPreviewOverlay();
-  }
   const openLink=document.querySelector('.design-preview-toolbar a');
   if(openLink)openLink.href=normalized;
   const address=document.querySelector('.design-browser-bar span');
@@ -9699,13 +9675,7 @@ function initDesignPageSwitcher(){
     button.addEventListener('click',async()=>{
       if(designInlineActive)await saveDesignInline();
       const path=button.dataset.designPage||'/inicio';
-      updateDesignPageSwitcher(path);
-      if(path==='/area-cliente'){
-        setDesignPreviewLoading(false);
-        document.querySelector('.design-stack-panel[data-inline-panel="client_area"]')?.scrollIntoView({behavior:'smooth',block:'start'});
-        return;
-      }
-      setDesignPreviewLoading(true);frame.src=path;
+      updateDesignPageSwitcher(path);setDesignPreviewLoading(true);frame.src=path;
     });
   });
   frame.addEventListener('load',()=>{
@@ -9924,21 +9894,11 @@ function initDesignStudio() {
     setDesignClientFocalFromPointer
   );
 
+  $('design-client-access-image-edit')?.addEventListener('click',()=>{const controls=$('design-client-focal-controls');const hasImage=!!$('design-client-access-image')?.value;if(!hasImage){$('design-client-access-image-msg').textContent='Adicione uma fotografia antes de editar o enquadramento.';return;}controls?.classList.toggle('is-visible');if(controls?.classList.contains('is-visible')) controls.scrollIntoView({behavior:'smooth',block:'nearest'});});
+
   $('design-client-access-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-client-access-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-client-access-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-client-image-upload',()=>uploadDesignClientImage(validos[0]));if(url?.skipped)return;$('design-client-access-image').value=url||'';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Fotografia adicionada ao rascunho.'}catch(error){$('design-client-access-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
-  $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho.'});
-  $('design-client-access-image-edit')?.addEventListener('click',()=>{
-    const preview=$('design-client-access-image-preview');
-    if(preview?.classList.contains('empty')){ $('design-client-access-image-file')?.click(); return; }
-    preview?.classList.add('is-editing');
-    $('design-client-focal-controls')?.scrollIntoView({behavior:'smooth',block:'center'});
-    $('design-client-access-image-msg').textContent='Modo de edição ativo: clique na imagem ou use as barras Horizontal e Vertical.';
-  });
-  $('design-client-save-apply')?.addEventListener('click',publishDesign);
-  ['design-client-text-visual','design-client-stage-selection','design-client-stage-selection-sub','design-client-stage-editing','design-client-stage-editing-sub','design-client-stage-delivery','design-client-stage-delivery-sub'].forEach(id=>{
-    $(id)?.addEventListener('input',updateDesignClientPreviewOverlay);
-  });
+  $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';$('design-client-focal-controls')?.classList.remove('is-visible');updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho. Clique em “Salvar e aplicar no site” para publicar a alteração.';});
   updateDesignClientImagePreview();
-  updateDesignClientPreviewOverlay();
   if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel,#design-inline-hero,.design-stack-body'))return;applyDesignPreview();applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
   loadContent().then(()=>ensureDesignPersistenceLoaded()).catch(()=>{});
 

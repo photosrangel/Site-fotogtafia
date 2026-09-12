@@ -7820,114 +7820,65 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
   opacity:.5;
 }
 
-
 /* =========================================================
-   BUILD V46 — ÁREA DO CLIENTE / EDITOR COMPACTO DEDICADO
+   AJUSTE FINAL 2026-09-12 — ÁREA DO CLIENTE / PRÉVIA COMPACTA
+   - uma única mensagem quando não há foto
+   - prévia preservada em 520px
+   - bloco alinhado à margem esquerda
+   - ponto focal e sliders preservados
    ========================================================= */
-
-/* Ao editar a Área do Cliente, o iframe gigante dá lugar ao editor dedicado. */
-#view-design.is-client-area-settings .design-studio-head,
-#view-design.is-client-area-settings .design-preview-panel,
-#view-design.is-client-area-settings .design-panels-reorder,
-#view-design.is-client-area-settings .design-publication-panel { display:none !important; }
-
-#view-design.is-client-area-settings .design-inline-panels { margin-top:0 !important; }
-#view-design.is-client-area-settings .design-stack-panel { display:none !important; }
-#view-design.is-client-area-settings .design-stack-panel[data-inline-panel="client_area"] {
-  display:block !important; border:0 !important; background:transparent !important; padding:0 !important;
-}
-#view-design.is-client-area-settings .design-stack-panel[data-inline-panel="client_area"] > .design-stack-toggle { display:none !important; }
-#view-design.is-client-area-settings #design-inline-client_area { display:block !important; padding:0 !important; }
-#view-design.is-client-area-settings [data-design-section="client_area"] { border:0 !important; background:transparent !important; }
-#view-design.is-client-area-settings [data-design-section="client_area"] > .design-accordion-toggle { display:none !important; }
-#view-design.is-client-area-settings [data-design-section="client_area"] > .design-accordion-body {
-  display:block !important; padding:0 !important; max-width:none !important;
+.design-client-image-control .design-client-image-preview {
+  width: min(100%, 520px) !important;
+  max-width: 520px !important;
+  aspect-ratio: 16 / 10 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 10px 0 0 0 !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
 }
 
-/* No modo dedicado escondemos controles secundários antigos, mantendo textos abaixo. */
-#view-design.is-client-area-settings #design-client-layout,
-#view-design.is-client-area-settings #design-client-gallery-style,
-#view-design.is-client-area-settings #design-client-photo-size,
-#view-design.is-client-area-settings #design-client-typography,
-#view-design.is-client-area-settings #design-client-border { }
-#view-design.is-client-area-settings [data-design-section="client_area"] > .design-accordion-body > label.design-control-row { display:none !important; }
-
-.design-client-editor-head { margin:4px 0 22px; }
-.design-client-editor-head h3 { margin:5px 0 7px; font-family:var(--font-display); font-size:clamp(1.65rem,2.5vw,2.35rem); font-weight:400; }
-.design-client-editor-head > p:last-child { margin:0; color:var(--text-muted); font-size:.82rem; line-height:1.6; }
-
-.design-client-preview-card { border:1px solid var(--admin-line-strong); border-radius:10px; padding:22px 24px; background:rgba(255,255,255,.012); }
-.design-client-preview-card-head { display:grid; gap:3px; margin-bottom:18px; }
-.design-client-preview-card-head strong { font-family:var(--font-display); font-size:1.18rem; font-weight:400; }
-.design-client-preview-card-head span { color:var(--text-muted); font-size:.72rem; }
-
-.design-client-image-preview {
-  position:relative !important;
-  width:min(640px,100%) !important;
-  height:auto !important;
-  aspect-ratio:16 / 9 !important;
-  min-height:0 !important;
-  margin:0 auto 18px !important;
-  overflow:hidden !important;
-  border:1px solid rgba(255,255,255,.22) !important;
-  background-color:#151513 !important;
-  background-repeat:no-repeat !important;
-  background-size:cover !important;
-  cursor:crosshair;
+/* Evita a segunda mensagem sobreposta criada pelo placeholder genérico. */
+.design-client-image-control .design-client-image-preview.empty::after {
+  content: none !important;
+  display: none !important;
 }
-.design-client-image-preview.empty { aspect-ratio:16 / 9 !important; min-height:0 !important; cursor:default; }
 
-.design-client-preview-overlay { position:absolute; inset:0; z-index:3; pointer-events:none; color:#ece9e1; text-shadow:0 1px 8px rgba(0,0,0,.35); }
-.design-client-preview-brand { position:absolute; top:7.5%; left:6%; font-family:var(--font-display); font-size:clamp(.55rem,1.15vw,.88rem); }
-.design-client-preview-brand em { font-style:italic; }
-.design-client-preview-brand small { margin-left:9px; font-family:var(--font-mono); font-size:.33em; letter-spacing:.18em; color:#b8aa8e; }
-.design-client-preview-copy { position:absolute; left:6%; top:37%; }
-.design-client-preview-eyebrow { display:block; margin-bottom:13px; font-family:var(--font-mono); font-size:clamp(.28rem,.55vw,.42rem); letter-spacing:.17em; font-weight:700; }
-.design-client-preview-copy > strong { display:block; font-family:var(--font-display); font-size:clamp(1.7rem,5.1vw,3.85rem); font-weight:400; line-height:.83; letter-spacing:-.055em; }
-.design-client-preview-copy > strong em { font-style:italic; }
-.design-client-preview-watermark { position:absolute; right:8%; top:38%; font-family:var(--font-display); font-size:clamp(4rem,10vw,8rem); line-height:.8; opacity:.07; }
-.design-client-preview-bottom { position:absolute; left:6%; bottom:5%; margin:0; font-size:clamp(.38rem,.75vw,.58rem); line-height:1.45; }
-.design-client-preview-stages { position:absolute; right:5.5%; bottom:4%; display:flex; gap:14px; padding-top:8px; border-top:1px solid rgba(255,255,255,.3); }
-.design-client-preview-stages span { display:grid; gap:1px; min-width:52px; }
-.design-client-preview-stages b,.design-client-preview-stages small { font-family:var(--font-mono); font-size:clamp(.22rem,.38vw,.31rem); letter-spacing:.08em; }
-.design-client-preview-stages strong { font-family:var(--font-display); font-size:clamp(.45rem,.85vw,.68rem); font-weight:400; }
-.design-client-preview-stages small { opacity:.72; }
-
-.design-client-image-preview.empty .design-client-preview-overlay { opacity:.42; }
-.design-client-image-preview .design-client-image-empty { z-index:4; background:rgba(16,16,15,.6); color:var(--text-muted); }
-.design-client-image-preview:not(.empty) .design-client-image-empty { display:none; }
-.design-client-image-preview .focal-marker { display:block !important; z-index:8 !important; width:22px !important; height:22px !important; border:2px solid #fff !important; border-radius:50% !important; transform:translate(-50%,-50%) !important; box-shadow:0 0 0 1px rgba(0,0,0,.4); }
-.design-client-image-preview .focal-marker::before,.design-client-image-preview .focal-marker::after { content:""; position:absolute; background:#fff; left:50%; top:50%; transform:translate(-50%,-50%); }
-.design-client-image-preview .focal-marker::before { width:32px; height:1px; }
-.design-client-image-preview .focal-marker::after { width:1px; height:32px; }
-.design-client-image-preview.empty .focal-marker { display:none !important; }
-
-/* Reativa os sliders removidos pela V44. */
-.design-client-focal-controls { display:block !important; max-width:900px; margin:0 auto; }
-.design-client-focal-head { display:flex !important; justify-content:space-between; align-items:center; gap:12px; margin:0 0 14px; font-size:.8rem; }
-.design-client-focal-head strong { font-weight:400; color:var(--text-muted); }
-.design-client-focal-row { display:grid !important; grid-template-columns:150px minmax(0,1fr) 48px; gap:12px; align-items:center; margin:10px 0; color:var(--text-muted); font-size:.76rem; }
-.design-client-focal-row output { order:3; text-align:right; font-family:var(--font-mono); font-size:.55rem; }
-.design-client-focal-row input[type="range"] { width:100%; accent-color:#ddd9d0; }
-.design-client-focal-instruction { margin:14px auto 16px; max-width:900px; color:var(--text-muted); font-size:.72rem; }
-.design-client-focal-help { display:none !important; }
-
-.design-client-image-actions { max-width:1100px; margin:12px auto 0 !important; padding-top:14px; border-top:1px solid var(--admin-line-soft); align-items:center; }
-.design-client-image-actions .small-btn { min-height:46px; padding:0 18px; font-weight:700; letter-spacing:.03em; }
-.design-client-upload-label { background:#e8e5de !important; color:#111 !important; border-color:#e8e5de !important; }
-.design-client-save-apply { margin-left:auto; min-height:46px; padding:0 24px !important; }
-.design-client-tips { margin:20px auto 0; padding:16px 20px; border:1px solid var(--admin-line-soft); border-radius:8px; max-width:1100px; color:var(--text-muted); font-size:.7rem; line-height:1.65; }
-.design-client-tips strong { color:var(--text); font-size:.7rem; }
-.design-client-tips ul { margin:9px 0 0 20px; padding:0; }
-
-#view-design.is-client-area-settings .design-client-texts-section { max-width:1100px; margin:20px auto 0; }
-#view-design.is-client-area-settings .design-panel-actions { display:none !important; }
-
-@media(max-width:760px){
-  .design-client-preview-card{padding:15px 12px;}
-  .design-client-focal-row{grid-template-columns:90px minmax(0,1fr);}
-  .design-client-focal-row output{display:none;}
-  .design-client-image-actions{align-items:stretch;}
-  .design-client-image-actions .small-btn,.design-client-save-apply{width:100%;margin-left:0;}
-  .design-client-preview-stages{display:none;}
+.design-client-image-control .design-client-image-preview .design-client-image-empty {
+  z-index: 3 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 12px !important;
+  background: transparent !important;
+  text-align: center !important;
 }
+
+.design-client-image-control .design-client-image-preview:not(.empty) .design-client-image-empty {
+  display: none !important;
+}
+
+.design-client-image-control .design-client-focal-controls,
+.design-client-image-control .design-client-image-actions,
+.design-client-image-control .design-client-focal-help,
+.design-client-image-control .design-control-help {
+  width: min(100%, 520px) !important;
+  max-width: 520px !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.design-client-image-control .design-client-focal-controls.is-visible {
+  display: block !important;
+}
+
+@media (max-width: 620px) {
+  .design-client-image-control .design-client-image-preview,
+  .design-client-image-control .design-client-focal-controls,
+  .design-client-image-control .design-client-image-actions,
+  .design-client-image-control .design-client-focal-help,
+  .design-client-image-control .design-control-help {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
