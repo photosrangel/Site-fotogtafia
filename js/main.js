@@ -102,6 +102,24 @@ const PUBLIC_DESIGN_DEFAULTS = {
   client_status_ready:'Suas fotos estão prontas!'
 };
 
+// A tela inicial da Área do Cliente tem um layout editorial fixo no próprio
+// area-cliente.html. Não deixamos a configuração publicada no Admin substituir
+// essa capa depois do carregamento, evitando o efeito de 'piscar' para outro
+// layout alguns segundos depois. As configurações da galeria após o login
+// continuam podendo ser publicadas normalmente.
+const LOCK_CLIENT_ACCESS_COVER = location.pathname.includes('area-cliente');
+const LOCKED_CLIENT_ACCESS_IDS = new Set([
+  'client-visual-text',
+  'client-access-eyebrow',
+  'client-access-title-main',
+  'client-access-title-emphasis',
+  'client-access-description',
+  'client-login-label',
+  'client-password-label',
+  'client-access-submit',
+  'client-access-secure-text'
+]);
+
 function publicDesignClamp(value,min,max,fallback){
   const n=Number(value);
   if(!Number.isFinite(n)) return fallback;
@@ -166,15 +184,17 @@ function applyPublishedClientTexts(c){
     if(el) el.textContent=value??'';
   };
 
-  setText('#client-visual-text',c.client_text_visual);
-  setText('#client-access-eyebrow',c.client_text_eyebrow);
-  setText('#client-access-title-main',c.client_text_title);
-  setText('#client-access-title-emphasis',c.client_text_title_emphasis);
-  setText('#client-access-description',c.client_text_description);
-  setText('#client-login-label',c.client_text_login);
-  setText('#client-password-label',c.client_text_password);
-  setText('#client-access-submit',c.client_text_button);
-  setText('#client-access-secure-text',c.client_text_secure);
+  if(!LOCK_CLIENT_ACCESS_COVER){
+    setText('#client-visual-text',c.client_text_visual);
+    setText('#client-access-eyebrow',c.client_text_eyebrow);
+    setText('#client-access-title-main',c.client_text_title);
+    setText('#client-access-title-emphasis',c.client_text_title_emphasis);
+    setText('#client-access-description',c.client_text_description);
+    setText('#client-login-label',c.client_text_login);
+    setText('#client-password-label',c.client_text_password);
+    setText('#client-access-submit',c.client_text_button);
+    setText('#client-access-secure-text',c.client_text_secure);
+  }
   setText('#client-gallery-eyebrow',c.client_text_gallery_eyebrow);
   setText('#client-stage-selection',c.client_stage_selection);
   setText('#client-stage-selection-sub',c.client_stage_selection_sub);
@@ -195,7 +215,7 @@ function applyPublishedClientTexts(c){
 
 function applyPublishedInlineStyles(c){
   const styles=c.inline_styles||{};
-  Object.entries(styles).forEach(([id,st])=>{const el=document.getElementById(id);if(!el)return;if(typeof st.text==='string'&&el.textContent!==st.text)el.textContent=st.text;el.style.fontWeight=st.bold?'700':'';el.style.fontStyle=st.italic?'italic':'';el.style.textAlign=st.align||'';el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';const x=Number(st.x||0),y=Number(st.y||0);el.style.translate=x||y?`${x}px ${y}px`:'';});
+  Object.entries(styles).forEach(([id,st])=>{if(LOCK_CLIENT_ACCESS_COVER&&LOCKED_CLIENT_ACCESS_IDS.has(id))return;const el=document.getElementById(id);if(!el)return;if(typeof st.text==='string'&&el.textContent!==st.text)el.textContent=st.text;el.style.fontWeight=st.bold?'700':'';el.style.fontStyle=st.italic?'italic':'';el.style.textAlign=st.align||'';el.style.fontSize=st.size==='small'?'.86em':st.size==='large'?'1.14em':'';const x=Number(st.x||0),y=Number(st.y||0);el.style.translate=x||y?`${x}px ${y}px`:'';});
 }
 function applyPublishedWhatsapp(c){
   document.getElementById('rs-whatsapp-float')?.remove();
@@ -288,14 +308,18 @@ function applyPublishedDesign(config={}){
         : 'repeat(auto-fill,minmax(290px,1fr))';
 
   const clientTypographyRule =
-    c.client_typography==='editorial'
+    LOCK_CLIENT_ACCESS_COVER
+      ? ''
+      : c.client_typography==='editorial'
       ? '.client-area-premium .section-title,.client-area-premium .client-access-title{font-style:italic !important;letter-spacing:-.035em !important;}'
       : c.client_typography==='minimal'
         ? '.client-area-premium .section-title,.client-area-premium .client-access-title{font-family:Arial,Helvetica,sans-serif !important;font-style:normal !important;font-weight:400 !important;letter-spacing:-.025em !important;}'
         : '';
 
   const clientLayoutRule =
-    c.client_layout==='centered'
+    LOCK_CLIENT_ACCESS_COVER
+      ? ''
+      : c.client_layout==='centered'
       ? '.client-access-shell{grid-template-columns:1fr !important;max-width:650px !important}.client-access-visual{display:none !important}.client-access-panel{min-height:70vh !important;}'
       : c.client_layout==='fullscreen'
         ? '.client-access-shell{grid-template-columns:1fr !important;max-width:none !important}.client-access-visual{display:block !important;position:absolute !important;inset:0 !important;opacity:.36 !important}.client-access-panel{position:relative !important;z-index:2 !important;max-width:620px !important;margin:auto !important;background:rgba(11,11,10,.78) !important;backdrop-filter:blur(14px) !important;}'
@@ -335,8 +359,8 @@ function applyPublishedDesign(config={}){
     ${clientGalleryRule}
 
     .client-access-visual{
-      ${c.client_access_image ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${c.client_access_image.replace(/"/g,'%22')}") !important;` : ''}
-      background-position:${c.client_focus_x}% ${c.client_focus_y}% !important;
+      ${!LOCK_CLIENT_ACCESS_COVER && c.client_access_image ? `background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("${c.client_access_image.replace(/"/g,'%22')}") !important;` : ''}
+      ${!LOCK_CLIENT_ACCESS_COVER ? `background-position:${c.client_focus_x}% ${c.client_focus_y}% !important;` : ''}
     }
 
     @media (prefers-reduced-motion:reduce){body,.section{animation:none !important}}

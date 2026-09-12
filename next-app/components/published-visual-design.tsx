@@ -58,6 +58,18 @@ function getBaseFontSize(element: VisualElement, mobile: boolean) {
  * controlando o ESTILO desses campos (negrito/itálico/tamanho/
  * alinhamento/posição) normalmente — só o texto é ignorado aqui.
  */
+const LOCKED_CLIENT_ACCESS_IDS = new Set([
+  'client-visual-text',
+  'client-access-eyebrow',
+  'client-access-title-main',
+  'client-access-title-emphasis',
+  'client-access-description',
+  'client-login-label',
+  'client-password-label',
+  'client-access-submit',
+  'client-access-secure-text',
+]);
+
 const CONTENT_MANAGED_TEXT_IDS = new Set([
   'hero-title',
   'hero-eyebrow',
@@ -71,7 +83,9 @@ const CONTENT_MANAGED_TEXT_IDS = new Set([
 
 function applyToDocument(doc: Document, overrides: Record<string, VisualOverride>) {
   if (doc.documentElement?.dataset.designPreviewActive === '1') return;
+  const lockClientAccessCover = doc.body?.classList.contains('client-area-premium');
   for (const [id, override] of Object.entries(overrides)) {
+    if (lockClientAccessCover && LOCKED_CLIENT_ACCESS_IDS.has(id)) continue;
     const element = doc.getElementById(id) as VisualElement | null;
     if (!element) continue;
     const mobile = doc.defaultView?.matchMedia?.('(max-width: 520px)').matches;
