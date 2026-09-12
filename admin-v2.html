@@ -450,25 +450,47 @@
           </label>
 
           <div class="design-client-image-control">
-  <div class="design-control-row">
-    <span>Imagem da tela de acesso</span>
+  <div class="design-client-editor-head">
+    <p class="section-eyebrow">Design</p>
+    <h3>Área do Cliente — imagem da tela de acesso</h3>
+    <p>Escolha uma imagem para o lado esquerdo da tela de acesso das clientes. A prévia abaixo mantém o mesmo enquadramento do site público.</p>
   </div>
 
-  <input id="design-client-access-image" type="hidden" value="">
+  <div class="design-client-preview-card">
+    <div class="design-client-preview-card-head">
+      <strong>Prévia da imagem</strong>
+      <span>Veja como a imagem será exibida na tela de acesso.</span>
+    </div>
 
-  <div
-    class="design-client-image-preview focal-preview empty"
-    id="design-client-access-image-preview"
-    title="Clique na fotografia para alterar o ponto focal"
-  >
-    <span class="design-client-image-empty">Nenhuma imagem adicionada</span>
-    <span
-      class="focal-marker"
-      id="design-client-focal-marker"
-      style="left:50%;top:50%"
-      aria-hidden="true"
-    ></span>
-  </div>
+    <input id="design-client-access-image" type="hidden" value="">
+
+    <div
+      class="design-client-image-preview focal-preview empty"
+      id="design-client-access-image-preview"
+      title="Clique na fotografia para alterar o ponto focal"
+    >
+      <span class="design-client-image-empty">Nenhuma imagem adicionada</span>
+      <div class="design-client-preview-overlay" aria-hidden="true">
+        <div class="design-client-preview-brand">Rangel Santos <em>Fotografia</em><small>EXPERIÊNCIA PRIVADA</small></div>
+        <div class="design-client-preview-copy">
+          <span class="design-client-preview-eyebrow">SUA HISTÓRIA, PRESERVADA</span>
+          <strong>Um espaço<br><em>só seu.</em></strong>
+        </div>
+        <span class="design-client-preview-watermark">RS</span>
+        <p class="design-client-preview-bottom" id="design-client-preview-bottom-text">Retratos guardados com cuidado.<br>Um espaço reservado só para você.</p>
+        <div class="design-client-preview-stages">
+          <span><b>01</b><strong id="design-client-preview-stage-1">Seleção</strong><small id="design-client-preview-stage-1-sub">SUAS ESCOLHAS</small></span>
+          <span><b>02</b><strong id="design-client-preview-stage-2">Edição</strong><small id="design-client-preview-stage-2-sub">NOSSO CUIDADO</small></span>
+          <span><b>03</b><strong id="design-client-preview-stage-3">Entrega</strong><small id="design-client-preview-stage-3-sub">SUAS MEMÓRIAS</small></span>
+        </div>
+      </div>
+      <span
+        class="focal-marker"
+        id="design-client-focal-marker"
+        style="left:50%;top:50%"
+        aria-hidden="true"
+      ></span>
+    </div>
 
   <div class="design-client-focal-controls is-visible" id="design-client-focal-controls">
     <div class="design-client-focal-head">
@@ -489,9 +511,11 @@
     </label>
   </div>
 
+  <p class="design-client-focal-instruction">Você também pode clicar diretamente na imagem para definir o ponto focal.</p>
+
   <div class="design-client-image-actions">
     <label class="small-btn design-client-upload-label">
-      Adicionar foto
+      ↥&nbsp;&nbsp; ADICIONAR FOTO
       <input
         id="design-client-access-image-file"
         type="file"
@@ -500,13 +524,21 @@
       >
     </label>
 
-    <button
-      class="small-btn"
-      id="design-client-access-image-remove"
-      type="button"
-    >
-      Remover
-    </button>
+    <button class="small-btn" id="design-client-access-image-edit" type="button">✎&nbsp;&nbsp; EDITAR FOTO</button>
+
+    <button class="small-btn" id="design-client-access-image-remove" type="button">♜&nbsp;&nbsp; REMOVER FOTO</button>
+
+    <button class="btn btn-accent design-client-save-apply" id="design-client-save-apply" type="button">▣&nbsp;&nbsp; SALVAR E APLICAR NO SITE</button>
+  </div>
+
+  <div class="design-client-tips">
+    <strong>ⓘ &nbsp; Dicas importantes</strong>
+    <ul>
+      <li>Use imagens em alta resolução (recomendado: 1920 × 1080 ou superior).</li>
+      <li>A imagem será exibida proporcionalmente, mantendo o enquadramento definido.</li>
+      <li>Se nenhuma imagem for definida, será exibido o fundo padrão cinza do site.</li>
+    </ul>
+  </div>
   </div>
 
   <p class="field-help design-client-focal-help" id="design-client-focal-summary">
