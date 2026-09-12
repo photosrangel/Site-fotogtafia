@@ -120,6 +120,25 @@ const LOCKED_CLIENT_ACCESS_IDS = new Set([
   'client-access-secure-text'
 ]);
 
+
+const CLIENT_COVER_CACHE_KEY='photosrangel:client-cover:v1';
+
+function cachePublishedClientCover(config={}){
+  try{
+    const c=normalizePublicDesign(config);
+    localStorage.setItem(CLIENT_COVER_CACHE_KEY,JSON.stringify({
+      client_access_image:c.client_access_image||'',
+      client_focus_x:c.client_focus_x,
+      client_focus_y:c.client_focus_y,
+      cached_at:Date.now()
+    }));
+  }catch(_){ }
+}
+
+function revealClientCover(){
+  document.documentElement.classList.remove('client-cover-awaiting');
+}
+
 function publicDesignClamp(value,min,max,fallback){
   const n=Number(value);
   if(!Number.isFinite(n)) return fallback;
@@ -392,17 +411,21 @@ async function loadPublishedDesign(){
 
     if(error){
       console.warn('Design público: não foi possível carregar:',error.message);
+      revealClientCover();
       return;
     }
-    if(!data?.content) return;
+    if(!data?.content){ revealClientCover(); return; }
 
     let content=data.content;
     if(typeof content==='string'){
       try{content=JSON.parse(content);}catch(_){content={};}
     }
+    cachePublishedClientCover(content);
     applyPublishedDesign(content);
+    revealClientCover();
   }catch(error){
     console.warn('Design público: falha silenciosa:',error);
+    revealClientCover();
   }
 }
 

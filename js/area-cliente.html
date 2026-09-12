@@ -5,6 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Área do Cliente — Rangel Santos — Fotografia</title>
 <meta name="robots" content="noindex, nofollow">
+<script>
+/* Área do Cliente — aplica a última capa publicada antes do primeiro paint.
+   O Admin grava este cache ao publicar; main.js o atualiza novamente a partir
+   do Supabase. Assim, ao pressionar F5, a fotografia não pisca para o fundo
+   cinza enquanto a configuração remota é consultada. */
+(function(){
+  const KEY='photosrangel:client-cover:v1';
+  try{
+    const bootstrapStyle=document.createElement('style');
+    bootstrapStyle.id='client-cover-bootstrap';
+    bootstrapStyle.textContent='.client-cover-awaiting .client-access-visual{visibility:hidden;}';
+    document.head.appendChild(bootstrapStyle);
+    const raw=localStorage.getItem(KEY);
+    if(!raw){
+      document.documentElement.classList.add('client-cover-awaiting');
+      return;
+    }
+    const c=JSON.parse(raw)||{};
+    const url=typeof c.client_access_image==='string'?c.client_access_image.trim():'';
+    const clamp=(v,f)=>{const n=Number(v);return Number.isFinite(n)?Math.min(100,Math.max(0,n)):f};
+    const x=clamp(c.client_focus_x,50), y=clamp(c.client_focus_y,50);
+    const safeUrl=url.replace(/"/g,'%22');
+    bootstrapStyle.textContent += '.client-access-visual{'+
+      (safeUrl?'background-image:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.34)),url("'+safeUrl+'") !important;':'')+
+      'background-position:'+x+'% '+y+'% !important;}';
+    if(url){
+      const preload=document.createElement('link');
+      preload.rel='preload'; preload.as='image'; preload.href=url;
+      document.head.appendChild(preload);
+    }
+  }catch(_){
+    document.documentElement.classList.add('client-cover-awaiting');
+  }
+})();
+</script>
 <link rel="stylesheet" href="css/style.css">
 <style>
   .cliente-wrap { max-width: 1100px; margin: 0 auto; padding: 160px 24px 100px; }

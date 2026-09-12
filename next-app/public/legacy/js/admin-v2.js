@@ -6500,6 +6500,17 @@ async function publishDesign() {
     designPublishedSaved = await upsertDesignRow('published', current);
     designPublishedUpdatedAt = new Date().toISOString();
 
+    /* Cache local da capa pública: permite que /area-cliente aplique a foto
+       antes do primeiro paint no próximo F5, sem esperar a leitura remota. */
+    try {
+      localStorage.setItem('photosrangel:client-cover:v1', JSON.stringify({
+        client_access_image: current.client_access_image || '',
+        client_focus_x: clampNumber(current.client_focus_x, 0, 100, 50),
+        client_focus_y: clampNumber(current.client_focus_y, 0, 100, 50),
+        cached_at: Date.now()
+      }));
+    } catch (_) { }
+
     flash('Alterações salvas com sucesso.', 'sucesso');
     updateDesignPublicationState();
     maybeShowDesignDraftReminder();
