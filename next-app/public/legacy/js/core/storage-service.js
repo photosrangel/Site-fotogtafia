@@ -15,6 +15,11 @@ export async function createSignedUrlFromBucket(bucket, path, expiresIn = 3600) 
   return supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
 }
 
+export async function createSignedUrlsFromBucket(bucket, paths, expiresIn = 3600) {
+  if (!paths?.length) return { data: [], error: null };
+  return supabase.storage.from(bucket).createSignedUrls(paths, expiresIn);
+}
+
 export async function removeFromBucket(bucket, paths) {
   return supabase.storage.from(bucket).remove(paths);
 }

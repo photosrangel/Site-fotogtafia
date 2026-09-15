@@ -345,7 +345,7 @@ img {
 /* ---------- VISUALIZADOR EM TELA CHEIA (LIGHTBOX) ---------- */
 .lightbox {
   position: fixed; inset: 0;
-  background: rgba(6,6,5,0.97);
+  background: #060605;
   z-index: 1000;
   display: none;
   flex-direction: column;

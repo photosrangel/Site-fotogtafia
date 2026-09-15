@@ -345,7 +345,7 @@ img {
 /* ---------- VISUALIZADOR EM TELA CHEIA (LIGHTBOX) ---------- */
 .lightbox {
   position: fixed; inset: 0;
-  background: rgba(6,6,5,0.97);
+  background: #060605;
   z-index: 1000;
   display: none;
   flex-direction: column;
@@ -2129,11 +2129,14 @@ html, body {
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
   gap:clamp(1px,.16vw,3px);
 }
+.recent-work-grid .frame:nth-child(n+9){display:none}
 @media(min-width:2200px){
   .recent-work-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  .recent-work-grid .frame:nth-child(n+9){display:block}
 }
 @media(max-width:1200px){
   .recent-work-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .recent-work-grid .frame:nth-child(n+7){display:none}
 }
 @media(max-width:760px){
   .recent-work-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2px}
@@ -2472,7 +2475,7 @@ html[data-admin-design-device="mobile"] [data-design-inline-editable="1"]:hover{
 
 /* Fase 57 — aproximação da grade e das colunas no rodapé móvel */
 @media(max-width:560px){
-  .recent-work-section{padding-bottom:22px!important}
+  .recent-work-section{padding-bottom:42px!important}
   .recent-work-section .container{padding-bottom:0}
   .footer{min-height:300px;margin-top:0;padding-top:12px}
   .footer .footer-layout{grid-template-rows:62px auto auto;min-height:270px;row-gap:9px}
@@ -2485,9 +2488,9 @@ html[data-admin-design-device="mobile"] [data-design-inline-editable="1"]:hover{
 
 /* Fase 59 — linha do rodapé encaixada entre fotos e textos no celular */
 @media(max-width:560px){
-  .recent-work-section+.footer{margin-top:-88px}
-  .recent-work-section+.footer .footer-layout{grid-template-rows:18px auto auto;min-height:226px}
-  .recent-work-section+.footer{min-height:256px}
+  .recent-work-section+.footer{margin-top:0}
+  .recent-work-section+.footer .footer-layout{grid-template-rows:62px auto auto;min-height:270px}
+  .recent-work-section+.footer{min-height:300px}
 }
 
 /* Fase 60 — transição compacta entre o herói e Trabalhos recentes */

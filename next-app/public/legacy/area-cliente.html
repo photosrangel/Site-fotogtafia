@@ -59,8 +59,9 @@
     position: absolute; inset: 0;
     z-index: 3;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='64'%3E%3Cline x1='0' y1='0' x2='120' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Cline x1='120' y1='0' x2='0' y2='64' stroke='rgba(255,255,255,0.14)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Ctext x='-8' y='38' font-family='monospace' font-size='10' fill='rgba(255,255,255,0.28)' transform='rotate(-20 60 32)'%3EPHOTOSRANGEL%3C/text%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='64'%3E%3Cline x1='0' y1='0' x2='120' y2='64' stroke='rgba(255,255,255,0.24)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Cline x1='120' y1='0' x2='0' y2='64' stroke='rgba(255,255,255,0.24)' stroke-width='1' stroke-dasharray='2,4'/%3E%3Ctext x='-8' y='38' font-family='monospace' font-size='10' font-weight='600' fill='rgba(255,255,255,0.48)' transform='rotate(-20 60 32)'%3EPHOTOSRANGEL%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
+    mix-blend-mode: difference;
   }
   .lightbox-photo-protected { position: relative; display: inline-flex; max-width: 100%; max-height: calc(100dvh - 150px); }
   .lightbox-photo-protected img { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 150px); object-fit: contain; }
@@ -135,6 +136,31 @@
   .selection-lightbox-neighbor img { width:100%; max-width:none; max-height:64dvh; object-fit:contain; }
   .final-photo-open { cursor:zoom-in; }
   @media(max-width:760px) { #lightbox-selecao { padding:10px 4px; } #lightbox-selecao .lightbox-stage { height:calc(100dvh - 104px); padding-bottom:62px; } .selection-lightbox-carousel { display:grid; grid-template-columns:1fr; } .selection-lightbox-neighbor, .selection-lightbox-carousel > span:not(.protegida) { display:none; } .selection-lightbox-current .lightbox-photo-protected { max-width:94vw; max-height:72dvh; } .selection-lightbox-current .lightbox-photo-protected img { max-height:72dvh; } }
+  #lightbox-sel-stage { touch-action:pan-y; }
+  @media(max-width:760px) {
+    body.client-area-premium .selection-premium-grid {
+      display:grid!important;
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+      columns:auto!important;
+      gap:4px!important;
+    }
+    body.client-area-premium .selection-premium-grid .frame {
+      width:100%;
+      aspect-ratio:3/4!important;
+      overflow:hidden;
+      margin:0!important;
+      break-inside:auto!important;
+    }
+    body.client-area-premium .selection-premium-grid .frame img {
+      display:block;
+      width:100%;
+      height:100%!important;
+      object-fit:cover!important;
+      object-position:center;
+    }
+    body.client-area-premium .selection-premium-grid .selection-photo-number { left:4px; bottom:4px; padding:3px 4px; font-size:.48rem; }
+    body.client-area-premium .selection-premium-grid .check-box { top:4px; right:4px; width:22px; height:22px; }
+  }
 
   /* Acesso — narrativa visual da experiência */
   .client-access-visual::after { content:'RS'; position:absolute; left:clamp(20px,4vw,54px); top:50%; transform:translateY(-56%); color:rgba(245,242,235,.045); font:400 clamp(9rem,20vw,19rem)/.8 var(--font-display); letter-spacing:-.09em; }
@@ -182,6 +208,7 @@
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0; border-bottom: 1px solid var(--hairline);
   }
+  .google-review-box{margin-top:18px;padding-top:16px;border-top:1px solid var(--hairline)}.google-review-box p{margin:0 0 10px!important;color:var(--text)!important;font-size:.78rem!important;font-weight:600}.google-review-link{display:inline-flex;align-items:center;justify-content:center;gap:9px;width:auto;min-height:38px;padding:9px 14px;border:1px solid #5b574f;border-radius:7px;color:var(--text);font-family:var(--font-sans);font-size:.78rem;font-weight:600;letter-spacing:0;text-transform:none;text-decoration:none;transition:border-color .2s,background .2s}.google-review-link:hover{border-color:#ddd7cb;background:rgba(255,255,255,.06)}.delivery-premium-download .google-review-box{text-align:left}.delivery-premium-download .google-review-link{width:100%}.review-toast{position:fixed;z-index:10020;right:clamp(14px,3vw,38px);bottom:clamp(14px,3vw,38px);width:min(390px,calc(100vw - 28px));padding:24px;background:#151513;border:1px solid #4a453d;box-shadow:0 24px 80px rgba(0,0,0,.58);transform:translateY(130%);opacity:0;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .35s}.review-toast.is-visible{transform:translateY(0);opacity:1}.review-toast-head{display:flex;justify-content:space-between;gap:18px;align-items:start}.review-toast h3{font-family:var(--font-display);font-size:1.65rem;font-weight:400;margin:5px 0 8px}.review-toast p{color:var(--text-muted);font-size:.86rem;line-height:1.55;margin:0}.review-toast-close{border:0;background:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer}.review-stars{display:flex;gap:5px;margin:18px 0 14px}.review-star{border:0;background:none;color:#69645c;font-size:2rem;line-height:1;cursor:pointer;padding:0}.review-star.active{color:#e8e1d3}.review-toast textarea{width:100%;min-height:88px;resize:vertical;background:#0c0c0b;border:1px solid var(--hairline);color:var(--text);padding:12px;font:inherit}.review-toast-actions{display:flex;align-items:center;gap:12px;margin-top:14px}.review-toast-actions .btn{flex:1}.review-toast-msg{font-size:.75rem!important}.review-toast-success .review-stars,.review-toast-success textarea,.review-toast-success .review-toast-actions{display:none}@media(max-width:600px){.review-toast{right:14px;bottom:14px;padding:20px}.review-star{font-size:1.75rem}}
 
 
   /* Confirmação universal da seleção — funciona em desktop, iPhone e Android */
@@ -475,7 +502,40 @@
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 1rem;
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    transition: color .2s ease, background .2s ease;
+  }
+
+  .client-password-toggle:hover,
+  .client-password-toggle:focus-visible {
+    color: var(--text);
+    background: rgba(255,255,255,.06);
+    outline: none;
+  }
+
+  .client-password-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .client-password-toggle .password-eye-off,
+  .client-password-toggle[aria-pressed="true"] .password-eye-open {
+    display: none;
+  }
+
+  .client-password-toggle[aria-pressed="true"] .password-eye-off {
+    display: block;
   }
 
   .client-access-submit {
@@ -895,7 +955,18 @@
               id="btn-toggle-senha"
               class="client-password-toggle"
               aria-label="Mostrar senha"
-            >👁</button>
+              aria-pressed="false"
+            >
+              <svg class="password-eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>
+                <circle cx="12" cy="12" r="2.75"/>
+              </svg>
+              <svg class="password-eye-off" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 3l18 18"/>
+                <path d="M10.6 6.15A10.3 10.3 0 0 1 12 6c6 0 9.5 6 9.5 6a15.6 15.6 0 0 1-2.1 2.7M6.2 6.2C3.75 7.9 2.5 12 2.5 12s3.5 6 9.5 6a9.9 9.9 0 0 0 3.05-.48"/>
+                <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -1078,12 +1149,36 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // atrás dele (ou vice-versa), travando para sempre à espera de um clique que
 // a pessoa nunca consegue dar.
 const turnstileWidgets = {};
+let turnstileScriptPromise = null;
+
+function carregarTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (turnstileScriptPromise) return turnstileScriptPromise;
+
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.onload = () => window.turnstile
+      ? resolve(window.turnstile)
+      : reject(new Error('turnstile-unavailable'));
+    script.onerror = () => reject(new Error('turnstile-network'));
+    document.head.append(script);
+  }).catch((error) => {
+    // Permite uma nova tentativa se a rede móvel ou o bloqueador interromper
+    // o primeiro carregamento.
+    turnstileScriptPromise = null;
+    throw error;
+  });
+
+  return turnstileScriptPromise;
+}
 
 function prepararTurnstile(nome, elementId) {
   turnstileWidgets[nome] = { id: null, resolve: null, reject: null };
   if (!TURNSTILE_SITE_KEY) return Promise.resolve();
-  return new Promise((resolveReady) => {
-    const render = () => {
+  return carregarTurnstile().then(() => {
+    try {
       turnstileWidgets[nome].id = turnstile.render(`#${elementId}`, {
         sitekey: TURNSTILE_SITE_KEY,
         theme: 'dark',
@@ -1091,17 +1186,12 @@ function prepararTurnstile(nome, elementId) {
         appearance: 'execute',
         execution: 'execute',
         callback: (token) => { const w = turnstileWidgets[nome]; if (w.resolve) { w.resolve(token); w.resolve = null; w.reject = null; } },
-        'error-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-error')); w.resolve = null; w.reject = null; } },
+        'error-callback': (code) => { const w = turnstileWidgets[nome]; if (w.reject) { const error = new Error('turnstile-error'); error.code = code; w.reject(error); w.resolve = null; w.reject = null; } },
         'expired-callback': () => { const w = turnstileWidgets[nome]; if (w.reject) { w.reject(new Error('turnstile-expired')); w.resolve = null; w.reject = null; } }
       });
-      resolveReady();
-    };
-    if (window.turnstile) { render(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    script.async = true;
-    script.onload = render;
-    document.head.append(script);
+    } catch (error) {
+      throw new Error('turnstile-render');
+    }
   });
 }
 
@@ -1112,21 +1202,25 @@ async function obterTurnstileToken(nome = 'main') {
   if (!TURNSTILE_SITE_KEY) return '';
   await (nome === 'recovery' ? turnstileReadyRecovery : turnstileReadyMain);
   const w = turnstileWidgets[nome];
-  const verificacao = new Promise((resolve, reject) => {
-    w.resolve = resolve;
-    w.reject = reject;
-    turnstile.reset(w.id);
-    turnstile.execute(w.id);
-  });
-  // Limite de segurança: nunca fica travado para sempre, mesmo se algo
-  // impedir a verificação de aparecer ou de ser concluída. 90s dá folga de
-  // sobra para desafios visuais (imagens) que a pessoa demora a resolver.
-  const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 90000));
-  try {
-    return await Promise.race([verificacao, tempoEsgotado]);
-  } finally {
-    w.resolve = null;
-    w.reject = null;
+  if (w.id === null || w.id === undefined) throw new Error('turnstile-unavailable');
+
+  for (let tentativa = 0; tentativa < 2; tentativa += 1) {
+    const verificacao = new Promise((resolve, reject) => {
+      w.resolve = resolve;
+      w.reject = reject;
+      turnstile.reset(w.id);
+      turnstile.execute(w.id);
+    });
+    const tempoEsgotado = new Promise((_, reject) => setTimeout(() => reject(new Error('turnstile-timeout')), 45000));
+    try {
+      return await Promise.race([verificacao, tempoEsgotado]);
+    } catch (error) {
+      if (tentativa === 1 || error?.message === 'turnstile-timeout') throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    } finally {
+      w.resolve = null;
+      w.reject = null;
+    }
   }
 }
 
@@ -1135,7 +1229,10 @@ function mensagemErroTurnstile(error) {
     return 'A verificação demorou mais do que o esperado. Tente novamente.';
   }
   if (error && (error.message === 'turnstile-error' || error.message === 'turnstile-expired')) {
-    return 'Não foi possível confirmar que você não é um robô. Tente novamente.';
+    return 'A verificação de segurança foi bloqueada. Atualize a página e tente novamente. No Brave, desative o Escudo apenas para este site.';
+  }
+  if (error && ['turnstile-network', 'turnstile-unavailable', 'turnstile-render'].includes(error.message)) {
+    return 'Não foi possível ligar à verificação de segurança. Confira a internet e, no Brave, desative o Escudo apenas para este site.';
   }
   return 'Não foi possível concluir agora. Verifique sua internet e tente novamente.';
 }
@@ -1156,10 +1253,12 @@ const acessoMsg = document.getElementById('acesso-msg');
 let ensaioAtual = null;
 let selecaoAtual = new Set();
 let loginEmAndamento = false;
+let credenciaisDownload = null;
 
 function sairAreaCliente() {
   fecharLightboxSelecao();
   ensaioAtual = null;
+  credenciaisDownload = null;
   selecaoAtual.clear();
   document.getElementById('conteudo-galeria').replaceChildren();
   document.getElementById('lightbox-sel-stage').replaceChildren();
@@ -1217,7 +1316,7 @@ document.getElementById('btn-toggle-senha').addEventListener('click', () => {
   const btn = document.getElementById('btn-toggle-senha');
   const mostrando = input.type === 'text';
   input.type = mostrando ? 'password' : 'text';
-  btn.textContent = mostrando ? '👁' : '🙈';
+  btn.setAttribute('aria-pressed', String(!mostrando));
   btn.setAttribute('aria-label', mostrando ? 'Mostrar senha' : 'Ocultar senha');
 });
 
@@ -1281,6 +1380,7 @@ async function entrar(slug, codigo, turnstileToken) {
   }
 
   ensaioAtual = data;
+  credenciaisDownload = { slug, codigo };
   selecaoAtual = new Set((data.fotos || []).filter(f => f.selecionada).map(f => f.id));
   mostrarGaleria();
 }
@@ -1452,7 +1552,7 @@ function mostrarGaleria() {
             espero que essas fotos te façam sentir exatamente como você é.
           </p>
         </div>
-        <div class="delivery-premium-download"><button class="btn btn-accent" id="btn-baixar-tudo">Baixar tudo (.zip)</button></div>
+        <div class="delivery-premium-download"><button class="btn btn-accent" id="btn-baixar-tudo">Baixar tudo (.zip)</button>${ensaioAtual.google_review_url ? `<div class="google-review-box"><p>Quer deixar uma avaliação pública?</p><a class="google-review-link" href="${ensaioAtual.google_review_url}" target="_blank" rel="noopener"><span aria-hidden="true">↗</span> Avaliar no Google</a></div>` : ''}</div>
       </section>
       ${prazoGaleria()}
       <p class="msg" id="baixar-tudo-msg" style="text-align:right;"></p>
@@ -1615,6 +1715,7 @@ window.baixarTudo = async function (fotos, botaoEl) {
     link.click();
     link.remove();
     URL.revokeObjectURL(urlTemporaria);
+    registrarDownloadCliente('zip', '', fotos.length);
 
     botaoEl.textContent = textoOriginal;
   } catch (erro) {
@@ -1643,6 +1744,7 @@ window.baixarFoto = async function (url, nomeArquivo, botaoEl) {
     link.click();
     link.remove();
     URL.revokeObjectURL(urlTemporaria);
+    registrarDownloadCliente('photo', nomeArquivo, 1);
   } catch (erro) {
     // Se por algum motivo não conseguir baixar direto, abre a foto
     // numa aba nova como alternativa (a pessoa pode salvar por lá).
@@ -1650,6 +1752,29 @@ window.baixarFoto = async function (url, nomeArquivo, botaoEl) {
   }
   botaoEl.textContent = textoOriginal;
 };
+
+async function registrarDownloadCliente(kind, filename, count) {
+  if (!credenciaisDownload) return;
+  try {
+  const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`, {
+    method:'POST', keepalive:true,
+    headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},
+    body:JSON.stringify({action:'download',...credenciaisDownload,kind,filename,count})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(response.ok&&data.show_review)setTimeout(()=>mostrarPedidoAvaliacao(data.google_review_url||ensaioAtual?.google_review_url||''),2600);
+  }catch(_){ }
+}
+
+function mostrarPedidoAvaliacao(googleUrl=''){
+  if(document.getElementById('review-toast'))return;
+  const toast=document.createElement('aside');toast.id='review-toast';toast.className='review-toast';toast.setAttribute('aria-live','polite');
+  toast.innerHTML=`<div class="review-toast-head"><div><p class="section-eyebrow">Sua experiência</p><h3>Como foi receber suas fotografias?</h3><p>Sua opinião ajuda a cuidar ainda melhor de cada experiência.</p></div><button class="review-toast-close" type="button" aria-label="Fechar">×</button></div><div class="review-stars" role="radiogroup" aria-label="Nota de 1 a 5 estrelas">${[1,2,3,4,5].map(n=>`<button class="review-star" type="button" data-stars="${n}" aria-label="${n} estrela${n===1?'':'s'}">★</button>`).join('')}</div><textarea maxlength="2000" placeholder="Conte como foi sua experiência (opcional)"></textarea><div class="review-toast-actions"><button class="btn btn-accent" type="button" data-review-send disabled>Enviar avaliação</button></div><p class="review-toast-msg"></p>${googleUrl?`<div class="google-review-box"><p>Quer deixar uma avaliação pública?</p><a class="google-review-link" href="${googleUrl}" target="_blank" rel="noopener"><span aria-hidden="true">↗</span> Avaliar no Google</a></div>`:''}`;
+  document.body.appendChild(toast);let stars=0,reviewComplete=false;requestAnimationFrame(()=>toast.classList.add('is-visible'));
+  toast.querySelector('.review-toast-close').addEventListener('click',()=>{if(!reviewComplete)fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',keepalive:true,headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'review-dismissed',...credenciaisDownload})}).catch(()=>{});toast.classList.remove('is-visible');setTimeout(()=>toast.remove(),500)});
+  toast.querySelectorAll('[data-stars]').forEach(button=>button.addEventListener('click',()=>{stars=Number(button.dataset.stars);toast.querySelectorAll('[data-stars]').forEach(s=>s.classList.toggle('active',Number(s.dataset.stars)<=stars));toast.querySelector('[data-review-send]').disabled=false}));
+  toast.querySelector('[data-review-send]').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;button.textContent='Enviando…';try{const response=await fetch(`${SUPABASE_URL}/functions/v1/client-access`,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({action:'review',...credenciaisDownload,stars,feedbackText:toast.querySelector('textarea').value})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.erro||'Não foi possível enviar.');reviewComplete=true;toast.classList.add('review-toast-success');toast.querySelector('h3').textContent='Obrigado pelo seu carinho.';toast.querySelector('.review-toast-head p:last-child').textContent='Sua avaliação foi recebida com sucesso.'}catch(error){toast.querySelector('.review-toast-msg').textContent=error.message;button.disabled=false;button.textContent='Enviar avaliação'}});
+}
 
 // -------- Visualizador em tela cheia (lightbox) da aba de seleção --------
 const lightboxSel = document.getElementById('lightbox-selecao');
@@ -1727,6 +1852,21 @@ function fotoAnteriorLightbox() {
 document.getElementById('lightbox-sel-close').addEventListener('click', fecharLightboxSelecao);
 document.getElementById('lightbox-sel-next').addEventListener('click', proximaFotoLightbox);
 document.getElementById('lightbox-sel-prev').addEventListener('click', fotoAnteriorLightbox);
+let lightboxTouchStartX=0;
+let lightboxTouchStartY=0;
+lightboxSelStage.addEventListener('touchstart',event=>{
+  const touch=event.changedTouches[0];
+  lightboxTouchStartX=touch.clientX;
+  lightboxTouchStartY=touch.clientY;
+},{passive:true});
+lightboxSelStage.addEventListener('touchend',event=>{
+  if(!lightboxSel.classList.contains('is-open'))return;
+  const touch=event.changedTouches[0];
+  const deltaX=touch.clientX-lightboxTouchStartX;
+  const deltaY=touch.clientY-lightboxTouchStartY;
+  if(Math.abs(deltaX)<45||Math.abs(deltaX)<=Math.abs(deltaY)*1.2)return;
+  deltaX<0?proximaFotoLightbox():fotoAnteriorLightbox();
+},{passive:true});
 lightboxSelStage.addEventListener('click', event => {
   const neighbor = event.target.closest('[data-lightbox-neighbor]');
   if (!neighbor) return;

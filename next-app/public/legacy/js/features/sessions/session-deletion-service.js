@@ -52,6 +52,19 @@ export async function deleteSessionProofsWithAssets({ photos, session, bucket })
   };
 }
 
+export async function deleteSessionPhotosWithAssets({ photos, session, bucket }) {
+  const items=(photos||[]).filter(photo=>photo?.id&&photo.id!==session.capa_foto_id);
+  if(!items.length)return{data:{removedAssets:0,removedRecords:0},error:null};
+  const paths=[...new Set(items.map(photo=>storagePathForBucket(photo.storage_url||photo.url,bucket)).filter(Boolean))];
+  if(paths.length){const storage=await removeFromBucket(bucket,paths);if(storage.error)return{error:storage.error,stage:'storage'}}
+  const ids=items.map(photo=>photo.id);
+  const database=await removeSessionPhotos(ids,session.id);
+  if(database.error)return{error:database.error,stage:'database'};
+  const removedRecords=database.data?.length??0;
+  if(removedRecords!==ids.length)return{error:new Error(`Foram removidos ${removedRecords} de ${ids.length} registros.`),stage:'database'};
+  return{data:{removedAssets:paths.length,removedRecords},error:null};
+}
+
 export async function deleteSessionWithAssets({ sessionId, bucket }) {
   let removedAssets = 0;
   for (const folder of ['prova', 'final']) {

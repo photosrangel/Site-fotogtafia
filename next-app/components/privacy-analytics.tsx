@@ -20,8 +20,8 @@ function readChoice(): Choice | null {
 function saveChoice(analytics: boolean): Choice {
   const now = new Date();
   const value = { version: VERSION, analytics, decidedAt: now.toISOString(), expiresAt: new Date(now.getTime() + SIX_MONTHS).toISOString() };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-  window.dispatchEvent(new CustomEvent('rangel:consent', { detail: { analytics } }));
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(value)); } catch { /* armazenamento pode estar bloqueado */ }
+  try { window.dispatchEvent(new CustomEvent('rangel:consent', { detail: { analytics } })); } catch { /* não impede o fechamento */ }
   return value;
 }
 
@@ -34,7 +34,7 @@ export function PrivacyAnalytics() {
   useEffect(() => { const stored = readChoice(); setChoice(stored); setAnalyticsDraft(stored?.analytics || false); setReady(true); }, []);
   if (!ready) return null;
 
-  const decide = (analytics: boolean) => { setChoice(saveChoice(analytics)); setAnalyticsDraft(analytics); setPreferences(false); };
+  const decide = (analytics: boolean) => { try { setChoice(saveChoice(analytics)); setAnalyticsDraft(analytics); } finally { setPreferences(false); } };
   const openPreferences = () => { setAnalyticsDraft(choice?.analytics || false); setPreferences(true); };
   const analyticsAllowed = choice?.analytics === true;
 
@@ -63,6 +63,5 @@ export function PrivacyAnalytics() {
       </section>
     </div>}
 
-    {choice && !preferences && <button type="button" className="privacy-settings" onClick={openPreferences}>Definições de privacidade</button>}
   </>;
 }

@@ -6868,103 +6868,6 @@ body.modal-open {
 
 
 /* =========================================================
-   BUILD V42 — PONTO FOCAL DA ÁREA DO CLIENTE
-   ========================================================= */
-
-.design-client-image-preview {
-  cursor: crosshair;
-}
-
-.design-client-image-preview.empty {
-  cursor: default;
-}
-
-.design-client-focal-marker {
-  position: absolute;
-  z-index: 5;
-  left: 50%;
-  top: 50%;
-
-  width: 24px;
-  height: 24px;
-
-  border: 2px solid #fff;
-  border-radius: 50%;
-
-  transform: translate(-50%, -50%);
-
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,.55),
-    0 4px 16px rgba(0,0,0,.35);
-
-  pointer-events: none;
-}
-
-.design-client-focal-marker::before,
-.design-client-focal-marker::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  background: #fff;
-  transform: translate(-50%, -50%);
-}
-
-.design-client-focal-marker::before {
-  width: 1px;
-  height: 32px;
-}
-
-.design-client-focal-marker::after {
-  width: 32px;
-  height: 1px;
-}
-
-.design-client-image-preview.empty
-.design-client-focal-marker {
-  display: none;
-}
-
-.design-client-focal-controls {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--admin-line-soft);
-}
-
-.design-client-focal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  margin-bottom: 8px;
-
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: .52rem;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-}
-
-.design-client-focal-head strong {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.design-client-focal-row output {
-  float: right;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: .54rem;
-}
-
-.design-client-focal-row input[type="range"] {
-  width: 100%;
-  margin-top: 7px;
-}
-
-
-/* =========================================================
    BUILD V43 — CONTEÚDO FULLSCREEN REAL + PREVIEW SLIDESHOW
    ========================================================= */
 
@@ -7248,6 +7151,7 @@ body .design-controls-drawer.is-content-editor
 .design-client-image-preview {
   position: relative !important;
   width: 100% !important;
+  max-width: 640px !important;
   height: auto !important;
   min-height: 0 !important;
   aspect-ratio: auto;
@@ -7973,3 +7877,22 @@ body .design-controls-drawer.is-content-editor #content-panel-inicio .hero-stati
 .design-client-image-preview:not(.empty) .design-client-image-empty {
   display: none !important;
 }
+
+.session-upload-progress{margin:14px 0 18px;padding:16px 18px;border:1px solid var(--admin-line-strong);border-radius:10px;background:rgba(255,255,255,.025)}
+.session-upload-progress[hidden]{display:none!important}.session-upload-progress>div{display:flex;justify-content:space-between;gap:18px;margin-bottom:10px}.session-upload-progress strong,.session-upload-progress span{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.session-upload-progress progress{display:block;width:100%;height:8px;border:0;border-radius:999px;overflow:hidden;background:#24231f}.session-upload-progress progress::-webkit-progress-bar{background:#24231f}.session-upload-progress progress::-webkit-progress-value{background:var(--accent);transition:width .22s ease}.session-upload-progress progress::-moz-progress-bar{background:var(--accent)}.session-upload-progress small{display:block;margin-top:9px;color:var(--text-muted);font-size:.68rem}.session-delete-all{border-color:rgba(194,111,96,.55)!important;color:#d7a49a!important}
+
+.gallery-cover-preview-editor{min-height:0;aspect-ratio:16/9;border-radius:8px}
+.gallery-cover-preview-editor::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,5,5,.06),rgba(5,5,5,.8))}
+.gallery-cover-preview-copy{position:absolute;z-index:2;left:clamp(20px,5vw,76px);right:clamp(20px,5vw,76px);bottom:clamp(20px,6vw,74px);display:flex;flex-direction:column;align-items:flex-start;color:#f0ece4;pointer-events:none}
+.gallery-cover-preview-copy small,.gallery-cover-preview-copy span{font:600 clamp(.45rem,.65vw,.62rem)/1.3 var(--font-mono);letter-spacing:.16em;text-transform:uppercase}
+.gallery-cover-preview-copy strong{max-width:13ch;margin:8px 0 12px;font:400 clamp(2rem,5vw,5.8rem)/.86 var(--font-display);letter-spacing:-.045em;text-wrap:balance}
+.gallery-cover-preview-editor .cover-focus-marker{z-index:3}
+
+/* Editor fiel do retrato usado na página pública Sobre. */
+.design-about-image-control{margin-top:0}.design-about-layout-preview{display:grid;grid-template-columns:minmax(180px,.78fr) minmax(260px,1.22fr);min-height:360px;border:1px solid var(--admin-line-soft);background:#0b0b0a;overflow:hidden}.design-about-image-preview{position:relative;aspect-ratio:3/4;align-self:start;background:#080807 center 72%/cover no-repeat;cursor:crosshair;overflow:hidden}.design-about-image-preview.empty{background:linear-gradient(145deg,#11110f,#080807)}.design-about-image-empty{position:absolute;inset:0;display:grid;place-items:center;padding:24px;color:var(--text-muted);font:600 .58rem/1.5 var(--font-mono);letter-spacing:.08em;text-align:center}.design-about-image-preview:not(.empty) .design-about-image-empty{display:none}.design-about-copy-preview{display:flex;flex-direction:column;justify-content:flex-start;padding:clamp(34px,4vw,64px);border-left:1px solid var(--admin-line-soft);color:#e8e4da}.design-about-copy-preview small{font:600 .54rem/1 var(--font-mono);letter-spacing:.14em}.design-about-copy-preview strong{margin-top:24px;font:400 clamp(2rem,3.5vw,4rem)/.91 var(--font-serif)}.design-about-copy-preview strong em{font-style:italic}.design-about-copy-preview i{width:70%;height:1px;margin:30px 0 20px;background:var(--admin-line-soft)}.design-about-copy-preview p{max-width:360px;margin:0 0 10px;color:var(--text-muted);font-size:.72rem;line-height:1.6}.design-about-image-preview .focal-marker{position:absolute;z-index:4}.design-about-image-preview.is-editing{box-shadow:inset 0 0 0 2px rgba(235,229,215,.8)}
+@media(max-width:760px){.design-about-layout-preview{grid-template-columns:42% 58%;min-height:240px}.design-about-copy-preview{padding:22px 16px}.design-about-copy-preview strong{margin-top:15px;font-size:clamp(1.25rem,5.4vw,2rem)}.design-about-copy-preview i{margin:18px 0 12px}.design-about-copy-preview p{font-size:.58rem}}
+
+.reviews-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,280px));gap:14px;margin-bottom:18px}.reviews-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.review-admin-card{padding:24px;border:1px solid var(--admin-line-soft);background:rgba(255,255,255,.012)}.review-admin-stars{color:#ded5c5;font-size:1.2rem;letter-spacing:.12em}.review-admin-card blockquote{min-height:72px;margin:18px 0 24px;color:var(--text);font-family:var(--font-serif);font-size:1.15rem;line-height:1.55}.review-admin-card blockquote em{color:var(--text-muted);font-family:var(--font-sans);font-size:.82rem}.review-admin-card footer{display:flex;align-items:end;justify-content:space-between;gap:18px;padding-top:16px;border-top:1px solid var(--admin-line-soft)}.review-admin-card footer span{display:flex;flex-direction:column;gap:5px}.review-admin-card footer strong{font-size:.78rem}.review-admin-card footer small,.review-admin-card footer time{color:var(--text-muted);font:500 .6rem/1.4 var(--font-mono)}@media(max-width:760px){.reviews-summary-grid,.reviews-list{grid-template-columns:1fr}.review-admin-card footer{align-items:start;flex-direction:column}}
+.review-admin-status{display:inline-flex;margin-bottom:15px;padding:6px 9px;border:1px solid #504a41;border-radius:999px;color:#aaa297;font:600 .56rem/1 var(--font-mono);letter-spacing:.09em;text-transform:uppercase}.review-admin-status.is-answered{border-color:#777064;color:#e2dbcf}.review-admin-card.is-dismissed{opacity:.78}.review-admin-card.is-dismissed blockquote{min-height:48px}
+.gallery-cover-preview-editor.empty .gallery-cover-preview-copy{opacity:.3}
+@media(max-width:760px){.gallery-cover-preview-copy{left:18px;right:18px;bottom:18px}.gallery-cover-preview-copy strong{font-size:clamp(1.8rem,10vw,3.5rem)}}

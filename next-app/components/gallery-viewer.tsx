@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 type GalleryPhoto = {
   id: string;
@@ -15,6 +15,7 @@ type GalleryViewerProps = {
 
 export function GalleryViewer({photos, galleryTitle}: GalleryViewerProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const isOpen = activeIndex !== null;
 
   const close = useCallback(() => setActiveIndex(null), []);
@@ -48,8 +49,83 @@ export function GalleryViewer({photos, galleryTitle}: GalleryViewerProps) {
   const after = activeIndex === null ? null : photos[(activeIndex + 1) % photos.length];
   const hasNeighbors = photos.length > 1;
 
+  const layoutGalleryRows = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const items = [...grid.querySelectorAll<HTMLElement>('.public-gallery-photo')];
+    const width = grid.clientWidth;
+    const gap = Number.parseFloat(getComputedStyle(grid).gap) || 6;
+    if (!width) return;
+
+    if (width <= 760) {
+      for (let index = 0; index < items.length; index += 2) {
+        const pair = items.slice(index, index + 2);
+        const ratios = pair.map(item => Number(item.dataset.ratio) || 1);
+        const usableWidth = pair.length === 2 ? width - gap : width;
+        const height = pair.length === 2
+          ? usableWidth / (ratios[0] + ratios[1])
+          : Math.min(width / ratios[0], width * .78);
+        pair.forEach((item, pairIndex) => {
+          const itemWidth = ratios[pairIndex] * height;
+          item.style.width = `${itemWidth}px`;
+          item.style.height = `${height}px`;
+          item.style.flexBasis = `${itemWidth}px`;
+        });
+      }
+      return;
+    }
+
+    const targetHeight = Math.max(220, Math.min(350, width * .19));
+    let row: HTMLElement[] = [];
+    let ratioSum = 0;
+    const applyRow = (stretch: boolean) => {
+      if (!row.length) return;
+      const naturalWidth = ratioSum * targetHeight + gap * (row.length - 1);
+      const height = stretch || naturalWidth >= width * .68
+        ? (width - gap * (row.length - 1)) / ratioSum
+        : targetHeight;
+      row.forEach(item => {
+        const ratio = Number(item.dataset.ratio) || 1;
+        const itemWidth = ratio * height;
+        item.style.width = `${itemWidth}px`;
+        item.style.height = `${height}px`;
+        item.style.flexBasis = `${itemWidth}px`;
+      });
+      row = [];
+      ratioSum = 0;
+    };
+
+    items.forEach(item => {
+      ratioSum += Number(item.dataset.ratio) || 1;
+      row.push(item);
+      if (ratioSum * targetHeight + gap * (row.length - 1) >= width) applyRow(true);
+    });
+    applyRow(false);
+  }, []);
+
+  const registerImage = useCallback((image: HTMLImageElement) => {
+    const item = image.closest<HTMLElement>('.public-gallery-photo');
+    if (!item || !image.naturalWidth || !image.naturalHeight) return;
+    const ratio = image.naturalWidth / image.naturalHeight;
+    item.dataset.ratio = String(ratio);
+    item.dataset.orientation = ratio > 1.18 ? 'landscape' : ratio < .85 ? 'portrait' : 'square';
+    requestAnimationFrame(layoutGalleryRows);
+  }, [layoutGalleryRows]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const resizeAll = () => grid.querySelectorAll<HTMLImageElement>('.public-gallery-photo img').forEach(image => {
+      if (image.complete) registerImage(image);
+    });
+    resizeAll();
+    const observer = new ResizeObserver(resizeAll);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [photos, registerImage]);
+
   return <>
-    <div className="grid gallery-adaptive-grid public-gallery-grid">
+    <div ref={gridRef} className="grid gallery-adaptive-grid public-gallery-grid">
       {photos.map((photo, index) => <button
         className="frame public-gallery-photo"
         key={photo.id}
@@ -57,7 +133,7 @@ export function GalleryViewer({photos, galleryTitle}: GalleryViewerProps) {
         onClick={() => setActiveIndex(index)}
         aria-label={`Ampliar fotografia ${index + 1} de ${photos.length}`}
       >
-        <img src={photo.image_url} alt={photo.alt_text || `Fotografia da galeria ${galleryTitle}`} loading="lazy" />
+        <img src={photo.image_url} alt={photo.alt_text || `Fotografia da galeria ${galleryTitle}`} loading="lazy" onLoad={event => registerImage(event.currentTarget)} />
       </button>)}
     </div>
 

@@ -4,7 +4,8 @@ import { createSupabasePublicClient } from '@/lib/supabase/public';
 export type PublicPhoto={id:string;gallery_id:string;image_url:string;alt_text?:string;sort_order:number};
 export type PublicTrail={id:string;name:string;slug:string;description?:string;cover_url?:string;cover_focus_x?:number;cover_focus_y?:number;sort_order:number};
 export type PublicCategory={id:string;name:string;slug:string;sort_order:number;trail_id?:string};
-export type PublicGallery={id:string;title:string;slug:string;category_id?:string;cover_url?:string;cover_focus_x?:number;cover_focus_y?:number;sort_order:number;categorySlug:string;categoryName:string;trailId?:string;photos:PublicPhoto[]};
+export type PublicGallery={id:string;title:string;slug:string;category_id?:string;cover_url?:string;cover_focus_x?:number;cover_focus_y?:number;sort_order:number;created_at?:string;categorySlug:string;categoryName:string;trailId?:string;photos:PublicPhoto[]};
+export type RecentGalleryCover={id:string;gallery_id:string;slug:string;title:string;image_url:string;alt_text:string;focus_x:number;focus_y:number;created_at?:string};
 
 const normalizeName=(value?:string)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
@@ -80,7 +81,16 @@ export async function getPublicGalleryData():Promise<{trails:PublicTrail[];categ
   return getCachedPublicGalleryData();
 }
 
-export async function getRecentPhotos(limit=6){
+export async function getRecentPhotos(limit=10):Promise<RecentGalleryCover[]>{
   const {galleries}=await getPublicGalleryData();
-  return galleries.flatMap(gallery=>gallery.photos).sort((a,b)=>a.sort_order-b.sort_order).slice(0,limit);
+  return galleries
+    .filter(gallery=>Boolean(gallery.cover_url||gallery.photos[0]?.image_url))
+    .sort((a,b)=>new Date(b.created_at||0).getTime()-new Date(a.created_at||0).getTime())
+    .slice(0,Math.min(10,Math.max(1,limit)))
+    .map(gallery=>({
+      id:`gallery-cover-${gallery.id}`,gallery_id:gallery.id,slug:gallery.slug,title:gallery.title,
+      image_url:gallery.cover_url||gallery.photos[0].image_url,
+      alt_text:`Capa do ensaio: ${gallery.title}`,
+      focus_x:Number(gallery.cover_focus_x??50),focus_y:Number(gallery.cover_focus_y??50),created_at:gallery.created_at
+    }));
 }

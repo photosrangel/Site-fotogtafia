@@ -13,10 +13,14 @@ function remainingDays(value) {
   return value ? Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 86400000)) : 0;
 }
 
-function renderProgress({ $, session }) {
+function renderProgress({ $, session, provas, finais }) {
   const el = $('session-progress');
   if (!el) return;
   const status = normalizeSessionStatus(session.status);
+  const deleteProofs=$('btn-excluir-provas');
+  const deleteFinals=$('btn-excluir-finais');
+  if(deleteProofs){deleteProofs.hidden=provas.length===0;deleteProofs.textContent='Excluir todas as provas, mantendo a capa'}
+  if(deleteFinals)deleteFinals.hidden=finais.length===0;
   const steps = [
     ['Seleção', status === 'aguardando_selecao' ? 'Aguardando cliente' : 'Recebida'],
     ['Edição', status === 'em_edicao' ? 'Em andamento' : 'Tratamento'],
@@ -65,7 +69,7 @@ export function renderSessionDetailUI({
   $('session-client-email').value = session.cliente_email || '';
   $('prova-count').textContent = provas.length;
   $('final-count').textContent = finais.length;
-  renderProgress({ $, session });
+  renderProgress({ $, session, provas, finais });
   renderEmailState({ $, session, esc });
   syncAccordions();
 

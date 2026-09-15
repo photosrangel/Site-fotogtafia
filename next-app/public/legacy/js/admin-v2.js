@@ -54,7 +54,7 @@ import {
 import {
   uploadToBucket,
   getPublicUrlFromBucket,
-  createSignedUrlFromBucket
+  createSignedUrlsFromBucket
 } from './core/storage-service.js';
 import { storagePathForBucket } from './core/storage-service.js';
 import { uploadGalleryPhoto } from './features/galleries/gallery-upload-service.js';
@@ -66,6 +66,7 @@ import {
 import {
   deleteSessionPhotoWithAsset,
   deleteSessionProofsWithAssets,
+  deleteSessionPhotosWithAssets,
   deleteSessionWithAssets
 } from './features/sessions/session-deletion-service.js';
 import { getDashboardSnapshot, logAdminActivity } from './features/dashboard/dashboard-repository.js';
@@ -381,6 +382,7 @@ function setView(v) {
     categories: ['Organização', 'Categorias'],
     sessions: ['Clientes', 'Ensaios'],
     'client-access': ['Clientes', 'Acessos das clientes'],
+    reviews: ['Clientes', 'Depoimentos'],
     messages: ['Site', 'Mensagens'],
     settings: ['Site', 'Configurações']
   }[v];
@@ -407,6 +409,7 @@ function setView(v) {
   if (v === 'categories') loadCategories();
   if (v === 'sessions') loadSessions();
   if (v === 'client-access') loadClientAccess();
+  if (v === 'reviews') loadReviews();
   if (v === 'messages') loadMessages();
   if (v === 'settings') loadSettings();
 }
@@ -1423,6 +1426,7 @@ initTrailEditor();
 $('trail-form')?.addEventListener('submit',saveTrail);
 $('gallery-trail')?.addEventListener('change',event=>renderGalleryCategoryOptions(event.target.value));
 $('gallery-cover')?.addEventListener('input',updateGalleryCoverFocusPreview);
+['gallery-title','gallery-session-type'].forEach(id=>$(id)?.addEventListener('input',updateGalleryCoverFocusPreview));
 ['gallery-cover-focus-x','gallery-cover-focus-y'].forEach(id=>$(id)?.addEventListener('input',updateGalleryCoverFocusPreview));
 $('gallery-cover-focus-preview')?.addEventListener('click',event=>{const rect=event.currentTarget.getBoundingClientRect();$('gallery-cover-focus-x').value=Math.round((event.clientX-rect.left)/rect.width*100);$('gallery-cover-focus-y').value=Math.round((event.clientY-rect.top)/rect.height*100);updateGalleryCoverFocusPreview()});
 
@@ -1805,9 +1809,10 @@ async function moveTrailDraft(id,direction){
 function renderTrails(){
   const host=$('trails-list');if(!host)return;
   host.classList.add('trail-admin-grid');
-  host.innerHTML=trailsCache.length?trailsCache.map((t,index)=>{const cover=t.cover_url||galleriesCache.find(g=>g.trail_id===t.id)?.cover_url||'';const x=Number(t.cover_focus_x??50),y=Number(t.cover_focus_y??50);return `<div class="trail-admin-row" data-trail-row="${t.id}"><div class="trail-admin-identity"><strong>${esc(t.name)}</strong><span>/${esc(t.slug)}</span></div><div class="trail-admin-count">${categoriesCache.filter(c=>c.trail_id===t.id).length} categorias</div><div class="trail-order-actions" aria-label="Reordenar ${attr(t.name)}"><button class="small-btn" type="button" data-move-trail="-1" ${index===0?'disabled':''} aria-label="Mover para a esquerda">←</button><span>${index+1}</span><button class="small-btn" type="button" data-move-trail="1" ${index===trailsCache.length-1?'disabled':''} aria-label="Mover para a direita">→</button></div><div class="trail-focus-editor"><div class="cover-focus-preview" data-trail-focus-preview style="background-image:${cover?`url('${attr(cover)}')`:'none'};background-position:${x}% ${y}%"><span class="cover-focus-marker" style="left:${x}%;top:${y}%"></span></div><label>Horizontal <input data-trail-focus-x type="range" min="0" max="100" value="${x}"></label><label>Vertical <input data-trail-focus-y type="range" min="0" max="100" value="${y}"></label></div><div class="trail-admin-actions"><button class="small-btn" data-save-trail-focus="${t.id}">Salvar enquadramento</button><button class="small-btn" data-delete-trail="${t.id}">Excluir</button></div></div>`}).join(''):'<p class="panel-copy">Nenhuma trilha criada.</p>';
+  host.innerHTML=trailsCache.length?trailsCache.map((t,index)=>{const cover=t.cover_url||'';const x=Number(t.cover_focus_x??50),y=Number(t.cover_focus_y??50);return `<div class="trail-admin-row" data-trail-row="${t.id}"><div class="trail-admin-identity"><strong>${esc(t.name)}</strong><span>/${esc(t.slug)}</span></div><div class="trail-admin-count">${categoriesCache.filter(c=>c.trail_id===t.id).length} categorias</div><div class="trail-order-actions" aria-label="Reordenar ${attr(t.name)}"><button class="small-btn" type="button" data-move-trail="-1" ${index===0?'disabled':''} aria-label="Mover para a esquerda">←</button><span>${index+1}</span><button class="small-btn" type="button" data-move-trail="1" ${index===trailsCache.length-1?'disabled':''} aria-label="Mover para a direita">→</button></div><div class="trail-focus-editor"><div class="cover-focus-preview" data-trail-focus-preview style="background-image:${cover?`url('${attr(cover)}')`:'none'};background-position:${x}% ${y}%"><span class="cover-focus-marker" style="left:${x}%;top:${y}%"></span></div><label>Horizontal <input data-trail-focus-x type="range" min="0" max="100" value="${x}"></label><label>Vertical <input data-trail-focus-y type="range" min="0" max="100" value="${y}"></label><label class="small-btn">Adicionar capa<input data-trail-cover-file type="file" accept="image/jpeg,image/png,image/webp" hidden></label></div><div class="trail-admin-actions"><button class="small-btn" data-save-trail-focus="${t.id}">Salvar capa e enquadramento</button><button class="small-btn" data-delete-trail="${t.id}">Excluir</button></div></div>`}).join(''):'<p class="panel-copy">Nenhuma trilha criada.</p>';
   host.querySelectorAll('[data-trail-row]').forEach(row=>{const preview=row.querySelector('[data-trail-focus-preview]'),x=row.querySelector('[data-trail-focus-x]'),y=row.querySelector('[data-trail-focus-y]');const draw=()=>{preview.style.backgroundPosition=`${x.value}% ${y.value}%`;const marker=preview.querySelector('.cover-focus-marker');marker.style.left=x.value+'%';marker.style.top=y.value+'%'};x.addEventListener('input',draw);y.addEventListener('input',draw);preview.addEventListener('click',event=>{const rect=preview.getBoundingClientRect();x.value=Math.round((event.clientX-rect.left)/rect.width*100);y.value=Math.round((event.clientY-rect.top)/rect.height*100);draw()});row.querySelectorAll('[data-move-trail]').forEach(button=>button.addEventListener('click',()=>moveTrailDraft(row.dataset.trailRow,Number(button.dataset.moveTrail))));row.querySelector('[data-save-trail-focus]').addEventListener('click',async()=>{const result=await updateTrail(row.dataset.trailRow,{cover_focus_x:Number(x.value),cover_focus_y:Number(y.value)});if(result.error)return flash(result.error.message,'erro');const trail=trailsCache.find(item=>item.id===row.dataset.trailRow);if(trail){trail.cover_focus_x=Number(x.value);trail.cover_focus_y=Number(y.value)}flash('Enquadramento da trilha salvo.','sucesso')})});
   host.querySelectorAll('[data-delete-trail]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Excluir esta trilha? As categorias ficarão sem trilha.'))return;const r=await removeTrail(b.dataset.deleteTrail);if(r.error)return flash(r.error.message,'erro');await loadCategories()}));
+  host.querySelectorAll('[data-trail-row]').forEach(row=>row.querySelector('[data-trail-cover-file]')?.addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;try{const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`trails/${row.dataset.trailRow}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;const uploaded=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(uploaded.error)throw uploaded.error;const url=getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||'';const result=await updateTrail(row.dataset.trailRow,{cover_url:url,cover_focus_x:50,cover_focus_y:50});if(result.error)throw result.error;const trail=trailsCache.find(item=>item.id===row.dataset.trailRow);if(trail)Object.assign(trail,{cover_url:url,cover_focus_x:50,cover_focus_y:50});renderTrails();flash('Capa própria da trilha enviada. Ajuste o foco e salve.','sucesso')}catch(error){flash(`Erro ao enviar capa: ${error.message}`,'erro')}finally{event.target.value=''}}));
 }
 
 async function saveTrail(event){
@@ -2120,9 +2125,13 @@ async function salvarOrdemGalerias() {
 
 function updateGalleryCoverFocusPreview(){
   const preview=$('gallery-cover-focus-preview');if(!preview)return;
+  preview.classList.add('gallery-cover-preview-editor');
+  if(!preview.querySelector('.gallery-cover-preview-copy'))preview.insertAdjacentHTML('afterbegin','<div class="gallery-cover-preview-copy"><small id="gallery-cover-preview-type">ENSAIO FOTOGRÁFICO</small><strong id="gallery-cover-preview-title">Nome do ensaio</strong><span>CAPA DA GALERIA</span></div>');
   const url=safeText($('gallery-cover')?.value,2048),x=clampNumber($('gallery-cover-focus-x')?.value,0,100,50),y=clampNumber($('gallery-cover-focus-y')?.value,0,100,50);
   preview.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';preview.style.backgroundPosition=`${x}% ${y}%`;preview.classList.toggle('empty',!url);
   const marker=preview.querySelector('.cover-focus-marker');if(marker){marker.style.left=x+'%';marker.style.top=y+'%'}
+  if($('gallery-cover-preview-title'))$('gallery-cover-preview-title').textContent=safeText($('gallery-title')?.value,120)||'Nome do ensaio';
+  if($('gallery-cover-preview-type'))$('gallery-cover-preview-type').textContent=(safeText($('gallery-session-type')?.value,120)||'Ensaio fotográfico').toUpperCase();
   if($('gallery-cover-focus-x-out'))$('gallery-cover-focus-x-out').textContent=x+'%';if($('gallery-cover-focus-y-out'))$('gallery-cover-focus-y-out').textContent=y+'%';
 }
 
@@ -2151,6 +2160,16 @@ function openGalleryForm(g = null) {
 
   $('gallery-description').value =
     g?.description || '';
+
+  $('gallery-session-type').value=g?.session_type||'';
+  $('gallery-session-location').value=g?.session_location||'';
+  $('gallery-session-date').value=g?.session_date_text||'';
+  $('gallery-credits').value=g?.credits||'';
+  $('gallery-cta-text').value=g?.cta_text||'';
+  $('gallery-cta-url').value=g?.cta_url||'';
+  $('gallery-seo-title').value=g?.seo_title||'';
+  $('gallery-seo-description').value=g?.seo_description||'';
+  $('gallery-social-image').value=g?.social_image_url||'';
 
   $('gallery-cover').value =
     g?.cover_url || '';
@@ -2197,6 +2216,10 @@ async function saveGallery(e) {
     const slug = slugify(safeText($('gallery-slug').value, 120)).slice(0, 120);
     const coverInput = safeText($('gallery-cover').value, 2048);
     const coverUrl = coverInput ? safeHttpUrl(coverInput, { allowRelative: false }) : '';
+    const socialInput=safeText($('gallery-social-image').value,2048);
+    const socialUrl=socialInput?safeHttpUrl(socialInput,{allowRelative:false}):'';
+    const ctaInput=safeText($('gallery-cta-url').value,2048);
+    const ctaUrl=ctaInput?safeHttpUrl(ctaInput,{allowRelative:true}):'';
 
     if (!title || !slug) {
       msg($('gallery-form-msg'), 'Preencha título e slug com conteúdo válido.', 'erro');
@@ -2206,11 +2229,22 @@ async function saveGallery(e) {
       msg($('gallery-form-msg'), 'A URL da capa precisa começar com http:// ou https://.', 'erro');
       return;
     }
+    if(socialInput&&!socialUrl){msg($('gallery-form-msg'),'A imagem de compartilhamento precisa ser uma URL válida.','erro');return}
+    if(ctaInput&&!ctaUrl){msg($('gallery-form-msg'),'O link da chamada precisa ser uma URL válida ou um caminho como /contato.','erro');return}
 
     const p = {
       title,
       slug,
       description: safeText($('gallery-description').value, 2000) || null,
+      session_type:safeText($('gallery-session-type').value,120)||null,
+      session_location:safeText($('gallery-session-location').value,160)||null,
+      session_date_text:safeText($('gallery-session-date').value,80)||null,
+      credits:safeText($('gallery-credits').value,500)||null,
+      cta_text:safeText($('gallery-cta-text').value,140)||null,
+      cta_url:ctaUrl||null,
+      seo_title:safeText($('gallery-seo-title').value,70)||null,
+      seo_description:safeText($('gallery-seo-description').value,180)||null,
+      social_image_url:socialUrl||null,
       category_id: $('gallery-category').value || null,
       trail_id: $('gallery-trail')?.value || null,
       cover_focus_x: clampNumber($('gallery-cover-focus-x')?.value,0,100,50),
@@ -2878,6 +2912,7 @@ const ADMIN_UI_DEFAULTS = Object.freeze({
     'categories',
     'sessions',
     'client-access',
+    'reviews',
     'messages',
     'settings'
   ]
@@ -2949,7 +2984,7 @@ function normalizeAdminUiConfig(config = {}) {
 
     menu_order: (() => {
       const allowed = [
-        'dashboard','design','galleries','categories','sessions','client-access','messages','settings'
+        'dashboard','design','galleries','categories','sessions','client-access','reviews','messages','settings'
       ];
       const incoming = Array.isArray(c.menu_order) ? c.menu_order : [];
       const normalized = incoming.filter(item => allowed.includes(item));
@@ -3626,6 +3661,9 @@ async function loadSettings() {
   $('settings-instagram').value =
     data.instagram_url || '';
 
+  $('settings-google-review').value =
+    data.google_review_url || 'https://g.page/r/CVogEUoNe595ECE/review';
+
   $('settings-location').value =
     data.location || '';
 
@@ -3664,6 +3702,7 @@ async function saveSettings(e) {
       email: email || null,
       whatsapp: whatsapp || null,
       instagram_url: safeText($('settings-instagram').value, 2048) || null,
+      google_review_url: safeHttpUrl($('settings-google-review').value || '') || null,
       location: safeText($('settings-location').value, 160) || null,
       specialty: safeText($('settings-specialty').value, 160) || null,
       availability: safeText($('settings-availability').value, 160) || null,
@@ -4836,6 +4875,8 @@ const CLIENT_ACCESS_EVENT_TYPES = [
   'client_selection_completed',
   'client_recovery_requested',
   'client_password_changed',
+  'client_download_zip',
+  'client_download_photo',
   'selection_reminder_day_3',
   'selection_reminder_day_7',
   'selection_reminder_day_15',
@@ -4879,6 +4920,20 @@ async function loadClientAccess() {
     $('refresh-client-access')?.addEventListener('click', loadClientAccess);
   }
   renderClientAccessEvents();
+}
+
+async function loadReviews(){
+  const list=$('reviews-list');if(!list)return;
+  list.innerHTML='<p class="panel-copy">Carregando avaliações…</p>';
+  const [reviewsResult,dismissedResult]=await Promise.all([supabase.from('session_reviews').select('id,session_id,stars,feedback_text,created_at,ensaios(cliente_nome,titulo)').order('created_at',{ascending:false}),supabase.from('admin_activity').select('id,title,detail,entity_id,created_at').eq('activity_type','client_review_dismissed').order('created_at',{ascending:false}).limit(100)]);
+  const {data,error}=reviewsResult;
+  if(error){list.innerHTML=`<p class="msg erro">Não foi possível carregar os depoimentos: ${esc(error.message)}</p>`;return}
+  const rows=data||[],average=rows.length?rows.reduce((sum,row)=>sum+Number(row.stars||0),0)/rows.length:0;
+  $('reviews-average').textContent=rows.length?`${average.toFixed(1)} ★`:'—';$('reviews-total').textContent=String(rows.length);
+  const answered=rows.map(row=>{const session=Array.isArray(row.ensaios)?row.ensaios[0]:row.ensaios;return `<article class="review-admin-card"><span class="review-admin-status is-answered">Avaliação enviada</span><div class="review-admin-stars" aria-label="${row.stars} de 5 estrelas">${'★'.repeat(row.stars)}${'☆'.repeat(5-row.stars)}</div><blockquote>${row.feedback_text?`“${esc(row.feedback_text)}”`:'<em>Sem comentário escrito.</em>'}</blockquote><footer><span><strong>${esc(session?.cliente_nome||'Cliente')}</strong><small>${esc(session?.titulo||'Ensaio')}</small></span><time>${formatDateTime(row.created_at)}</time></footer></article>`});
+  const dismissed=(dismissedResult.data||[]).map(row=>`<article class="review-admin-card is-dismissed"><span class="review-admin-status">Saiu sem avaliar</span><blockquote><em>${esc(row.detail||'A cliente fechou o convite sem enviar uma avaliação.')}</em></blockquote><footer><span><strong>${esc((row.title||'Ensaio').replace(/^Avaliação não respondida —\s*/,''))}</strong><small>O convite aparecerá novamente no próximo download.</small></span><time>${formatDateTime(row.created_at)}</time></footer></article>`);
+  list.innerHTML=answered.length||dismissed.length?[...answered,...dismissed].join(''):'<p class="panel-copy">Nenhuma interação de avaliação registrada até o momento.</p>';
+  const refresh=$('refresh-reviews');if(refresh&&refresh.dataset.bound!=='1'){refresh.dataset.bound='1';refresh.addEventListener('click',loadReviews)}
 }
 
 async function loadMessages() {
@@ -5216,17 +5271,16 @@ async function loadSessionPhotos() {
 }
 
 async function signSessionPhotoUrls(photos) {
-  return Promise.all((photos || []).map(async photo => {
-    const originalUrl = photo.storage_url || photo.url || '';
-    const path = storagePathForBucket(originalUrl, SESSIONS_BUCKET);
-    if (!path) return { ...photo, storage_url: originalUrl };
-    const { data, error } = await createSignedUrlFromBucket(SESSIONS_BUCKET, path, 3600);
-    if (error || !data?.signedUrl) {
-      dwarn('Não foi possível assinar uma fotografia privada:', error?.message || path);
-      return { ...photo, storage_url: originalUrl };
-    }
-    return { ...photo, storage_url: originalUrl, url: data.signedUrl };
-  }));
+  const items=(photos||[]).map(photo=>{const originalUrl=photo.storage_url||photo.url||'';return{photo,originalUrl,path:storagePathForBucket(originalUrl,SESSIONS_BUCKET)}});
+  const privateItems=items.filter(item=>item.path);
+  if(!privateItems.length)return items.map(({photo,originalUrl})=>({...photo,storage_url:originalUrl}));
+  const {data,error}=await createSignedUrlsFromBucket(SESSIONS_BUCKET,privateItems.map(item=>item.path),3600);
+  if(error){
+    dwarn('Não foi possível assinar o lote de fotografias privadas:',error.message);
+    return items.map(({photo,originalUrl})=>({...photo,storage_url:originalUrl}));
+  }
+  const signedByPath=new Map((data||[]).map(item=>[item.path,item.signedUrl]));
+  return items.map(({photo,originalUrl,path})=>({...photo,storage_url:originalUrl,url:path&&signedByPath.get(path)?signedByPath.get(path):(photo.url||originalUrl)}));
 }
 
 
@@ -5645,6 +5699,38 @@ async function excluirFotoEnsaio(id) {
   await loadSessionPhotos();
 }
 
+async function excluirTodasFotosEnsaio(tipo) {
+  if(!currentSession)return;
+  const fotos=currentSessionPhotos.filter(photo=>photo.tipo===tipo);
+  if(!fotos.length){flash(tipo==='prova'?'Não há provas para excluir.':'Não há fotos finais para excluir.','');return}
+  let capa=fotos.find(photo=>photo.id===currentSession.capa_foto_id)||currentSessionPhotos.find(photo=>photo.id===currentSession.capa_foto_id)||null;
+  if(!capa){
+    capa=fotos.slice().sort((a,b)=>Number(a.ordem??999999)-Number(b.ordem??999999))[0];
+    const saved=await updateSessionAndReturn(currentSession.id,{capa_foto_id:capa.id});
+    if(saved.error){flash(`Não foi possível preservar a capa: ${saved.error.message}`,'erro');return}
+    currentSession=saved.data||{...currentSession,capa_foto_id:capa.id};
+  }
+  const removiveis=fotos.filter(photo=>photo.id!==capa.id);
+  const nome=tipo==='prova'?'provas':'fotos finais';
+  if(!removiveis.length){flash(`A única fotografia desta seção é a capa e foi preservada.`,'');return}
+  if(!confirm(`Excluir ${removiveis.length} ${nome}?\n\nA fotografia definida como capa será preservada. Esta ação não pode ser desfeita.`))return;
+  flash(`Excluindo ${removiveis.length} ${nome} e preservando a capa...`,'erro');
+  const result=await deleteSessionPhotosWithAssets({photos:removiveis,session:currentSession,bucket:SESSIONS_BUCKET});
+  if(result.error){flash(`A limpeza não terminou (${result.stage}): ${result.error.message}`,'erro');await loadSessionPhotos();return}
+  await logAdminActivity('session_photos_bulk_deleted',`${nome==='provas'?'Provas':'Fotos finais'} removidas — ${currentSession.titulo||'Ensaio'}`,{detail:`${result.data.removedRecords} fotografia(s) removida(s); capa preservada.`,entityType:'session',entityId:currentSession.id}).catch(()=>{});
+  flash(`${result.data.removedRecords} ${nome} excluídas. A capa foi preservada.`,'sucesso');
+  await loadSessionPhotos();
+  await loadSessions();
+  renderSessionDetail();
+}
+
+function atualizarProgressoUpload(tipo,concluidas,total,texto){
+  const box=$(tipo==='prova'?'upload-prova-progress':'upload-final-progress');if(!box)return;
+  const percent=total?Math.round(concluidas/total*100):0;
+  box.hidden=false;box.querySelector('strong').textContent=texto||`Enviando fotografia ${Math.min(concluidas+1,total)} de ${total}`;
+  box.querySelector('span').textContent=`${percent}%`;box.querySelector('progress').value=percent;
+}
+
 async function uploadSessionPhotos(files, tipo) {
   if (!currentSession) return;
 
@@ -5660,6 +5746,9 @@ async function uploadSessionPhotos(files, tipo) {
   return withOperationLock(
     `session-upload:${currentSession.id}:${tipo}`,
     async () => {
+      atualizarProgressoUpload(tipo,0,validos.length,`Preparando ${validos.length} fotografia${validos.length===1?'':'s'}…`);
+      const grid=$(tipo==='prova'?'prova-grid':'final-grid');
+      grid?.querySelector('.panel-copy')?.remove();
       msg(
         msgEl,
         `Enviando ${validos.length} foto(s) e numerando automaticamente...`
@@ -5689,7 +5778,8 @@ async function uploadSessionPhotos(files, tipo) {
 
       let enviados = 0;
 
-      for (const file of validos) {
+      for (const [fileIndex,file] of validos.entries()) {
+        atualizarProgressoUpload(tipo,fileIndex,validos.length,`Enviando fotografia ${fileIndex+1} de ${validos.length}`);
         const ext =
           file.type === 'image/png'
             ? 'png'
@@ -5725,6 +5815,7 @@ async function uploadSessionPhotos(files, tipo) {
 
         nextOrder += 1;
         enviados += 1;
+        atualizarProgressoUpload(tipo,fileIndex+1,validos.length,`${fileIndex+1} de ${validos.length} processadas`);
       }
 
       if (enviados) {
@@ -5736,6 +5827,8 @@ async function uploadSessionPhotos(files, tipo) {
       }
 
       await loadSessionPhotos();
+      atualizarProgressoUpload(tipo,validos.length,validos.length,'Envio concluído');
+      setTimeout(()=>{const box=$(tipo==='prova'?'upload-prova-progress':'upload-final-progress');if(box)box.hidden=true},1400);
     }
   );
 }
@@ -5830,6 +5923,8 @@ $('btn-gerar-codigo').addEventListener('click', () => {
 $('btn-copy-session').addEventListener('click', copySession);
 $('btn-save-session-email').addEventListener('click', () => withOperationLock('save-session-email:' + (currentSession?.id || ''), salvarEmailClienteEnsaio));
 $('btn-entregar').addEventListener('click', () => withOperationLock('entregar:' + (currentSession?.id || ''), marcarEntregue));
+$('btn-excluir-provas').addEventListener('click',()=>withOperationLock('delete-all-proofs:'+(currentSession?.id||''),()=>excluirTodasFotosEnsaio('prova')));
+$('btn-excluir-finais').addEventListener('click',()=>withOperationLock('delete-all-finals:'+(currentSession?.id||''),()=>excluirTodasFotosEnsaio('final')));
 $('btn-excluir-session').addEventListener('click', () => withOperationLock('delete-session:' + (currentSession?.id || ''), () => excluirSession(currentSession && currentSession.id)));
 $('upload-prova').addEventListener('change', async e => {
   const f = [...e.target.files];
@@ -5898,10 +5993,10 @@ const DESIGN_DEFAULTS = Object.freeze({
   client_focus_x: 50,
   client_focus_y: 50,
   client_text_visual: 'Retratos guardados com cuidado.\nUm espaço reservado só para você.',
-  client_text_eyebrow: 'Área privada',
-  client_text_title: 'Sua sessão,',
-  client_text_title_emphasis: 'em um espaço só seu.',
-  client_text_description: 'Acesse sua galeria para selecionar fotografias, acompanhar a edição e receber seus arquivos finais.',
+  client_text_eyebrow: 'Bem-vinda à sua galeria',
+  client_text_title: 'Entre no seu',
+  client_text_title_emphasis: 'espaço privado.',
+  client_text_description: 'Use os dados enviados pelo estúdio para acessar suas fotografias e acompanhar cada etapa.',
   client_text_login: 'Login',
   client_text_password: 'Senha',
   client_text_button: 'Acessar minha galeria',
@@ -6039,12 +6134,12 @@ function collectHeroContentPayload(){
   return {eyebrow:safeText(cmsFieldGet('inicio.hero.eyebrow',$('hero-eyebrow')?.value??''),120),title:safeText(cmsFieldGet('inicio.hero.title',$('hero-title')?.value??''),180),description:safeText(cmsFieldGet('inicio.hero.description',$('hero-description')?.value??''),1000),desktop_image:desktopRaw?safeHttpUrl(desktopRaw,{allowRelative:true}):'',mobile_image:mobileRaw?safeHttpUrl(mobileRaw,{allowRelative:true}):'',image_alt:safeText($('hero-image-alt')?.value,240),mode,static_focus_x:clampNumber($('hero-static-focus-x')?.value,0,100,50),static_focus_y:clampNumber($('hero-static-focus-y')?.value,0,100,50),static_mobile_focus_x:clampNumber($('hero-static-mobile-focus-x')?.value,0,100,50),static_mobile_focus_y:clampNumber($('hero-static-mobile-focus-y')?.value,0,100,50),slide_interval:clampNumber($('hero-slide-interval')?.value,2,30,5),slide_transition:clampNumber($('hero-slide-transition')?.value,.3,5,1.2),slide_width:$('hero-slide-width')?.value||HERO_SLIDESHOW_DEFAULTS.width,slide_fit:$('hero-slide-fit')?.value||HERO_SLIDESHOW_DEFAULTS.fit,slide_ratio:$('hero-slide-ratio')?.value||HERO_SLIDESHOW_DEFAULTS.ratio,slide_animation:$('hero-slide-animation')?.value||HERO_SLIDESHOW_DEFAULTS.animation,slide_order:$('hero-slide-order')?.value||HERO_SLIDESHOW_DEFAULTS.order,slide_behind_menu:$('hero-slide-behind-menu')?.value!=='no',slides:heroSlidesDraft.slice(0,30).map((s,index)=>({id:safeText(s.id,120),url:safeHttpUrl(s.url,{allowRelative:true}),alt:safeText(s.alt,240),focus_x:clampNumber(s.focus_x,0,100,50),focus_y:clampNumber(s.focus_y,0,100,50),published:s.published!==false,sort_order:index})).filter(s=>s.url),primary_button:{text:safeText($('hero-primary-text')?.value,80),url:safeHttpUrl($('hero-primary-url')?.value)||'/galeria'},secondary_button:{text:safeText($('hero-secondary-text')?.value,80),url:safeHttpUrl($('hero-secondary-url')?.value)||'/contato'},meta};
 }
 function collectRecentContentPayload(){return {eyebrow:safeText($('recent-eyebrow')?.value,120),title:safeText($('recent-title')?.value,180),gallery_limit:clampNumber($('recent-limit')?.value,1,24,6),button:{text:safeText($('recent-btn-text')?.value,80),url:safeHttpUrl($('recent-btn-url')?.value)||'/galeria'}}}
-function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('sobre-portrait-url')?.value||''),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
+function collectSobreContentPayload(){return {eyebrow:safeText($('sobre-eyebrow')?.value,120),paragraphs:($('sobre-paragraphs')?.value||'').split('\n').map(x=>safeText(x,1000)).filter(Boolean).slice(0,20),specs:collectSpecs().slice(0,20).map(s=>({label:safeText(s.label,80),value:safeText(s.value,160)})),portrait_url:safeHttpUrl($('design-about-image')?.value||$('sobre-portrait-url')?.value||'',{allowRelative:true}),portrait_alt:safeText($('sobre-portrait-alt')?.value,240),portrait_focus_x:clampNumber($('design-about-focus-x')?.value,0,100,50),portrait_focus_y:clampNumber($('design-about-focus-y')?.value,0,100,72),cta_text:safeText($('sobre-cta-text')?.value,80),cta_url:safeHttpUrl($('sobre-cta-url')?.value)||'/contato'}}
 function collectContatoContentPayload(){return {eyebrow:safeText($('contato-eyebrow')?.value,120),title:safeText($('contato-title')?.value,180),submit_label:safeText($('contato-submit-label')?.value,80),tipos:($('contato-tipos')?.value||'').split('\n').map(x=>safeText(x,160)).filter(Boolean).slice(0,30),atendimento:safeText($('contato-atendimento')?.value,1000)}}
 function collectDesignContentSnapshot(){return {inicio:{hero:collectHeroContentPayload(),recent_work:collectRecentContentPayload()},sobre:{conteudo:collectSobreContentPayload()},contato:{conteudo:collectContatoContentPayload()},galeria:{trail_edits:JSON.parse(JSON.stringify(trailDraftEdits))}}}
 function applyDesignContentSnapshotToControls(s){if(!s)return;trailDraftEdits=s.galeria?.trail_edits&&typeof s.galeria.trail_edits==='object'?JSON.parse(JSON.stringify(s.galeria.trail_edits)):{};const h=s.inicio?.hero;if(h){cmsFieldSet('inicio.hero.eyebrow',h.eyebrow||'');cmsFieldSet('inicio.hero.title',h.title||'');cmsFieldSet('inicio.hero.description',h.description||'');$('hero-desktop-image').value=h.desktop_image||'';$('hero-mobile-image').value=h.mobile_image||'';$('hero-image-alt').value=h.image_alt||'';const mode=h.mode==='slideshow'?'slideshow':'static';$('hero-mode-static').checked=mode==='static';$('hero-mode-slideshow').checked=mode==='slideshow';$('hero-static-focus-x').value=Number(h.static_focus_x??50);$('hero-static-focus-y').value=Number(h.static_focus_y??50);$('hero-static-mobile-focus-x').value=Number(h.static_mobile_focus_x??h.static_focus_x??50);$('hero-static-mobile-focus-y').value=Number(h.static_mobile_focus_y??h.static_focus_y??50);$('hero-slide-interval').value=Number(h.slide_interval??5);$('hero-slide-transition').value=Number(h.slide_transition??1.2);$('hero-slide-width').value=h.slide_width||HERO_SLIDESHOW_DEFAULTS.width;$('hero-slide-fit').value=h.slide_fit||HERO_SLIDESHOW_DEFAULTS.fit;$('hero-slide-ratio').value=h.slide_ratio||HERO_SLIDESHOW_DEFAULTS.ratio;$('hero-slide-animation').value=h.slide_animation||HERO_SLIDESHOW_DEFAULTS.animation;$('hero-slide-order').value=h.slide_order||HERO_SLIDESHOW_DEFAULTS.order;$('hero-slide-behind-menu').value=h.slide_behind_menu===false?'no':'yes';heroSlidesDraft=Array.isArray(h.slides)?h.slides.map((x,i)=>({id:x.id||`slide-${Date.now()}-${i}`,url:x.url||'',alt:x.alt||'',focus_x:Number(x.focus_x??50),focus_y:Number(x.focus_y??50),published:x.published!==false})).filter(x=>x.url):[];$('hero-primary-text').value=h.primary_button?.text||'';$('hero-primary-url').value=h.primary_button?.url||'';$('hero-secondary-text').value=h.secondary_button?.text||'';$('hero-secondary-url').value=h.secondary_button?.url||'';$('hero-meta').value=(h.meta||[]).map(x=>`${x.label} | ${x.value}`).join('\n');updateHeroModeUI();updateStaticFocalPreview();renderHeroSlidesAdmin();renderHeroSlideshowOverview()}
   const r=s.inicio?.recent_work;if(r){$('recent-eyebrow').value=r.eyebrow||'';$('recent-title').value=r.title||'';$('recent-limit').value=r.gallery_limit??6;$('recent-btn-text').value=r.button?.text||'';$('recent-btn-url').value=r.button?.url||''}
-  const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[])}
+  const so=s.sobre?.conteudo;if(so){$('sobre-eyebrow').value=so.eyebrow||'';$('sobre-paragraphs').value=(so.paragraphs||[]).join('\n');$('sobre-portrait-url').value=so.portrait_url||'';if($('design-about-image'))$('design-about-image').value=so.portrait_url||'';if($('design-about-focus-x'))$('design-about-focus-x').value=Number(so.portrait_focus_x??50);if($('design-about-focus-y'))$('design-about-focus-y').value=Number(so.portrait_focus_y??72);$('sobre-portrait-alt').value=so.portrait_alt||'';$('sobre-cta-text').value=so.cta_text||'';$('sobre-cta-url').value=so.cta_url||'';renderSpecsEditor(so.specs||[]);updateDesignAboutImagePreview()}
   const ct=s.contato?.conteudo;if(ct){$('contato-eyebrow').value=ct.eyebrow||'';$('contato-title').value=ct.title||'';$('contato-submit-label').value=ct.submit_label||'';$('contato-tipos').value=(ct.tipos||[]).join('\n');$('contato-atendimento').value=ct.atendimento||''}}
 function collectDesignConfig() {
   return normalizeDesignConfig({
@@ -6177,6 +6272,7 @@ function applyDesignConfigToControls(config) {
   window.__designInlineStyles = JSON.parse(JSON.stringify(c.inline_styles || {}));
   if (c.content) applyDesignContentSnapshotToControls(c.content);
   updateDesignClientImagePreview();
+  updateDesignAboutImagePreview();
   applyDesignPreview();
   applyDesignContentPreview();
 
@@ -6532,6 +6628,27 @@ async function publishDesign() {
     }
     updateDesignPublicationState();
   }
+}
+
+async function publishDesignClientImageOnly() {
+  const button=$('design-client-save-apply');
+  if(button?.dataset.busy==='1')return;
+  if(button){button.dataset.busy='1';button.disabled=true;button.textContent='SALVANDO…'}
+  try{
+    const current=collectDesignConfig();
+    designDraftSaved=await upsertDesignRow('draft',current);
+    const published={...(designPublishedSaved||DESIGN_DEFAULTS),
+      client_access_image:current.client_access_image||'',
+      client_focus_x:clampNumber(current.client_focus_x,0,100,50),
+      client_focus_y:clampNumber(current.client_focus_y,0,100,50)};
+    designPublishedSaved=await upsertDesignRow('published',published);
+    designPublishedUpdatedAt=new Date().toISOString();
+    try{localStorage.setItem('photosrangel:client-cover:v1',JSON.stringify({client_access_image:published.client_access_image,client_focus_x:published.client_focus_x,client_focus_y:published.client_focus_y,cached_at:Date.now()}))}catch(_){}
+    $('design-client-access-image-msg').textContent='Foto e ponto focal publicados no site.';
+    flash('Foto da Área do Cliente publicada sem alterar os outros rascunhos.','sucesso');
+    updateDesignPublicationState();
+  }catch(error){console.error('[admin-v2] publishDesignClientImageOnly:',error);flash(`Erro ao publicar a foto: ${error.message}`,'erro')}
+  finally{if(button){button.dataset.busy='0';button.disabled=false;button.textContent='▣  SALVAR E PUBLICAR FOTO'}}
 }
 
 function getDesignPreviewDocument() {
@@ -9676,6 +9793,51 @@ function updateDesignClientPreviewOverlay(){
 
 async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
 
+async function uploadDesignAboutImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`about/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
+
+function updateDesignAboutFocalUI(){
+  const x=clampNumber($('design-about-focus-x')?.value,0,100,50),y=clampNumber($('design-about-focus-y')?.value,0,100,72);
+  const marker=$('design-about-focal-marker'),preview=$('design-about-image-preview');
+  if(marker){marker.style.left=`${x}%`;marker.style.top=`${y}%`}
+  if(preview)preview.style.backgroundPosition=focalStyle(x,y);
+  if($('design-about-focus-x-out'))$('design-about-focus-x-out').textContent=`${Math.round(x)}%`;
+  if($('design-about-focus-y-out'))$('design-about-focus-y-out').textContent=`${Math.round(y)}%`;
+  if($('design-about-focal-coordinates'))$('design-about-focal-coordinates').textContent=`${Math.round(x)}% × ${Math.round(y)}%`;
+}
+
+function updateDesignAboutImagePreview(){
+  const preview=$('design-about-image-preview');if(!preview)return;
+  const url=safeText($('design-about-image')?.value||$('sobre-portrait-url')?.value,2048);
+  preview.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';
+  preview.classList.toggle('empty',!url);
+  const empty=preview.querySelector('.design-about-image-empty');if(empty)empty.textContent=url?'':'Nenhuma imagem adicionada';
+  updateDesignAboutFocalUI();
+}
+
+function setDesignAboutFocalFromPointer(event){
+  const preview=$('design-about-image-preview');if(!preview||preview.classList.contains('empty'))return;
+  setFocalFromClick(preview,event,(x,y)=>{$('design-about-focus-x').value=String(x);$('design-about-focus-y').value=String(y);updateDesignAboutFocalUI();updateDesignPublicationState()});
+}
+
+async function publishDesignAboutImageOnly(){
+  const button=$('design-about-save-apply');if(button?.dataset.busy==='1')return;
+  if(button){button.dataset.busy='1';button.disabled=true;button.textContent='SALVANDO…'}
+  try{
+    if($('sobre-portrait-url'))$('sobre-portrait-url').value=$('design-about-image')?.value||'';
+    const payload=collectSobreContentPayload();
+    const ok=await upsertContent('sobre','conteudo',payload,null);if(!ok)throw new Error('Não foi possível salvar a fotografia.');
+    if(!designPublishedSaved)await ensureDesignPersistenceLoaded();
+    const current=collectDesignConfig();
+    designDraftSaved=await upsertDesignRow('draft',current);
+    designPublishedSaved=await upsertDesignRow('published',{...(designPublishedSaved||DESIGN_DEFAULTS),content:{...((designPublishedSaved||{}).content||{}),sobre:{conteudo:payload}}});
+    designPublishedUpdatedAt=new Date().toISOString();
+    await fetch('/api/revalidate-design',{method:'POST'}).catch(()=>{});
+    $('design-about-image-msg').textContent='Fotografia e ponto focal publicados na página Sobre.';
+    flash('Fotografia da página Sobre publicada.','sucesso');updateDesignPublicationState();
+  }catch(error){console.error('[admin-v2] publishDesignAboutImageOnly:',error);flash(`Erro ao publicar a foto: ${error.message}`,'erro')}
+  finally{if(button){button.dataset.busy='0';button.disabled=false;button.textContent='▣  SALVAR E PUBLICAR FOTO'}}
+}
+
 function updateDesignPageSwitcher(pathname='/inicio'){
   const normalized=pathname==='/'?'/inicio':pathname.replace(/\/$/,'')||'/inicio';
   const clientMode=normalized==='/area-cliente'||normalized==='/area-cliente.html';
@@ -9780,7 +9942,7 @@ function initDesignInlinePanels(){
     if(submit)submit.textContent='Aplicar na prévia';
   }
 
-  ['menu','animations','general','whatsapp','galleries','client_area'].forEach(name=>{
+  ['menu','animations','general','whatsapp','galleries','client_area','about_image'].forEach(name=>{
     const section=document.querySelector(`.design-accordion[data-design-section="${name}"]`);
     const host=$(`design-inline-${name}`);
     if(!section||!host)return;
@@ -9944,11 +10106,18 @@ function initDesignStudio() {
     $('design-client-focal-controls')?.scrollIntoView({behavior:'smooth',block:'center'});
     $('design-client-access-image-msg').textContent='Modo de edição ativo: clique na imagem ou use as barras Horizontal e Vertical.';
   });
-  $('design-client-save-apply')?.addEventListener('click',publishDesign);
+  $('design-client-save-apply')?.addEventListener('click',publishDesignClientImageOnly);
+  $('design-about-image-preview')?.addEventListener('pointerdown',setDesignAboutFocalFromPointer);
+  ['design-about-focus-x','design-about-focus-y'].forEach(id=>$(id)?.addEventListener('input',()=>{updateDesignAboutFocalUI();updateDesignPublicationState()}));
+  $('design-about-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-about-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-about-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-about-image-upload',()=>uploadDesignAboutImage(validos[0]));if(url?.skipped)return;$('design-about-image').value=url||'';if($('sobre-portrait-url'))$('sobre-portrait-url').value=url||'';updateDesignAboutImagePreview();updateDesignPublicationState();$('design-about-image-msg').textContent='Fotografia adicionada ao rascunho. Ajuste o foco e publique.'}catch(error){$('design-about-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
+  $('design-about-image-remove')?.addEventListener('click',()=>{$('design-about-image').value='';if($('sobre-portrait-url'))$('sobre-portrait-url').value='';updateDesignAboutImagePreview();updateDesignPublicationState();$('design-about-image-msg').textContent='Imagem removida do rascunho.'});
+  $('design-about-image-edit')?.addEventListener('click',()=>{const preview=$('design-about-image-preview');if(preview?.classList.contains('empty')){$('design-about-image-file')?.click();return}preview?.classList.add('is-editing');$('design-about-focal-controls')?.scrollIntoView({behavior:'smooth',block:'center'});$('design-about-image-msg').textContent='Modo de edição ativo: clique na imagem ou use as barras.'});
+  $('design-about-save-apply')?.addEventListener('click',publishDesignAboutImageOnly);
   ['design-client-text-visual','design-client-stage-selection','design-client-stage-selection-sub','design-client-stage-editing','design-client-stage-editing-sub','design-client-stage-delivery','design-client-stage-delivery-sub'].forEach(id=>{
     $(id)?.addEventListener('input',updateDesignClientPreviewOverlay);
   });
   updateDesignClientImagePreview();
+  updateDesignAboutImagePreview();
   updateDesignClientPreviewOverlay();
   if(document.body.dataset.designContentLiveBound!=='1'){document.body.dataset.designContentLiveBound='1';const live=e=>{if(activeView!=='design'||!e.target.closest('.content-panel,#design-inline-hero,.design-stack-body'))return;applyDesignPreview();applyDesignContentPreview();updateDesignPublicationState()};document.addEventListener('input',live);document.addEventListener('change',live)}
   loadContent().then(()=>ensureDesignPersistenceLoaded()).catch(()=>{});

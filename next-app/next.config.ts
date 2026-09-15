@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images:{remotePatterns:[{protocol:'https',hostname:'**.supabase.co'}]},
+  async redirects() {
+    return [{
+      source: '/area-cliente',
+      has: [{ type: 'host', value: 'photosrangel.vercel.app' }],
+      destination: 'https://photosrangel.pt/area-cliente',
+      permanent: false
+    }];
+  },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'X-Content-Type-Options', value: 'nosniff' },

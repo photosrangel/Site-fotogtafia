@@ -68,6 +68,44 @@ Deno.serve(async req => {
   const pairHash = await sha256(`${pepper}:pair:${ip}:${subject}`);
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
+  if (action === 'download') {
+    const kind = body.kind === 'zip' ? 'zip' : 'photo';
+    const filename = typeof body.filename === 'string' ? body.filename.slice(0, 180) : '';
+    const count = Math.max(1, Math.min(10000, Number(body.count) || 1));
+    if (!slug || !codigo) return reply({ erro: 'Acesso inválido.' }, 401);
+    const { data: access, error: accessError } = await db.rpc('client_access_login_internal', { p_slug: slug, p_codigo: codigo, p_ip_hash: ipHash, p_pair_hash: pairHash });
+    if (accessError || access?.erro || access?.rate_limited) return reply({ erro: 'Acesso inválido.' }, 401);
+    const detail = kind === 'zip'
+      ? `A cliente baixou o arquivo ZIP completo com ${count} fotografia${count === 1 ? '' : 's'}.`
+      : `A cliente baixou a fotografia ${filename || 'individual'}.`;
+    await db.from('security_events').insert({ event_type: kind === 'zip' ? 'client_download_zip' : 'client_download_photo', outcome: 'success', ip_hash: ipHash, subject_hash: pairHash });
+    await db.from('admin_activity').insert({ activity_type: kind === 'zip' ? 'client_download_zip' : 'client_download_photo', title: kind === 'zip' ? `ZIP baixado — ${access?.titulo || slug}` : `Foto baixada — ${access?.titulo || slug}`, detail, entity_type: 'ensaio', entity_id: String(access?.id || ''), severity: 'success', metadata: { kind, filename: filename || null, count } });
+    const { data: existingReview } = await db.from('session_reviews').select('id').eq('session_id', String(access?.id || '')).maybeSingle();
+    const { data: settings } = await db.from('site_settings').select('google_review_url').limit(1).maybeSingle();
+    return reply({ ok: true, show_review: !existingReview?.id, google_review_url: settings?.google_review_url || '' });
+  }
+
+  if (action === 'review') {
+    const stars = Math.round(Number(body.stars));
+    const feedbackText = typeof body.feedbackText === 'string' ? body.feedbackText.trim().slice(0, 2000) : '';
+    if (!slug || !codigo || stars < 1 || stars > 5) return reply({ erro: 'Avaliação inválida.' }, 400);
+    const { data: access, error: accessError } = await db.rpc('client_access_login_internal', { p_slug: slug, p_codigo: codigo, p_ip_hash: ipHash, p_pair_hash: pairHash });
+    if (accessError || access?.erro || access?.rate_limited) return reply({ erro: 'Acesso inválido.' }, 401);
+    const { error: reviewError } = await db.from('session_reviews').upsert({ session_id: String(access.id), stars, feedback_text: feedbackText || null }, { onConflict: 'session_id', ignoreDuplicates: true });
+    if (reviewError) return reply({ erro: 'Não foi possível guardar a avaliação.' }, 500);
+    await db.from('admin_activity').insert({ activity_type: 'client_review_received', title: `Nova avaliação — ${access?.titulo || slug}`, detail: `${stars} estrela${stars === 1 ? '' : 's'}${feedbackText ? ' · comentário recebido' : ''}.`, entity_type: 'ensaio', entity_id: String(access.id), severity: 'success', metadata: { stars } });
+    return reply({ ok: true });
+  }
+
+  if (action === 'review-dismissed') {
+    if (!slug || !codigo) return reply({ erro: 'Acesso inválido.' }, 401);
+    const { data: access, error: accessError } = await db.rpc('client_access_login_internal', { p_slug: slug, p_codigo: codigo, p_ip_hash: ipHash, p_pair_hash: pairHash });
+    if (accessError || access?.erro || access?.rate_limited) return reply({ erro: 'Acesso inválido.' }, 401);
+    const { data: existingReview } = await db.from('session_reviews').select('id').eq('session_id', String(access.id)).maybeSingle();
+    if (!existingReview?.id) await db.from('admin_activity').insert({ activity_type: 'client_review_dismissed', title: `Avaliação não respondida — ${access?.titulo || slug}`, detail: 'A cliente fechou o convite sem enviar uma avaliação. O convite será mostrado novamente no próximo download.', entity_type: 'ensaio', entity_id: String(access.id), severity: 'info' });
+    return reply({ ok: true });
+  }
+
   if (!await validTurnstile(String(body.turnstileToken || ''), ip)) return reply({ erro: 'Confirme que não é um robô.' }, 400);
 
   if (action === 'forgot') {
@@ -127,9 +165,11 @@ Deno.serve(async req => {
   if (data?.rate_limited) return new Response(JSON.stringify(data), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(Math.max(1, Number(data.retry_after) || 1800)) } });
   if (data?.erro) return reply(data, 401);
   const { data: sessionMeta } = await db.from('ensaios')
-    .select('delivered_at,publicado_em,expires_at,expiry_days,selected_photo_numbers,selection_completed_at')
+    .select('delivered_at,publicado_em,expires_at,expiry_days,selected_photo_numbers,selection_completed_at,review_prompted_at')
     .eq('id', data.id).maybeSingle();
   if (sessionMeta) Object.assign(data, sessionMeta);
+  const { data: publicSettings } = await db.from('site_settings').select('google_review_url').limit(1).maybeSingle();
+  data.google_review_url = publicSettings?.google_review_url || '';
   const photos = Array.isArray(data?.fotos) ? data.fotos : [];
   if (photos.length) {
     const paths = photos.map((photo: { url?: string }) => storagePath(photo.url || '', 'fotos'));
