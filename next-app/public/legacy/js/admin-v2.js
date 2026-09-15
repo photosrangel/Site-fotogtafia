@@ -9799,7 +9799,7 @@ function updateDesignAboutFocalUI(){
   const x=clampNumber($('design-about-focus-x')?.value,0,100,50),y=clampNumber($('design-about-focus-y')?.value,0,100,72);
   const marker=$('design-about-focal-marker'),preview=$('design-about-image-preview');
   if(marker){marker.style.left=`${x}%`;marker.style.top=`${y}%`}
-  if(preview)preview.style.backgroundPosition=focalStyle(x,y);
+  if(preview)preview.style.setProperty('--about-photo-pos',focalStyle(x,y));
   if($('design-about-focus-x-out'))$('design-about-focus-x-out').textContent=`${Math.round(x)}%`;
   if($('design-about-focus-y-out'))$('design-about-focus-y-out').textContent=`${Math.round(y)}%`;
   if($('design-about-focal-coordinates'))$('design-about-focal-coordinates').textContent=`${Math.round(x)}% × ${Math.round(y)}%`;
@@ -9808,7 +9808,7 @@ function updateDesignAboutFocalUI(){
 function updateDesignAboutImagePreview(){
   const preview=$('design-about-image-preview');if(!preview)return;
   const url=safeText($('design-about-image')?.value||$('sobre-portrait-url')?.value,2048);
-  preview.style.backgroundImage=url?`url("${url.replace(/"/g,'%22')}")`:'';
+  preview.style.setProperty('--about-photo',url?`url("${url.replace(/"/g,'%22')}")`:'none');
   preview.classList.toggle('empty',!url);
   const empty=preview.querySelector('.design-about-image-empty');if(empty)empty.textContent=url?'':'Nenhuma imagem adicionada';
   updateDesignAboutFocalUI();

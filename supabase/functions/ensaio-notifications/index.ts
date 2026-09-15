@@ -134,7 +134,7 @@ async function notifySelection(ensaio: any, codigo: string) {
   const results: Array<{ recipient: string; sent: boolean; reason?: string }> = []
   const nome = firstName(ensaio.cliente_nome)
   const areaCliente = `${SITE_URL}/area-cliente`
-  const adminUrl = `${SITE_URL}/admin-v2.html`
+  const adminUrl = `${SITE_URL}/admin`
 
   if (!ensaio.email_selecao_cliente_enviado_em) {
     if (!ensaio.cliente_email) {
@@ -179,7 +179,7 @@ async function notifySelection(ensaio: any, codigo: string) {
           <div style="margin:22px 0;padding:18px;border:1px solid #302e2a;background:#10100f;">
             <div><strong style="color:#f0ede6;">Fotografias selecionadas:</strong> ${count}</div>
             <div style="margin-top:8px;"><strong style="color:#f0ede6;">Data:</strong> ${escapeHtml(dataSelecao)}</div>
-          </div>${button('Abrir Admin V2', adminUrl)}`)
+          </div>${button('Abrir Admin', adminUrl)}`)
         await sendEmail({
           to: photographerEmail,
           subject: `Nova seleção finalizada — ${ensaio.cliente_nome || ensaio.titulo}`,
