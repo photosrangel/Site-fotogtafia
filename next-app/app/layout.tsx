@@ -6,14 +6,19 @@ import { FloatingWhatsApp } from '@/components/floating-whatsapp';
 import { getPublishedDesignConfig } from '@/lib/published-design';
 import { PrivacyAnalytics } from '@/components/privacy-analytics';
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://photosrangel.pt'),
-  title: { default: 'Rangel Santos — Fotografia', template: '%s — Rangel Santos' },
-  description: 'Fotografia de retrato feminino em Vale de Cambra, Aveiro.',
-  alternates:{canonical:'/'},
-  openGraph:{type:'website',locale:'pt_PT',siteName:'Rangel Santos Fotografia',images:['/images/hero-bg.jpg']},
-  twitter:{card:'summary_large_image'}
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const publishedDesign = await getPublishedDesignConfig();
+  const faviconUrl = typeof publishedDesign.favicon_url === 'string' ? publishedDesign.favicon_url.trim() : '';
+  return {
+    metadataBase: new URL('https://photosrangel.pt'),
+    title: { default: 'Rangel Santos — Fotografia', template: '%s — Rangel Santos' },
+    description: 'Fotografia de retrato feminino em Vale de Cambra, Aveiro.',
+    alternates:{canonical:'/'},
+    openGraph:{type:'website',locale:'pt_PT',siteName:'Rangel Santos Fotografia',images:['/images/hero-bg.jpg']},
+    twitter:{card:'summary_large_image'},
+    ...(faviconUrl ? { icons: { icon: faviconUrl } } : {})
+  };
+}
 
 /*
  * Rede de segurança (ver o mesmo comentário em app/page.tsx): o layout

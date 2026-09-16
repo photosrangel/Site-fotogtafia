@@ -5989,6 +5989,7 @@ const DESIGN_DEFAULTS = Object.freeze({
   client_photo_size: 'large',
   client_typography: 'classic',
   client_border: 'fine',
+  favicon_url: '',
   client_access_image: '',
   client_focus_x: 50,
   client_focus_y: 50,
@@ -6080,6 +6081,7 @@ function normalizeDesignConfig(config = {}) {
     client_photo_size: ['compact','medium','large'].includes(c.client_photo_size) ? c.client_photo_size : 'large',
     client_typography: ['classic','editorial','minimal'].includes(c.client_typography) ? c.client_typography : 'classic',
     client_border: ['fine','none','soft'].includes(c.client_border) ? c.client_border : 'fine',
+    favicon_url: safeHttpUrl(c.favicon_url || '', { allowRelative: true }),
     client_access_image: safeHttpUrl(c.client_access_image || '', { allowRelative: true }),
     client_focus_x: clampNumber(c.client_focus_x, 0, 100, 50),
     client_focus_y: clampNumber(c.client_focus_y, 0, 100, 50),
@@ -6164,6 +6166,7 @@ function collectDesignConfig() {
     client_photo_size: $('design-client-photo-size')?.value,
     client_typography: $('design-client-typography')?.value,
     client_border: $('design-client-border')?.value,
+    favicon_url: $('design-favicon-url')?.value,
     client_access_image: $('design-client-access-image')?.value,
     client_focus_x: $('design-client-focus-x')?.value,
     client_focus_y: $('design-client-focus-y')?.value,
@@ -6235,6 +6238,7 @@ function applyDesignConfigToControls(config) {
     'design-client-photo-size': c.client_photo_size,
     'design-client-typography': c.client_typography,
     'design-client-border': c.client_border,
+    'design-favicon-url': c.favicon_url,
     'design-client-access-image': c.client_access_image,
     'design-client-focus-x': c.client_focus_x,
     'design-client-focus-y': c.client_focus_y,
@@ -6629,6 +6633,23 @@ async function publishDesign() {
     updateDesignPublicationState();
   }
 }
+
+async function publishDesignFaviconOnly() {
+  const button=$('design-favicon-save'); if(button?.dataset.busy==='1')return;
+  if(button){button.dataset.busy='1';button.disabled=true;button.textContent='SALVANDO…'}
+  try{
+    const current=collectDesignConfig();
+    designDraftSaved=await upsertDesignRow('draft',current);
+    const published={...(designPublishedSaved||DESIGN_DEFAULTS),favicon_url:current.favicon_url||''};
+    designPublishedSaved=await upsertDesignRow('published',published);
+    designPublishedUpdatedAt=new Date().toISOString();
+    $('design-favicon-msg').textContent=published.favicon_url?'Ícone publicado no site.':'Ícone removido e alteração publicada.';
+    flash(published.favicon_url?'Favicon publicado no site.':'Favicon removido do site.','sucesso'); updateDesignPublicationState();
+  }catch(error){console.error('[admin-v2] publishDesignFaviconOnly:',error);flash(`Erro ao publicar o favicon: ${error.message}`,'erro')}
+  finally{if(button){button.dataset.busy='0';button.disabled=false;button.textContent='▣  SALVAR E PUBLICAR'}}
+}
+
+function updateDesignFaviconPreview(){const url=$('design-favicon-url')?.value?.trim()||'';const img=$('design-favicon-img'),empty=$('design-favicon-empty');if(img){img.src=url;img.style.display=url?'block':'none'}if(empty)empty.style.display=url?'none':'block'}
 
 async function publishDesignClientImageOnly() {
   const button=$('design-client-save-apply');
@@ -9791,6 +9812,8 @@ function updateDesignClientPreviewOverlay(){
   set('design-client-preview-stage-3-sub',$('design-client-stage-delivery-sub')?.value||'SUAS MEMÓRIAS');
 }
 
+async function uploadDesignFavicon(file){const ext=(file.name.split('.').pop()||'png').toLowerCase(),path=`site-identity/favicon-${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
+
 async function uploadDesignClientImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`client-area/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
 
 async function uploadDesignAboutImage(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase(),path=`about/${Date.now()}-${Math.random().toString(36).slice(2,9)}.${ext}`;const {error}=await uploadToBucket(BUCKET,path,file,{cacheControl:'3600',upsert:false});if(error)throw error;return getPublicUrlFromBucket(BUCKET,path).data?.publicUrl||''}
@@ -10097,6 +10120,10 @@ function initDesignStudio() {
     setDesignClientFocalFromPointer
   );
 
+  $('design-favicon-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-favicon-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-favicon-msg').textContent='Enviando ícone...';const url=await withOperationLock('design-favicon-upload',()=>uploadDesignFavicon(validos[0]));if(url?.skipped)return;$('design-favicon-url').value=url||'';updateDesignFaviconPreview();updateDesignPublicationState();$('design-favicon-msg').textContent='Ícone adicionado ao rascunho. Clique em Salvar e publicar.'}catch(error){$('design-favicon-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
+  $('design-favicon-remove')?.addEventListener('click',()=>{$('design-favicon-url').value='';updateDesignFaviconPreview();updateDesignPublicationState();$('design-favicon-msg').textContent='Ícone removido do rascunho. Clique em Salvar e publicar para aplicar.'});
+  $('design-favicon-save')?.addEventListener('click',publishDesignFaviconOnly);
+  updateDesignFaviconPreview();
   $('design-client-access-image-file')?.addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;const {validos,rejeitados}=validarImagens([file]);if(rejeitados.length){$('design-client-access-image-msg').textContent=rejeitados.join(' · ');e.target.value='';return}try{$('design-client-access-image-msg').textContent='Enviando fotografia...';const url=await withOperationLock('design-client-image-upload',()=>uploadDesignClientImage(validos[0]));if(url?.skipped)return;$('design-client-access-image').value=url||'';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Fotografia adicionada ao rascunho.'}catch(error){$('design-client-access-image-msg').textContent=`Erro no upload: ${error.message}`}finally{e.target.value=''}});
   $('design-client-access-image-remove')?.addEventListener('click',()=>{$('design-client-access-image').value='';updateDesignClientImagePreview();applyDesignPreview();updateDesignPublicationState();$('design-client-access-image-msg').textContent='Imagem removida do rascunho.'});
   $('design-client-access-image-edit')?.addEventListener('click',()=>{

@@ -22,6 +22,7 @@ export type VisualOverride = {
 };
 
 export type PublishedDesignConfig = {
+  favicon_url?: string;
   inline_styles?: Record<string, VisualOverride>;
   whatsapp_enabled?: boolean;
   whatsapp_number?: string;

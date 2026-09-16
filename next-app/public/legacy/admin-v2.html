@@ -450,6 +450,25 @@
             </select>
           </label>
 
+          <div class="design-client-image-control design-favicon-control">
+  <div class="design-client-editor-head">
+    <p class="section-eyebrow">Identidade do site</p>
+    <h3>Ícone da aba do navegador (favicon)</h3>
+    <p>Defina o pequeno ícone que aparece ao lado do nome do site nas abas do navegador.</p>
+  </div>
+  <input id="design-favicon-url" type="hidden" value="">
+  <div id="design-favicon-preview" style="width:76px;height:76px;border:1px solid rgba(255,255,255,.16);display:grid;place-items:center;overflow:hidden;margin:14px 0;background:rgba(255,255,255,.03)">
+    <span id="design-favicon-empty" style="font-size:11px;text-align:center;padding:8px;opacity:.6">Sem ícone</span>
+    <img id="design-favicon-img" alt="Prévia do favicon" style="display:none;width:48px;height:48px;object-fit:contain">
+  </div>
+  <div class="design-client-image-actions">
+    <label class="small-btn design-client-upload-label">↥&nbsp;&nbsp; ADICIONAR ÍCONE<input id="design-favicon-file" type="file" accept="image/png,image/webp,image/jpeg" hidden></label>
+    <button class="small-btn" id="design-favicon-remove" type="button">♜&nbsp;&nbsp; REMOVER</button>
+    <button class="btn btn-accent design-client-save-apply" id="design-favicon-save" type="button">▣&nbsp;&nbsp; SALVAR E PUBLICAR</button>
+  </div>
+  <p class="design-control-help" id="design-favicon-msg">Use uma imagem quadrada, de preferência PNG com fundo transparente, com pelo menos 512 × 512 px.</p>
+</div>
+
           <div class="design-client-image-control">
   <div class="design-client-editor-head">
     <p class="section-eyebrow">Design</p>

@@ -36,8 +36,8 @@ export function PublicNav({ active, siteName = 'Rangel Santos' }: { active: stri
       <button className="nav-toggle" type="button" aria-label={open ? 'Fechar menu' : 'Abrir menu'} aria-expanded={open} onClick={() => setOpen(value => !value)}><span/><span/><span/></button>
       <div className={`nav-links${open ? ' is-open' : ''}`}>
         <button className="nav-menu-close" type="button" aria-label="Fechar menu" onClick={() => setOpen(false)}><span aria-hidden="true">×</span><b>Fechar</b></button>
-        {links.map(([href, label]) => <Link key={href} href={href} prefetch={true} className={active === href ? 'active' : undefined} onClick={() => setOpen(false)}>{label}</Link>)}
-        <Link href="/area-cliente" className="nav-cta" onClick={() => setOpen(false)}>Área do Cliente</Link>
+        {links.map(([href, label]) => <Link key={href} href={href} prefetch={false} className={active === href ? 'active' : undefined} onClick={() => setOpen(false)}>{label}</Link>)}
+        <Link href="/area-cliente" prefetch={false} className="nav-cta" onClick={() => setOpen(false)}>Área do Cliente</Link>
       </div>
     </div>
   </nav>;
