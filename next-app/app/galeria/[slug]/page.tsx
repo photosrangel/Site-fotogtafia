@@ -20,10 +20,20 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   const {slug}=await params,g=await load(slug);
   if(!g)return{};
   const canonical=`/galeria/${g.canonical_slug||g.slug}`;
-  const title=g.seo_title||g.title;
-  const description=g.seo_description||g.description||`Galeria fotográfica ${g.title}.`;
-  const image=g.social_image_url||g.cover_url;
-  return{title,description,alternates:{canonical},openGraph:{title,description,url:canonical,type:'article',images:image?[image]:[]}};
+  const sessionType=g.session_type||'Ensaio fotográfico feminino';
+  const location=g.session_location||'Vale de Cambra, Aveiro';
+  // Campos SEO preenchidos no Admin continuam tendo prioridade. Quando não
+  // existem, cada galeria recebe metadados descritivos próprios automaticamente.
+  const title=g.seo_title||`${sessionType} — ${g.title}`;
+  const description=g.seo_description||g.description||`${sessionType} de ${g.title}, fotografado por Rangel Santos em ${location}. Conheça esta sessão e o portfólio.`;
+  const image=g.social_image_url||g.cover_url||g.photos[0]?.image_url;
+  return{
+    title,
+    description,
+    alternates:{canonical},
+    openGraph:{title,description,url:canonical,type:'article',locale:'pt_PT',images:image?[{url:image,alt:`${sessionType} — ${g.title}`}]:[]},
+    twitter:{card:'summary_large_image',title,description,images:image?[image]:[]},
+  };
 }
 
 export default async function Page({params}:Props){
