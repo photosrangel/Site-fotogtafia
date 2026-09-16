@@ -9965,7 +9965,7 @@ function initDesignInlinePanels(){
     if(submit)submit.textContent='Aplicar na prévia';
   }
 
-  ['menu','animations','general','whatsapp','galleries','client_area','about_image'].forEach(name=>{
+  ['menu','animations','general','whatsapp','galleries','client_area','about_image','favicon'].forEach(name=>{
     const section=document.querySelector(`.design-accordion[data-design-section="${name}"]`);
     const host=$(`design-inline-${name}`);
     if(!section||!host)return;
@@ -9989,7 +9989,7 @@ function initDesignInlinePanels(){
         setTimeout(()=>{sizeDesignPreview();panel.scrollIntoView({behavior:'smooth',block:'start'});},40);
       }
     });
-    if(body&&!body.querySelector('.design-panel-actions')){
+    if(body&&panel.dataset.inlinePanel!=='favicon'&&!body.querySelector('.design-panel-actions')){
       const actions=document.createElement('div');actions.className='design-panel-actions';
       actions.innerHTML='<button type="button" class="btn" data-panel-discard>Descartar painel</button><button type="button" class="btn btn-accent" data-panel-save>Salvar painel</button>';
       body.appendChild(actions);

@@ -33,11 +33,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const publishedDesign = await getPublishedDesignConfig();
   const visualOverrides = publishedDesign.inline_styles || {};
   return (
-    <html lang="pt" data-scroll-behavior="smooth">
+    <html lang="pt" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/legacy/css/style.css?v=67-gallery-mobile-2" />
       </head>
-      <body><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/><PrivacyAnalytics /></body>
+      <body suppressHydrationWarning><HydrationMarker /><PublishedVisualDesign overrides={visualOverrides}/>{children}<FloatingWhatsApp config={publishedDesign}/><PrivacyAnalytics /></body>
     </html>
   );
 }
