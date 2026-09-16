@@ -398,7 +398,7 @@ async function loadPublishedDesign(){
     const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const {SUPABASE_URL,SUPABASE_ANON_KEY}=await import('./supabase-config.js');
     const designSupabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{
-      auth:{persistSession:false,autoRefreshToken:false}
+      auth:{persistSession:false,autoRefreshToken:false,storageKey:'photosrangel-design-public-v1'}
     });
 
     const {data,error}=await designSupabase

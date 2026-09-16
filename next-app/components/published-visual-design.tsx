@@ -121,9 +121,18 @@ function applyToDocument(doc: Document, overrides: Record<string, VisualOverride
 export function PublishedVisualDesign({ overrides }: { overrides: Record<string, VisualOverride> }) {
   useEffect(() => {
     const apply = () => applyToDocument(document, overrides);
-    apply();
-    const observer = new MutationObserver(apply);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['id'] });
+    // Não alterar texto/estilos/ids durante a hidratação inicial. O CSS
+    // crítico continua renderizado pelo servidor; os overrides de DOM só
+    // entram depois de dois frames completos no cliente.
+    let observer: MutationObserver | null = null;
+    let frame2 = 0;
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        apply();
+        observer = new MutationObserver(apply);
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['id'] });
+      });
+    });
     const media = window.matchMedia('(max-width: 520px)');
     media.addEventListener('change', apply);
     /*
@@ -133,12 +142,14 @@ export function PublishedVisualDesign({ overrides }: { overrides: Record<string,
       a tempo.
     */
     const resizeObserver = new ResizeObserver(apply);
-    resizeObserver.observe(document.documentElement);
-    requestAnimationFrame(apply);
-    const firstLayoutRetry = window.setTimeout(apply, 80);
+    const resizeStart = window.setTimeout(() => resizeObserver.observe(document.documentElement), 120);
+    const firstLayoutRetry = window.setTimeout(apply, 160);
     return () => {
-      observer.disconnect();
+      cancelAnimationFrame(frame1);
+      if (frame2) cancelAnimationFrame(frame2);
+      observer?.disconnect();
       resizeObserver.disconnect();
+      window.clearTimeout(resizeStart);
       media.removeEventListener('change', apply);
       window.clearTimeout(firstLayoutRetry);
     };

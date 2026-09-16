@@ -46,14 +46,24 @@ export function HydrationMarker() {
       mark(document.querySelector('#gallery-title'),'gallery-title');
     };
 
-    document.documentElement.dataset.reactHydrated = '1';
-    window.dispatchEvent(new Event('rangel:hydrated'));
-    identifyEditableElements();
-    const observer = new MutationObserver(identifyEditableElements);
-    observer.observe(document.body,{childList:true,subtree:true});
+    // Aguarda dois frames: nenhuma marcação do editor toca no DOM enquanto
+    // o React ainda está a terminar a hidratação do documento inicial.
+    let observer: MutationObserver | null = null;
+    let frame2 = 0;
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        document.documentElement.dataset.reactHydrated = '1';
+        window.dispatchEvent(new Event('rangel:hydrated'));
+        identifyEditableElements();
+        observer = new MutationObserver(identifyEditableElements);
+        observer.observe(document.body,{childList:true,subtree:true});
+      });
+    });
 
     return () => {
-      observer.disconnect();
+      cancelAnimationFrame(frame1);
+      if (frame2) cancelAnimationFrame(frame2);
+      observer?.disconnect();
       delete document.documentElement.dataset.reactHydrated;
     };
   }, []);

@@ -1062,7 +1062,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, TURNSTILE_SITE_KEY } from './js/supabase-config.js';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { storageKey: 'photosrangel-client-auth-v1' }
+});
 
 // Turnstile em modo "execute": fica invisível e só entra em ação quando a
 // Turnstile em modo "execute": fica invisível e só entra em ação quando a
